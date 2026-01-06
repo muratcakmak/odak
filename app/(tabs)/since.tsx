@@ -8,18 +8,10 @@ import { DatePicker, Host, ContextMenu, Button } from "@expo/ui/swift-ui";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import Animated, { LinearTransition, FadeIn, FadeOut } from "react-native-reanimated";
-import { getSinceEvents, addSinceEvent, deleteSinceEvent, type SinceEvent, getSinceViewMode, setSinceViewMode, type ViewMode } from "../../utils/storage";
+import { getSinceEvents, addSinceEvent, type SinceEvent, getSinceViewMode, setSinceViewMode, saveImageLocally, type ViewMode } from "../../utils/storage";
 
 // Sort options
 type SortType = "date_asc" | "date_desc" | "title_asc" | "title_desc";
-
-// Default placeholder images for events
-const placeholderImages = [
-  "https://images.unsplash.com/photo-1556836459-d03e8a7c9c1c?w=800",
-  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800",
-  "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800",
-  "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800",
-];
 
 function formatDate(date: Date) {
   const options: Intl.DateTimeFormatOptions = {
@@ -132,15 +124,13 @@ function SinceCard({
   image,
   showProgress,
   onPress,
-  onLongPress,
   compact = true,
 }: {
   title: string;
   startDate: Date;
-  image: string;
+  image?: string;
   showProgress?: boolean;
   onPress?: () => void;
-  onLongPress?: () => void;
   compact?: boolean;
 }) {
   const daysSince = getDaysSince(startDate);
@@ -148,48 +138,75 @@ function SinceCard({
   if (!compact) {
     // List view - full width
     return (
-      <Pressable onPress={onPress} onLongPress={onLongPress}>
-        <ImageBackground
-          source={{ uri: image }}
-          style={styles.sinceCardList}
-          imageStyle={styles.sinceCardImage}
-        >
-          <View style={styles.sinceCardOverlayList}>
-            <View style={styles.sinceCardContentList}>
-              <Text style={styles.sinceTitleTextList}>{title}</Text>
-              <Text style={styles.sinceDateTextList}>{formatDate(startDate)}</Text>
+      <Pressable onPress={onPress}>
+        {image ? (
+          <ImageBackground
+            source={{ uri: image }}
+            style={styles.sinceCardList}
+            imageStyle={styles.sinceCardImage}
+          >
+            <View style={styles.sinceCardOverlayList}>
+              <View style={styles.sinceCardContentList}>
+                <Text style={styles.sinceTitleTextList}>{title}</Text>
+                <Text style={styles.sinceDateTextList}>{formatDate(startDate)}</Text>
+              </View>
+              <View style={styles.sinceDaysContainerList}>
+                <Text style={styles.sinceDaysTextList}>{daysSince}</Text>
+                <Text style={styles.sinceDaysLabelList}>days</Text>
+              </View>
             </View>
-            <View style={styles.sinceDaysContainerList}>
-              <Text style={styles.sinceDaysTextList}>{daysSince}</Text>
-              <Text style={styles.sinceDaysLabelList}>days</Text>
+          </ImageBackground>
+        ) : (
+          <View style={[styles.sinceCardList, styles.sinceCardNoImage]}>
+            <View style={styles.sinceCardOverlayList}>
+              <View style={styles.sinceCardContentList}>
+                <Text style={styles.sinceTitleTextList}>{title}</Text>
+                <Text style={styles.sinceDateTextList}>{formatDate(startDate)}</Text>
+              </View>
+              <View style={styles.sinceDaysContainerList}>
+                <Text style={styles.sinceDaysTextList}>{daysSince}</Text>
+                <Text style={styles.sinceDaysLabelList}>days</Text>
+              </View>
             </View>
           </View>
-        </ImageBackground>
+        )}
       </Pressable>
     );
   }
 
   // Grid view - compact
   return (
-    <Pressable onPress={onPress} onLongPress={onLongPress}>
-      <ImageBackground
-        source={{ uri: image }}
-        style={styles.sinceCard}
-        imageStyle={styles.sinceCardImage}
-      >
-        <View style={styles.sinceCardOverlay}>
-          <View style={styles.sinceCardContent}>
-            <Text style={styles.sinceDaysText}>{daysSince} days</Text>
-            <Text style={styles.sinceDateText}>{formatDate(startDate)}</Text>
-            <Text style={styles.sinceTitleText}>{title}</Text>
-          </View>
-          {showProgress && (
-            <View style={styles.progressContainer}>
-              <ProgressRing progress={0} />
+    <Pressable onPress={onPress}>
+      {image ? (
+        <ImageBackground
+          source={{ uri: image }}
+          style={styles.sinceCard}
+          imageStyle={styles.sinceCardImage}
+        >
+          <View style={styles.sinceCardOverlay}>
+            <View style={styles.sinceCardContent}>
+              <Text style={styles.sinceDaysText}>{daysSince} days</Text>
+              <Text style={styles.sinceDateText}>{formatDate(startDate)}</Text>
+              <Text style={styles.sinceTitleText}>{title}</Text>
             </View>
-          )}
+            {showProgress && (
+              <View style={styles.progressContainer}>
+                <ProgressRing progress={0} />
+              </View>
+            )}
+          </View>
+        </ImageBackground>
+      ) : (
+        <View style={[styles.sinceCard, styles.sinceCardNoImage]}>
+          <View style={styles.sinceCardOverlay}>
+            <View style={styles.sinceCardContent}>
+              <Text style={styles.sinceDaysText}>{daysSince} days</Text>
+              <Text style={styles.sinceDateText}>{formatDate(startDate)}</Text>
+              <Text style={styles.sinceTitleText}>{title}</Text>
+            </View>
+          </View>
         </View>
-      </ImageBackground>
+      )}
     </Pressable>
   );
 }
@@ -382,21 +399,18 @@ export default function SinceScreen() {
     loadEvents();
   }, []);
 
-  // Add new event
-  const handleAddEvent = useCallback((title: string, date: Date, image?: string) => {
-    const eventImage = image || placeholderImages[Math.floor(Math.random() * placeholderImages.length)];
+  // Add new event with local image storage
+  const handleAddEvent = useCallback(async (title: string, date: Date, image?: string) => {
+    let localImageUri: string | undefined;
+    if (image) {
+      localImageUri = await saveImageLocally(image);
+    }
     const newEvent = addSinceEvent({
       title,
       startDate: date.toISOString(),
-      image: eventImage,
+      image: localImageUri,
     });
     setEvents((prev) => [...prev, newEvent]);
-  }, []);
-
-  // Delete event (on long press)
-  const handleDeleteEvent = useCallback((id: string) => {
-    deleteSinceEvent(id);
-    setEvents((prev) => prev.filter((e) => e.id !== id));
   }, []);
 
   // Open add modal
@@ -496,10 +510,9 @@ export default function SinceScreen() {
                 <SinceCard
                   title={event.title}
                   startDate={event.dateObj}
-                  image={event.image || placeholderImages[0]}
+                  image={event.image}
                   compact={viewMode === "grid"}
                   onPress={() => router.push(`/event/${event.id}`)}
-                  onLongPress={() => handleDeleteEvent(event.id)}
                 />
               </Animated.View>
             ))}
@@ -640,6 +653,9 @@ const styles = StyleSheet.create({
   },
   sinceCardImage: {
     borderRadius: 20,
+  },
+  sinceCardNoImage: {
+    backgroundColor: "#2C2C2E",
   },
   sinceCardOverlay: {
     flex: 1,

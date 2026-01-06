@@ -161,10 +161,10 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Get Left+ Banner */}
+        {/* Get Reko+ Banner */}
         <View style={styles.premiumBanner}>
           <View style={styles.premiumBannerContent}>
-            <Text style={styles.premiumTitle}>Get Left+</Text>
+            <Text style={styles.premiumTitle}>Get Reko+</Text>
             <Text style={styles.premiumSubtitle}>
               Unlock all premium features and help support and maintain the app.
             </Text>
@@ -304,13 +304,13 @@ export default function SettingsScreen() {
           </Text>
         </View>
 
-        {/* About Left Section */}
-        <Text style={styles.sectionTitle}>About Left</Text>
+        {/* About Reko Section */}
+        <Text style={styles.sectionTitle}>About Reko</Text>
         <View style={styles.settingsCard}>
           <SettingsRow
             icon="gift"
             iconBg="#FF6B6B"
-            label="Give Left+ for free"
+            label="Give Reko+ for free"
             showChevron
           />
           <View style={styles.settingsDivider} />
@@ -338,7 +338,7 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="star"
             iconBg="#FFCC00"
-            label="Rate & review Left"
+            label="Rate & review Reko"
             showChevron
           />
           <View style={styles.settingsDivider} />

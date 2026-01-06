@@ -1,7 +1,41 @@
 import { MMKV } from "react-native-mmkv";
+import { Paths, File, Directory } from "expo-file-system";
 
 // Initialize MMKV storage
 export const storage = new MMKV();
+
+// Image storage directory
+const getImageDir = () => new Directory(Paths.document, "images");
+
+// Ensure image directory exists
+async function ensureImageDir() {
+  const imageDir = getImageDir();
+  if (!imageDir.exists) {
+    imageDir.create();
+  }
+}
+
+// Save image locally and return local URI
+export async function saveImageLocally(uri: string): Promise<string> {
+  await ensureImageDir();
+  const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+  const sourceFile = new File(uri);
+  const destFile = new File(getImageDir(), filename);
+  sourceFile.copy(destFile);
+  return destFile.uri;
+}
+
+// Delete local image
+export async function deleteLocalImage(uri: string): Promise<void> {
+  try {
+    const file = new File(uri);
+    if (file.exists) {
+      file.delete();
+    }
+  } catch {
+    // Ignore errors if file doesn't exist
+  }
+}
 
 // Event types
 export interface AheadEvent {

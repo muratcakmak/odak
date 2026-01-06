@@ -7,18 +7,10 @@ import { DatePicker, Host, ContextMenu, Button } from "@expo/ui/swift-ui";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import Animated, { LinearTransition, FadeIn, FadeOut } from "react-native-reanimated";
-import { getAheadEvents, addAheadEvent, deleteAheadEvent, getAheadViewMode, setAheadViewMode, type AheadEvent, type ViewMode } from "../../utils/storage";
+import { getAheadEvents, addAheadEvent, getAheadViewMode, setAheadViewMode, saveImageLocally, type AheadEvent, type ViewMode } from "../../utils/storage";
 
 // Sort options
 type SortType = "date_asc" | "date_desc" | "title_asc" | "title_desc";
-
-// Default placeholder images for events
-const placeholderImages = [
-  "https://images.unsplash.com/photo-1448375240586-882707db888b?w=800",
-  "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800",
-  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800",
-  "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=800",
-];
 
 function formatDate(date: Date) {
   const options: Intl.DateTimeFormatOptions = {
@@ -73,53 +65,71 @@ function EventCard({
   date,
   image,
   onPress,
-  onLongPress,
   compact = false,
 }: {
   title: string;
   date: Date;
-  image: string;
+  image?: string;
   onPress?: () => void;
-  onLongPress?: () => void;
   compact?: boolean;
 }) {
   const daysUntil = getDaysUntil(date);
 
   if (compact) {
     return (
-      <Pressable onPress={onPress} onLongPress={onLongPress}>
-        <ImageBackground
-          source={{ uri: image }}
-          style={styles.gridCard}
-          imageStyle={styles.gridCardImage}
-        >
-          <View style={styles.gridCardOverlay}>
+      <Pressable onPress={onPress}>
+        {image ? (
+          <ImageBackground
+            source={{ uri: image }}
+            style={styles.gridCard}
+            imageStyle={styles.gridCardImage}
+          >
+            <View style={styles.gridCardOverlay}>
+              <View style={styles.gridCardContent}>
+                <Text style={styles.gridDaysText}>In {daysUntil} days</Text>
+                <Text style={styles.gridDateText}>{formatDate(date)}</Text>
+                <Text style={styles.gridTitleText} numberOfLines={2}>{title}</Text>
+              </View>
+            </View>
+          </ImageBackground>
+        ) : (
+          <View style={[styles.gridCard, styles.gridCardNoImage]}>
             <View style={styles.gridCardContent}>
               <Text style={styles.gridDaysText}>In {daysUntil} days</Text>
               <Text style={styles.gridDateText}>{formatDate(date)}</Text>
               <Text style={styles.gridTitleText} numberOfLines={2}>{title}</Text>
             </View>
           </View>
-        </ImageBackground>
+        )}
       </Pressable>
     );
   }
 
   return (
-    <Pressable onPress={onPress} onLongPress={onLongPress}>
-      <ImageBackground
-        source={{ uri: image }}
-        style={styles.eventCard}
-        imageStyle={styles.eventCardImage}
-      >
-        <View style={styles.eventCardOverlay}>
+    <Pressable onPress={onPress}>
+      {image ? (
+        <ImageBackground
+          source={{ uri: image }}
+          style={styles.eventCard}
+          imageStyle={styles.eventCardImage}
+        >
+          <View style={styles.eventCardOverlay}>
+            <View style={styles.eventCardContent}>
+              <Text style={styles.eventDaysText}>In {daysUntil} days</Text>
+              <Text style={styles.eventDateText}>{formatDate(date)}</Text>
+              <Text style={styles.eventTitleText}>{title}</Text>
+            </View>
+          </View>
+        </ImageBackground>
+      ) : (
+        <View style={[styles.eventCard, styles.eventCardNoImage]}>
           <View style={styles.eventCardContent}>
-            <Text style={styles.eventDaysText}>In {daysUntil} days</Text>
-            <Text style={styles.eventDateText}>{formatDate(date)}</Text>
-            <Text style={styles.eventTitleText}>{title}</Text>
+            <Text style={[styles.eventDaysText, styles.noImageText]}>In {daysUntil} days</Text>
+            <Text style={[styles.eventDateText, styles.noImageText]}>{formatDate(date)}</Text>
+            <Text style={[styles.eventTitleText, styles.noImageText]}>{title}</Text>
           </View>
         </View>
-      </ImageBackground>
+      )}
     </Pressable>
   );
 }
@@ -321,21 +331,18 @@ export default function AheadScreen() {
     loadEvents();
   }, []);
 
-  // Add new event
-  const handleAddEvent = useCallback((title: string, date: Date, image?: string) => {
-    const eventImage = image || placeholderImages[Math.floor(Math.random() * placeholderImages.length)];
+  // Add new event with local image storage
+  const handleAddEvent = useCallback(async (title: string, date: Date, image?: string) => {
+    let localImageUri: string | undefined;
+    if (image) {
+      localImageUri = await saveImageLocally(image);
+    }
     const newEvent = addAheadEvent({
       title,
       date: date.toISOString(),
-      image: eventImage,
+      image: localImageUri,
     });
     setEvents((prev) => [...prev, newEvent]);
-  }, []);
-
-  // Delete event (on long press)
-  const handleDeleteEvent = useCallback((id: string) => {
-    deleteAheadEvent(id);
-    setEvents((prev) => prev.filter((e) => e.id !== id));
   }, []);
 
   // Open add modal (calendar button opens date picker modal)
@@ -434,9 +441,8 @@ export default function AheadScreen() {
                 <EventCard
                   title={event.title}
                   date={event.dateObj}
-                  image={event.image || placeholderImages[0]}
+                  image={event.image}
                   onPress={() => router.push(`/event/${event.id}`)}
-                  onLongPress={() => handleDeleteEvent(event.id)}
                   compact={viewMode === "grid"}
                 />
               </Animated.View>
@@ -517,6 +523,13 @@ const styles = StyleSheet.create({
   eventCardImage: {
     borderRadius: 20,
   },
+  eventCardNoImage: {
+    backgroundColor: "#2C2C2E",
+    justifyContent: "flex-end",
+  },
+  noImageText: {
+    color: "#FFFFFF",
+  },
   eventCardOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.2)",
@@ -571,6 +584,10 @@ const styles = StyleSheet.create({
   },
   gridCardImage: {
     borderRadius: 16,
+  },
+  gridCardNoImage: {
+    backgroundColor: "#2C2C2E",
+    justifyContent: "flex-end",
   },
   gridCardOverlay: {
     flex: 1,

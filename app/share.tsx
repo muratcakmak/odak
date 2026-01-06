@@ -258,7 +258,7 @@ export default function ShareScreen() {
   const [shape, setShape] = useState<ShapeType>("Stars");
   const [showTitle, setShowTitle] = useState(true);
   const [showTimeLeft, setShowTimeLeft] = useState(true);
-  const [showLeftApp, setShowLeftApp] = useState(true);
+  const [showRekoApp, setShowRekoApp] = useState(true);
 
   const isGlassAvailable = isLiquidGlassAvailable();
   const isDark = theme === "Dark";
@@ -297,11 +297,11 @@ export default function ShareScreen() {
             shape={shape}
           />
         </View>
-        {(showLeftApp || showTimeLeft) && (
+        {(showRekoApp || showTimeLeft) && (
           <View style={styles.previewFooter}>
-            {showLeftApp ? (
+            {showRekoApp ? (
               <Text style={[styles.previewFooterText, { color: footerColor }]}>
-                left-time.app
+                reko.app
               </Text>
             ) : (
               <View />
@@ -340,7 +340,7 @@ export default function ShareScreen() {
       <View style={styles.togglesRow}>
         <ToggleItem label="Title" value={showTitle} onValueChange={setShowTitle} />
         <ToggleItem label="Time left" value={showTimeLeft} onValueChange={setShowTimeLeft} />
-        <ToggleItem label="Left app" value={showLeftApp} onValueChange={setShowLeftApp} />
+        <ToggleItem label="Reko" value={showRekoApp} onValueChange={setShowRekoApp} />
       </View>
 
       {/* Share Button */}

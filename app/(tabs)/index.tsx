@@ -108,7 +108,7 @@ function PillButton({
 }
 
 // Main component
-export default function LeftAltScreen() {
+export default function RekoScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
