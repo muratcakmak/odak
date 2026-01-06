@@ -1,10 +1,34 @@
 /**
  * Reko Theme Constants
  *
- * OLED-first design with Liquid Glass aesthetics
+ * Light and Dark mode support with Liquid Glass aesthetics
  */
 
-export const colors = {
+export const lightColors = {
+  // Base colors
+  background: "#FFFFFF",
+  surface: "#F2F2F7",
+  surfaceElevated: "#FFFFFF",
+
+  // Text colors
+  textPrimary: "#000000",
+  textSecondary: "#00000099",
+  textTertiary: "#00000060",
+  textMuted: "#00000040",
+
+  // Card backgrounds
+  card: "#FFFFFF",
+  cardBorder: "#00000010",
+
+  // Glass effect tints
+  glass: {
+    regular: "rgba(0, 0, 0, 0.05)",
+    clear: "rgba(0, 0, 0, 0.02)",
+    tinted: "rgba(100, 149, 237, 0.1)",
+  },
+};
+
+export const darkColors = {
   // Base colors
   background: "#000000",
   surface: "#111111",
@@ -16,6 +40,20 @@ export const colors = {
   textTertiary: "#FFFFFF60",
   textMuted: "#FFFFFF40",
 
+  // Card backgrounds
+  card: "#1C1C1E",
+  cardBorder: "#FFFFFF10",
+
+  // Glass effect tints
+  glass: {
+    regular: "rgba(255, 255, 255, 0.1)",
+    clear: "rgba(255, 255, 255, 0.05)",
+    tinted: "rgba(100, 149, 237, 0.2)",
+  },
+};
+
+// Shared colors (same in both modes)
+export const sharedColors = {
   // Accent colors for liquid visualizations
   liquid: {
     blue: "#4A9EFF",
@@ -41,13 +79,6 @@ export const colors = {
       light: "#007AFF",
       dark: "#0A84FF",
     },
-  },
-
-  // Glass effect tints
-  glass: {
-    regular: "rgba(255, 255, 255, 0.1)",
-    clear: "rgba(255, 255, 255, 0.05)",
-    tinted: "rgba(100, 149, 237, 0.2)",
   },
 };
 
@@ -117,8 +148,19 @@ export const animation = {
   },
 };
 
+export type ColorScheme = "light" | "dark";
+
+export function getColors(colorScheme: ColorScheme) {
+  const modeColors = colorScheme === "dark" ? darkColors : lightColors;
+  return {
+    ...modeColors,
+    ...sharedColors,
+  };
+}
+
 export const theme = {
-  colors,
+  light: { ...lightColors, ...sharedColors },
+  dark: { ...darkColors, ...sharedColors },
   spacing,
   borderRadius,
   typography,

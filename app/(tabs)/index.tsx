@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useRef } from "react";
-import { StyleSheet, View, Text, Pressable, useWindowDimensions, useColorScheme } from "react-native";
+import { StyleSheet, View, Text, Pressable, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -7,6 +7,7 @@ import { router } from "expo-router";
 import { runOnJS } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
+import { useTheme } from "../../hooks/useTheme";
 
 // Calculate days info for current year
 function getYearInfo() {
@@ -83,10 +84,12 @@ function PillButton({
   children,
   onPress,
   style,
+  fallbackColor,
 }: {
   children: React.ReactNode;
   onPress?: () => void;
   style?: any;
+  fallbackColor?: string;
 }) {
   const isGlassAvailable = isLiquidGlassAvailable();
 
@@ -101,7 +104,7 @@ function PillButton({
   }
 
   return (
-    <Pressable onPress={onPress} style={[styles.pillButton, styles.pillButtonFallback, style]}>
+    <Pressable onPress={onPress} style={[styles.pillButton, { backgroundColor: fallbackColor || "#1C1C1E" }, style]}>
       {children}
     </Pressable>
   );
@@ -110,21 +113,20 @@ function PillButton({
 // Main component
 export default function RekoScreen() {
   const { width: screenWidth } = useWindowDimensions();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { isDark, colors: themeColors } = useTheme();
   const { year, totalDays, dayOfYear, daysLeft } = getYearInfo();
   const [selectedDot, setSelectedDot] = useState<number | null>(null);
   const lastHapticDot = useRef<number | null>(null);
 
   // Theme colors
   const colors = {
-    background: isDark ? "#000000" : "#FFFFFF",
-    cardBackground: isDark ? "#1C1C1E" : "#F2F2F7",
+    background: themeColors.background,
+    cardBackground: themeColors.card,
     passedDot: isDark ? "#3A3A3C" : "#C7C7CC",
-    remainingDot: isDark ? "#FFFFFF" : "#000000",
-    selectedDot: isDark ? "#FFFFFF" : "#000000",
-    text: isDark ? "#FFFFFF" : "#000000",
-    secondaryText: isDark ? "#8E8E93" : "#8E8E93",
+    remainingDot: themeColors.textPrimary,
+    selectedDot: themeColors.textPrimary,
+    text: themeColors.textPrimary,
+    secondaryText: themeColors.textSecondary,
   };
 
   const openShareSheet = useCallback(() => {
@@ -207,22 +209,22 @@ export default function RekoScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
-        <PillButton>
+        <PillButton fallbackColor={colors.cardBackground}>
           <Text style={[styles.yearText, { color: colors.text }]}>{year}</Text>
         </PillButton>
 
         <View style={styles.headerRight}>
           {selectedDate ? (
-            <PillButton>
+            <PillButton fallbackColor={colors.cardBackground}>
               <Text style={[styles.selectedDateText, { color: colors.text }]}>{selectedDate}</Text>
             </PillButton>
           ) : (
-            <PillButton>
+            <PillButton fallbackColor={colors.cardBackground}>
               <Text style={[styles.daysLeftText, { color: colors.text }]}>{daysLeft} days left</Text>
             </PillButton>
           )}
 
-          <PillButton style={styles.shareButton} onPress={openShareSheet}>
+          <PillButton style={styles.shareButton} onPress={openShareSheet} fallbackColor={colors.cardBackground}>
             <Ionicons name="share-outline" size={20} color={colors.text} />
           </PillButton>
         </View>
@@ -316,9 +318,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-  },
-  pillButtonFallback: {
-    backgroundColor: "#1C1C1E",
   },
   shareButton: {
     paddingHorizontal: 12,

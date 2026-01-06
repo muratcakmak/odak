@@ -1,17 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
-import { StyleSheet, View, Text, Pressable, useColorScheme } from "react-native";
+import { StyleSheet, View, Text, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Svg, { Rect, Circle } from "react-native-svg";
 import { router } from "expo-router";
 import { getUserProfile } from "../../utils/storage";
+import { useTheme } from "../../hooks/useTheme";
+import * as Haptics from "expo-haptics";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   withSequence,
   withTiming,
+  runOnJS,
 } from "react-native-reanimated";
 
 // Toggle icon (two pills stacked)
@@ -56,16 +59,21 @@ function HeaderPillButton({
 }
 
 export default function YouScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { isDark, colors: themeColors } = useTheme();
   const [profile, setProfile] = useState<{ name: string; birthDate: Date | null }>({ name: "", birthDate: null });
 
   const colors = {
-    background: isDark ? "#000000" : "#FFFFFF",
-    text: isDark ? "#FFFFFF" : "#000000",
-    secondaryText: isDark ? "#8E8E93" : "#8E8E93",
-    cardBg: isDark ? "#1C1C1E" : "#2C2C2E",
+    background: themeColors.background,
+    text: themeColors.textPrimary,
+    secondaryText: themeColors.textSecondary,
+    cardBg: themeColors.card,
+    surface: themeColors.surface,
   };
+
+  // Haptic feedback helper
+  const triggerHaptic = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
 
   // Load profile from MMKV on mount
   useEffect(() => {

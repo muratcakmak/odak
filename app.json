@@ -11,8 +11,13 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.omc345.reko",
+      "icon": "./assets/icon-light.png",
+      "darkIcon": "./assets/icon-dark.png",
+      "tintedIcon": "./assets/icon.png",
       "entitlements": {
-        "com.apple.security.application-groups": ["group.com.omc345.reko"]
+        "com.apple.security.application-groups": [
+          "group.com.omc345.reko"
+        ]
       }
     },
     "android": {
@@ -48,6 +53,30 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "bundleIdentifier": "com.omc345.reko.widget",
+                  "targetName": "RekoWidget",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.omc345.reko"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "projectId": "30ff4d50-8cf6-4175-9e64-80ec132510c7"
+      }
+    },
+    "owner": "oguzhancakmak"
   }
 }

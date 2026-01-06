@@ -6,13 +6,15 @@ import {
 } from "@react-navigation/native";
 import { Stack } from "expo-router/stack";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, useColorScheme } from "react-native";
+import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { syncAllEventsToWidget } from "../utils/storage";
+import { useTheme } from "../hooks/useTheme";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme() || "dark";
+  const { colors, isDark } = useTheme();
 
   // Sync events to widget storage on app start
   useEffect(() => {
@@ -20,11 +22,11 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={styles.container}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <ThemeProvider
         value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
       >
-        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+        <StatusBar style={isDark ? "light" : "dark"} />
 
         <Stack>
           <Stack.Screen
@@ -44,11 +46,11 @@ export default function RootLayout() {
               contentStyle: {
                 backgroundColor: isLiquidGlassAvailable()
                   ? "transparent"
-                  : "#1C1C1E",
+                  : colors.card,
               },
               headerBlurEffect: isLiquidGlassAvailable()
                 ? undefined
-                : "dark",
+                : isDark ? "dark" : "light",
             }}
           />
           <Stack.Screen
@@ -62,13 +64,11 @@ export default function RootLayout() {
               contentStyle: {
                 backgroundColor: isLiquidGlassAvailable()
                   ? "transparent"
-                  : "#000000",
+                  : colors.background,
               },
               headerBlurEffect: isLiquidGlassAvailable()
                 ? undefined
-                : colorScheme === "dark"
-                  ? "dark"
-                  : "light",
+                : isDark ? "dark" : "light",
             }}
           />
           <Stack.Screen
@@ -83,7 +83,7 @@ export default function RootLayout() {
               contentStyle: {
                 backgroundColor: isLiquidGlassAvailable()
                   ? "transparent"
-                  : "#F2F2F7",
+                  : colors.surface,
               },
             }}
           />
@@ -92,10 +92,3 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#000000",
-  },
-});

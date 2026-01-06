@@ -1,0 +1,32 @@
+{
+    "cli": {
+        "version": ">= 15.0.15",
+        "appVersionSource": "remote"
+    },
+    "build": {
+        "development": {
+            "developmentClient": true,
+            "distribution": "internal",
+            "env": {}
+        },
+        "preview": {
+            "distribution": "internal",
+            "env": {}
+        },
+        "production": {
+            "ios": {
+                "autoIncrement": true,
+                "distribution": "store"
+            },
+            "env": {}
+        }
+    },
+    "submit": {
+        "production": {
+            "ios": {
+                "appleId": "omuratcakmak@gmail.com",
+                "appleTeamId": "32LKZEC649"
+            }
+        }
+    }
+}

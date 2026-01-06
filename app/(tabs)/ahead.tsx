@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { StyleSheet, View, Text, ScrollView, Pressable, ImageBackground, useColorScheme, Modal, TextInput, Platform, Image } from "react-native";
+import { StyleSheet, View, Text, ScrollView, Pressable, ImageBackground, Modal, TextInput, Platform, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -8,6 +8,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import Animated, { LinearTransition, FadeIn, FadeOut } from "react-native-reanimated";
 import { getAheadEvents, addAheadEvent, getAheadViewMode, setAheadViewMode, saveImageLocally, type AheadEvent, type ViewMode } from "../../utils/storage";
+import { useTheme } from "../../hooks/useTheme";
 
 // Sort options
 type SortType = "date_asc" | "date_desc" | "title_asc" | "title_desc";
@@ -35,10 +36,12 @@ function HeaderPillButton({
   children,
   onPress,
   style,
+  fallbackColor,
 }: {
   children: React.ReactNode;
   onPress?: () => void;
   style?: any;
+  fallbackColor?: string;
 }) {
   const isGlassAvailable = isLiquidGlassAvailable();
 
@@ -53,7 +56,7 @@ function HeaderPillButton({
   }
 
   return (
-    <Pressable onPress={onPress} style={[styles.pillButton, styles.pillButtonFallback, style]}>
+    <Pressable onPress={onPress} style={[styles.pillButton, { backgroundColor: fallbackColor || "#F2F2F7" }, style]}>
       {children}
     </Pressable>
   );
@@ -282,8 +285,7 @@ function AddEventModal({
 }
 
 export default function AheadScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { isDark, colors: themeColors } = useTheme();
   const [events, setEvents] = useState<AheadEvent[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [sortType, setSortType] = useState<SortType>("date_asc");
@@ -297,8 +299,10 @@ export default function AheadScreen() {
   }, [viewMode]);
 
   const colors = {
-    background: isDark ? "#000000" : "#FFFFFF",
-    text: isDark ? "#FFFFFF" : "#000000",
+    background: themeColors.background,
+    text: themeColors.textPrimary,
+    card: themeColors.card,
+    surface: themeColors.surface,
   };
 
   // Sort events based on current sort type
@@ -380,7 +384,7 @@ export default function AheadScreen() {
                 </ContextMenu.Items>
                 <ContextMenu.Trigger>
                   <View>
-                    <HeaderPillButton>
+                    <HeaderPillButton fallbackColor={colors.surface}>
                       <Ionicons name="options-outline" size={20} color={colors.text} />
                     </HeaderPillButton>
                   </View>
@@ -388,11 +392,11 @@ export default function AheadScreen() {
               </ContextMenu>
             </Host>
           ) : (
-            <HeaderPillButton>
+            <HeaderPillButton fallbackColor={colors.surface}>
               <Ionicons name="options-outline" size={20} color={colors.text} />
             </HeaderPillButton>
           )}
-          <HeaderPillButton onPress={toggleViewMode}>
+          <HeaderPillButton onPress={toggleViewMode} fallbackColor={colors.surface}>
             <Ionicons
               name={viewMode === "list" ? "grid-outline" : "list-outline"}
               size={20}
@@ -403,10 +407,10 @@ export default function AheadScreen() {
 
         <Text style={[styles.headerTitle, { color: colors.text }]}>Time ahead</Text>
 
-        <HeaderPillButton style={styles.rightPillButton} onPress={openAddModal}>
+        <HeaderPillButton style={styles.rightPillButton} onPress={openAddModal} fallbackColor={colors.surface}>
           <Ionicons name="calendar-outline" size={20} color={colors.text} />
           <Text style={[styles.plusBadge, { color: colors.text }]}>+</Text>
-          <View style={styles.buttonDivider} />
+          <View style={[styles.buttonDivider, { backgroundColor: isDark ? "#48484A" : "#C7C7CC" }]} />
           <Ionicons name="add" size={24} color={colors.text} />
         </HeaderPillButton>
       </View>
@@ -488,9 +492,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     flexDirection: "row",
     alignItems: "center",
-  },
-  pillButtonFallback: {
-    backgroundColor: "#F2F2F7",
   },
   rightPillButton: {
     gap: 4,

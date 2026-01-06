@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { StyleSheet, View, Text, ScrollView, Pressable, ImageBackground, useColorScheme, Modal, TextInput, Platform, Image } from "react-native";
+import { StyleSheet, View, Text, ScrollView, Pressable, ImageBackground, Modal, TextInput, Platform, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -9,6 +9,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import Animated, { LinearTransition, FadeIn, FadeOut } from "react-native-reanimated";
 import { getSinceEvents, addSinceEvent, type SinceEvent, getSinceViewMode, setSinceViewMode, saveImageLocally, type ViewMode } from "../../utils/storage";
+import { useTheme } from "../../hooks/useTheme";
 
 // Sort options
 type SortType = "date_asc" | "date_desc" | "title_asc" | "title_desc";
@@ -351,8 +352,7 @@ function AddEventModal({
 }
 
 export default function SinceScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { isDark, colors: themeColors } = useTheme();
   const [events, setEvents] = useState<SinceEvent[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [sortType, setSortType] = useState<SortType>("date_desc");
@@ -365,8 +365,9 @@ export default function SinceScreen() {
   }, [viewMode]);
 
   const colors = {
-    background: isDark ? "#000000" : "#FFFFFF",
-    text: isDark ? "#FFFFFF" : "#000000",
+    background: themeColors.background,
+    text: themeColors.textPrimary,
+    surface: themeColors.surface,
   };
 
   // Sort events based on current sort type
