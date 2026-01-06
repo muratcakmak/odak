@@ -161,38 +161,6 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Get Reko+ Banner */}
-        <View style={styles.premiumBanner}>
-          <View style={styles.premiumBannerContent}>
-            <Text style={styles.premiumTitle}>Get Reko+</Text>
-            <Text style={styles.premiumSubtitle}>
-              Unlock all premium features and help support and maintain the app.
-            </Text>
-          </View>
-          <Ionicons
-            name="star"
-            size={40}
-            color="rgba(255, 255, 255, 0.2)"
-            style={styles.premiumIcon}
-          />
-        </View>
-
-        {/* Other App Banner */}
-        <View style={styles.otherAppBanner}>
-          <View style={styles.otherAppContent}>
-            <Text style={styles.otherAppLabel}>My other app, free!</Text>
-            <Text style={styles.otherAppTitle}>
-              NotSoBusy: Share{"\n"}Your Schedule
-            </Text>
-            <Text style={styles.otherAppSubtitle}>
-              Share your daily or weekly calendar schedule availability with an
-              image
-            </Text>
-          </View>
-          <View style={styles.otherAppIcon}>
-            <Ionicons name="grid" size={28} color="#FFFFFF" />
-          </View>
-        </View>
 
         {/* Life Profile Section */}
         <Text style={styles.sectionTitle}>Life profile</Text>

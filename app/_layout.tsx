@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   DarkTheme,
   DefaultTheme,
@@ -8,9 +9,15 @@ import { StatusBar } from "expo-status-bar";
 import { StyleSheet, useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
+import { syncAllEventsToWidget } from "../utils/storage";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme() || "dark";
+
+  // Sync events to widget storage on app start
+  useEffect(() => {
+    syncAllEventsToWidget();
+  }, []);
 
   return (
     <GestureHandlerRootView style={styles.container}>

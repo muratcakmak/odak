@@ -1,0 +1,7 @@
+{
+  "platforms": ["ios"],
+  "ios": {
+    "modules": ["WidgetSyncModule"],
+    "podspecPath": "./ios/WidgetSync.podspec"
+  }
+}

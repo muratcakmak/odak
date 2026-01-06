@@ -1,9 +1,17 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { StyleSheet, View, Text, Pressable, Switch, useColorScheme, Platform } from "react-native";
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { router, useLocalSearchParams } from "expo-router";
 import Svg, { Path, Polygon } from "react-native-svg";
 import { Button, ContextMenu, Host } from "@expo/ui/swift-ui";
+import ViewShot from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 
 // Type definitions
 type ThemeType = "Dark" | "Light";
@@ -260,14 +268,78 @@ export default function ShareScreen() {
   const [showTimeLeft, setShowTimeLeft] = useState(true);
   const [showRekoApp, setShowRekoApp] = useState(true);
 
-  const isGlassAvailable = isLiquidGlassAvailable();
   const isDark = theme === "Dark";
   const config = colorConfig[color];
 
-  const handleShare = () => {
-    // TODO: Implement actual share functionality
-    console.log("Share pressed");
-    router.back();
+  const viewShotRef = useRef<ViewShot>(null);
+  const [isSharing, setIsSharing] = useState(false);
+
+  // Animated values
+  const cardRotation = useSharedValue(Math.random() * 10 - 5);
+  const cardScale = useSharedValue(0.85);
+  const buttonScale = useSharedValue(1);
+
+  // Animated styles for preview card
+  const cardAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: cardScale.value },
+      { rotate: `${cardRotation.value}deg` },
+    ],
+  }));
+
+  // Animated styles for share button
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+  }));
+
+  // Handle card tap - random tilt with spring animation
+  const handleCardTap = useCallback(() => {
+    const newRotation = Math.random() * 10 - 5;
+    cardRotation.value = withSpring(newRotation, {
+      damping: 10,
+      stiffness: 100,
+    });
+    // Subtle bounce effect
+    cardScale.value = withSequence(
+      withTiming(0.82, { duration: 100 }),
+      withSpring(0.85, { damping: 10, stiffness: 200 })
+    );
+  }, []);
+
+  // Handle button press in/out
+  const handleButtonPressIn = useCallback(() => {
+    buttonScale.value = withSpring(0.95, { damping: 15, stiffness: 300 });
+  }, []);
+
+  const handleButtonPressOut = useCallback(() => {
+    buttonScale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  }, []);
+
+  const handleShare = async () => {
+    if (isSharing) return;
+
+    try {
+      setIsSharing(true);
+
+      // Capture the preview card as an image
+      const uri = await viewShotRef.current?.capture?.();
+
+      if (uri) {
+        // Check if sharing is available
+        const isAvailable = await Sharing.isAvailableAsync();
+
+        if (isAvailable) {
+          await Sharing.shareAsync(uri, {
+            mimeType: "image/png",
+            dialogTitle: "Share your year progress",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Share error:", error);
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   // Get preview card background color
@@ -278,44 +350,53 @@ export default function ShareScreen() {
   return (
     <View style={styles.container}>
       {/* Preview Card */}
-      <View style={[
-        styles.previewCard,
-        { backgroundColor: previewBgColor, transform: [{ rotate: '5deg' }] }
-      ]}>
-        {showTitle && (
-          <Text style={[
-            styles.previewYear,
-            { color: yearColor }
-          ]}>{year}</Text>
-        )}
-        <View style={[styles.previewGridContainer, !showTitle && { marginTop: 8 }]}>
-          <MiniDotGrid
-            totalDays={totalDays}
-            dayOfYear={dayOfYear}
-            theme={theme}
-            color={color}
-            shape={shape}
-          />
-        </View>
-        {(showRekoApp || showTimeLeft) && (
-          <View style={styles.previewFooter}>
-            {showRekoApp ? (
-              <Text style={[styles.previewFooterText, { color: footerColor }]}>
-                reko.app
-              </Text>
-            ) : (
-              <View />
+      <Pressable onPress={handleCardTap}>
+        <Animated.View style={[styles.previewWrapper, cardAnimatedStyle]}>
+          <ViewShot
+            ref={viewShotRef}
+            options={{ format: "png", quality: 1 }}
+          >
+            <View style={[
+              styles.previewCard,
+              { backgroundColor: previewBgColor }
+            ]}>
+            {showTitle && (
+              <Text style={[
+                styles.previewYear,
+                { color: yearColor }
+              ]}>{year}</Text>
             )}
-            {showTimeLeft ? (
-              <Text style={[styles.previewFooterText, { color: footerColor }]}>
-                {daysLeft} days left
-              </Text>
-            ) : (
-              <View />
+            <View style={[styles.previewGridContainer, !showTitle && { marginTop: 8 }]}>
+              <MiniDotGrid
+                totalDays={totalDays}
+                dayOfYear={dayOfYear}
+                theme={theme}
+                color={color}
+                shape={shape}
+              />
+            </View>
+            {(showRekoApp || showTimeLeft) && (
+              <View style={styles.previewFooter}>
+                {showRekoApp ? (
+                  <Text style={[styles.previewFooterText, { color: footerColor }]}>
+                    reko.app
+                  </Text>
+                ) : (
+                  <View />
+                )}
+                {showTimeLeft ? (
+                  <Text style={[styles.previewFooterText, { color: footerColor }]}>
+                    {daysLeft} days left
+                  </Text>
+                ) : (
+                  <View />
+                )}
+              </View>
             )}
           </View>
-        )}
-      </View>
+        </ViewShot>
+      </Animated.View>
+    </Pressable>
 
       {/* Pickers Row */}
       <View style={styles.pickersRow}>
@@ -344,17 +425,16 @@ export default function ShareScreen() {
       </View>
 
       {/* Share Button */}
-      {isGlassAvailable ? (
-        <Pressable onPress={handleShare}>
-          <GlassView style={styles.shareButton}>
-            <Text style={styles.shareButtonText}>Share</Text>
-          </GlassView>
-        </Pressable>
-      ) : (
-        <Pressable style={[styles.shareButton, styles.shareButtonFallback]} onPress={handleShare}>
+      <Pressable
+        onPress={handleShare}
+        onPressIn={handleButtonPressIn}
+        onPressOut={handleButtonPressOut}
+        disabled={isSharing}
+      >
+        <Animated.View style={[styles.shareButton, buttonAnimatedStyle]}>
           <Text style={styles.shareButtonText}>Share</Text>
-        </Pressable>
-      )}
+        </Animated.View>
+      </Pressable>
     </View>
   );
 }
@@ -365,11 +445,14 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 10,
   },
+  previewWrapper: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
   previewCard: {
     borderRadius: 14,
     padding: 12,
     alignItems: "center",
-    marginBottom: 24,
   },
   previewYear: {
     fontSize: 13,
@@ -429,9 +512,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
-  },
-  shareButtonFallback: {
-    backgroundColor: "#2C2C2E",
+    backgroundColor: "#007AFF",
   },
   shareButtonText: {
     fontSize: 17,

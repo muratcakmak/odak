@@ -1,8 +1,32 @@
 import { MMKV } from "react-native-mmkv";
 import { Paths, File, Directory } from "expo-file-system";
+import { Platform } from "react-native";
+import WidgetSync from "../modules/widget-sync";
 
 // Initialize MMKV storage
 export const storage = new MMKV();
+
+// Widget sync helper - writes to UserDefaults for widget access
+function syncToWidgetStorage(key: string, data: string): void {
+  if (Platform.OS === "ios") {
+    try {
+      WidgetSync.setItem(key, data);
+    } catch {
+      // Widget sync not available, continue silently
+    }
+  }
+}
+
+// Refresh widget timelines after data changes
+export function refreshWidgets(): void {
+  if (Platform.OS === "ios") {
+    try {
+      WidgetSync.reloadAllTimelines();
+    } catch {
+      // Widget refresh not available
+    }
+  }
+}
 
 // Image storage directory
 const getImageDir = () => new Directory(Paths.document, "images");
@@ -68,7 +92,10 @@ export function getAheadEvents(): AheadEvent[] {
 }
 
 export function saveAheadEvents(events: AheadEvent[]): void {
-  storage.set(AHEAD_EVENTS_KEY, JSON.stringify(events));
+  const json = JSON.stringify(events);
+  storage.set(AHEAD_EVENTS_KEY, json);
+  syncToWidgetStorage(AHEAD_EVENTS_KEY, json);
+  refreshWidgets();
 }
 
 export function addAheadEvent(event: Omit<AheadEvent, "id">): AheadEvent {
@@ -100,7 +127,10 @@ export function getSinceEvents(): SinceEvent[] {
 }
 
 export function saveSinceEvents(events: SinceEvent[]): void {
-  storage.set(SINCE_EVENTS_KEY, JSON.stringify(events));
+  const json = JSON.stringify(events);
+  storage.set(SINCE_EVENTS_KEY, json);
+  syncToWidgetStorage(SINCE_EVENTS_KEY, json);
+  refreshWidgets();
 }
 
 export function addSinceEvent(event: Omit<SinceEvent, "id">): SinceEvent {
@@ -144,6 +174,34 @@ export function saveUserProfile(profile: UserProfile): void {
 
 export function deleteUserProfile(): void {
   storage.delete(USER_PROFILE_KEY);
+}
+
+// Sync existing events to widget storage (call on app start)
+export function syncAllEventsToWidget(): void {
+  if (Platform.OS !== "ios") return;
+
+  try {
+    // Sync ahead events
+    const aheadEvents = getAheadEvents();
+    if (aheadEvents.length > 0) {
+      syncToWidgetStorage(AHEAD_EVENTS_KEY, JSON.stringify(aheadEvents));
+    }
+
+    // Sync since events
+    const sinceEvents = getSinceEvents();
+    if (sinceEvents.length > 0) {
+      syncToWidgetStorage(SINCE_EVENTS_KEY, JSON.stringify(sinceEvents));
+    }
+
+    // Refresh widgets
+    refreshWidgets();
+    console.log("[WidgetSync] Synced events to widget storage:", {
+      ahead: aheadEvents.length,
+      since: sinceEvents.length,
+    });
+  } catch (error) {
+    console.log("[WidgetSync] Failed to sync:", error);
+  }
 }
 
 // View Mode Preferences

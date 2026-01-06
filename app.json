@@ -10,7 +10,10 @@
     "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.reko.app"
+      "bundleIdentifier": "com.omc345.reko",
+      "entitlements": {
+        "com.apple.security.application-groups": ["group.com.omc345.reko"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +21,7 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.reko.app"
+      "package": "com.omc345.reko"
     },
     "web": {
       "bundler": "metro",
@@ -34,6 +37,12 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#000000"
+        }
+      ],
+      [
+        "@bacons/apple-targets",
+        {
+          "appleTeamId": "32LKZEC649"
         }
       ]
     ],

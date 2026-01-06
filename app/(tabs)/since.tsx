@@ -482,8 +482,6 @@ export default function SinceScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Info Banner */}
-        <InfoBanner />
 
         {/* Cards Grid/List */}
         {events.length === 0 ? (

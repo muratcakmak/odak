@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { StyleSheet, View, Text, Pressable, useColorScheme } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
@@ -6,6 +6,13 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import Svg, { Rect, Circle } from "react-native-svg";
 import { router } from "expo-router";
 import { getUserProfile } from "../../utils/storage";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 
 // Toggle icon (two pills stacked)
 function ToggleIcon({ size = 48, color = "#C7C7CC" }: { size?: number; color?: string }) {
@@ -87,6 +94,32 @@ export default function YouScreen() {
 
   const hasProfile = profile.name && profile.birthDate;
 
+  // Animated values for profile card
+  const cardRotation = useSharedValue(-5);
+  const cardScale = useSharedValue(1);
+
+  // Animated style for profile card
+  const cardAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: cardScale.value },
+      { rotate: `${cardRotation.value}deg` },
+    ],
+  }));
+
+  // Handle card tap - random tilt with spring animation
+  const handleCardTap = useCallback(() => {
+    const newRotation = Math.random() * 10 - 5;
+    cardRotation.value = withSpring(newRotation, {
+      damping: 10,
+      stiffness: 100,
+    });
+    // Subtle bounce effect
+    cardScale.value = withSequence(
+      withTiming(0.95, { duration: 100 }),
+      withSpring(1, { damping: 10, stiffness: 200 })
+    );
+  }, []);
+
   const calculateAge = (birthDate: Date) => {
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
@@ -114,9 +147,11 @@ export default function YouScreen() {
       {/* Content */}
       <View style={styles.content}>
         {/* Large Profile Placeholder */}
-        <View style={[styles.profileCard, { backgroundColor: colors.cardBg }]}>
-          <Ionicons name="person" size={80} color="rgba(255, 255, 255, 0.6)" />
-        </View>
+        <Pressable onPress={handleCardTap}>
+          <Animated.View style={[styles.profileCard, { backgroundColor: colors.cardBg }, cardAnimatedStyle]}>
+            <Ionicons name="person" size={80} color="rgba(255, 255, 255, 0.6)" />
+          </Animated.View>
+        </Pressable>
 
         {hasProfile && profile.birthDate ? (
           // Profile exists - show name and age
@@ -202,7 +237,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
-    transform: [{ rotate: "-5deg" }],
   },
   toggleIconContainer: {
     marginTop: 40,
