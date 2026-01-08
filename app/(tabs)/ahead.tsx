@@ -3,10 +3,11 @@ import { StyleSheet, View, Text, ScrollView, Pressable, ImageBackground, Modal, 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { DatePicker, Host, ContextMenu, Button } from "@expo/ui/swift-ui";
+import { DatePicker, Host, ContextMenu, Button, Divider } from "@expo/ui/swift-ui";
+import { datePickerStyle } from "@expo/ui/swift-ui/modifiers";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import Animated, { LinearTransition, FadeIn, FadeOut } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut, Layout, Easing } from "react-native-reanimated";
 import { getAheadEvents, addAheadEvent, getAheadViewMode, setAheadViewMode, saveImageLocally, type AheadEvent, type ViewMode } from "../../utils/storage";
 import { useTheme } from "../../hooks/useTheme";
 
@@ -270,6 +271,7 @@ function AddEventModal({
                   selection={selectedDate}
                   onDateChange={setSelectedDate}
                   range={{ start: new Date(Date.now() + 24 * 60 * 60 * 1000) }}
+                  modifiers={[datePickerStyle("graphical")]}
                 />
               </Host>
             ) : (
@@ -290,13 +292,6 @@ export default function AheadScreen() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [sortType, setSortType] = useState<SortType>("date_asc");
   const [viewMode, setViewMode] = useState<ViewMode>(() => getAheadViewMode());
-
-  // Toggle view mode
-  const toggleViewMode = useCallback(() => {
-    const newMode = viewMode === "list" ? "grid" : "list";
-    setViewMode(newMode);
-    setAheadViewMode(newMode);
-  }, [viewMode]);
 
   const colors = {
     background: themeColors.background,
@@ -362,6 +357,23 @@ export default function AheadScreen() {
               <ContextMenu activationMethod="singlePress">
                 <ContextMenu.Items>
                   <Button
+                    label="Grid View"
+                    systemImage={viewMode === "grid" ? "checkmark" : undefined}
+                    onPress={() => {
+                      setViewMode("grid");
+                      setAheadViewMode("grid");
+                    }}
+                  />
+                  <Button
+                    label="List View"
+                    systemImage={viewMode === "list" ? "checkmark" : undefined}
+                    onPress={() => {
+                      setViewMode("list");
+                      setAheadViewMode("list");
+                    }}
+                  />
+                  <Divider />
+                  <Button
                     label="Soonest First"
                     systemImage={sortType === "date_asc" ? "checkmark" : undefined}
                     onPress={() => setSortType("date_asc")}
@@ -396,13 +408,6 @@ export default function AheadScreen() {
               <Ionicons name="options-outline" size={20} color={colors.text} />
             </HeaderPillButton>
           )}
-          <HeaderPillButton onPress={toggleViewMode} fallbackColor={colors.surface}>
-            <Ionicons
-              name={viewMode === "list" ? "grid-outline" : "list-outline"}
-              size={20}
-              color={colors.text}
-            />
-          </HeaderPillButton>
         </View>
 
         <Text style={[styles.headerTitle, { color: colors.text }]}>Time ahead</Text>
@@ -430,16 +435,13 @@ export default function AheadScreen() {
             </Text>
           </View>
         ) : (
-          <Animated.View
-            style={viewMode === "grid" ? styles.gridContainer : styles.listContainer}
-            layout={LinearTransition.springify().damping(18).stiffness(120)}
-          >
+          <View style={viewMode === "grid" ? styles.gridContainer : styles.listContainer}>
             {sortedEvents.map((event) => (
               <Animated.View
                 key={`${event.id}-${viewMode}`}
-                layout={LinearTransition.springify().damping(18).stiffness(120)}
-                entering={FadeIn.duration(200)}
-                exiting={FadeOut.duration(150)}
+                layout={Layout.duration(250).easing(Easing.out(Easing.quad))}
+                entering={FadeIn.duration(200).easing(Easing.out(Easing.quad))}
+                exiting={FadeOut.duration(150).easing(Easing.in(Easing.quad))}
                 style={viewMode === "grid" ? styles.gridCardWrapper : undefined}
               >
                 <EventCard
@@ -451,7 +453,7 @@ export default function AheadScreen() {
                 />
               </Animated.View>
             ))}
-          </Animated.View>
+          </View>
         )}
       </ScrollView>
 
@@ -514,6 +516,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingTop: 0,
+    paddingBottom: 120,
   },
   eventCard: {
     height: 160,

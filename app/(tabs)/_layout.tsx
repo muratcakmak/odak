@@ -4,9 +4,9 @@ export default function TabLayout() {
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Reko</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Left</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          sf="calendar.day.timeline.left"
+          sf="calendar"
           drawable="ic_calendar_grid"
         />
       </NativeTabs.Trigger>

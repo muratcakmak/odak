@@ -18,6 +18,9 @@
         "com.apple.security.application-groups": [
           "group.com.omc345.reko"
         ]
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

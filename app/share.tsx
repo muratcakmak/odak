@@ -124,22 +124,42 @@ function ShapeRenderer({
   }
 }
 
+// Get columns for mini grid based on view type
+function getMiniGridColumns(viewType: string, total: number): number {
+  switch (viewType) {
+    case "now": return 10;
+    case "today": return 6;
+    case "month": return 7;
+    case "year":
+    case "since": return 14;
+    case "ahead":
+      if (total <= 10) return 5;
+      if (total <= 30) return 6;
+      if (total <= 60) return 8;
+      if (total <= 100) return 10;
+      return 12;
+    default: return 14;
+  }
+}
+
 // Mini grid for preview
 function MiniDotGrid({
-  totalDays,
-  dayOfYear,
+  total,
+  passed,
+  viewType,
   theme,
   color,
   shape,
 }: {
-  totalDays: number;
-  dayOfYear: number;
+  total: number;
+  passed: number;
+  viewType: string;
   theme: ThemeType;
   color: ColorType;
   shape: ShapeType;
 }) {
-  const columns = 14;
-  const dotSize = 4;
+  const columns = getMiniGridColumns(viewType, total);
+  const dotSize = viewType === "year" || total > 100 ? 4 : 6;
   const gap = 2;
 
   const config = colorConfig[color];
@@ -149,8 +169,8 @@ function MiniDotGrid({
     : config.dot;
 
   return (
-    <View style={[miniGridStyles.container, { width: columns * (dotSize + gap) }]}>
-      {Array.from({ length: Math.min(totalDays, 366) }, (_, i) => (
+    <View style={[miniGridStyles.container, { width: columns * (dotSize + gap), justifyContent: "center" }]}>
+      {Array.from({ length: Math.min(total, 400) }, (_, i) => (
         <View
           key={i}
           style={{
@@ -161,7 +181,7 @@ function MiniDotGrid({
           <ShapeRenderer
             shape={shape}
             size={dotSize}
-            color={i < dayOfYear ? passedColor : remainingColor}
+            color={i < passed ? passedColor : remainingColor}
           />
         </View>
       ))}
@@ -249,16 +269,18 @@ const shapeOptions: ShapeType[] = ["Dots", "Squares", "Stars", "Diamonds", "Hexa
 export default function ShareScreen() {
   const colorScheme = useColorScheme();
   const params = useLocalSearchParams<{
-    year: string;
-    daysLeft: string;
-    totalDays: string;
-    dayOfYear: string;
+    label: string;
+    timeLeftText: string;
+    total: string;
+    passed: string;
+    viewType: string;
   }>();
 
-  const year = parseInt(params.year || "2026", 10);
-  const daysLeft = parseInt(params.daysLeft || "360", 10);
-  const totalDays = parseInt(params.totalDays || "365", 10);
-  const dayOfYear = parseInt(params.dayOfYear || "5", 10);
+  const label = params.label || "2026";
+  const timeLeftText = params.timeLeftText || "360 days left";
+  const total = parseInt(params.total || "365", 10);
+  const passed = parseInt(params.passed || "5", 10);
+  const viewType = params.viewType || "year";
 
   // Default theme based on system setting
   const [theme, setTheme] = useState<ThemeType>(colorScheme === "dark" ? "Dark" : "Light");
@@ -331,7 +353,7 @@ export default function ShareScreen() {
         if (isAvailable) {
           await Sharing.shareAsync(uri, {
             mimeType: "image/png",
-            dialogTitle: "Share your year progress",
+            dialogTitle: `Share ${label}`,
           });
         }
       }
@@ -364,12 +386,13 @@ export default function ShareScreen() {
               <Text style={[
                 styles.previewYear,
                 { color: yearColor }
-              ]}>{year}</Text>
+              ]}>{label}</Text>
             )}
             <View style={[styles.previewGridContainer, !showTitle && { marginTop: 8 }]}>
               <MiniDotGrid
-                totalDays={totalDays}
-                dayOfYear={dayOfYear}
+                total={total}
+                passed={passed}
+                viewType={viewType}
                 theme={theme}
                 color={color}
                 shape={shape}
@@ -379,14 +402,14 @@ export default function ShareScreen() {
               <View style={styles.previewFooter}>
                 {showRekoApp ? (
                   <Text style={[styles.previewFooterText, { color: footerColor }]}>
-                    reko.app
+                    left-time.app
                   </Text>
                 ) : (
                   <View />
                 )}
                 {showTimeLeft ? (
                   <Text style={[styles.previewFooterText, { color: footerColor }]}>
-                    {daysLeft} days left
+                    {timeLeftText}
                   </Text>
                 ) : (
                   <View />
@@ -421,7 +444,7 @@ export default function ShareScreen() {
       <View style={styles.togglesRow}>
         <ToggleItem label="Title" value={showTitle} onValueChange={setShowTitle} />
         <ToggleItem label="Time left" value={showTimeLeft} onValueChange={setShowTimeLeft} />
-        <ToggleItem label="Reko" value={showRekoApp} onValueChange={setShowRekoApp} />
+        <ToggleItem label="Left app" value={showRekoApp} onValueChange={setShowRekoApp} />
       </View>
 
       {/* Share Button */}

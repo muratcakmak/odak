@@ -11,13 +11,20 @@ import {
   Switch,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { DatePicker, Host } from "@expo/ui/swift-ui";
+import { DatePicker, Host, ContextMenu, Button } from "@expo/ui/swift-ui";
 import { router } from "expo-router";
 import {
   getUserProfile,
   saveUserProfile,
+  getLifeUnit,
+  setLifeUnit,
+  getBackgroundMode,
+  setBackgroundMode,
   type UserProfile,
+  type LifeUnit,
+  type BackgroundMode,
 } from "../utils/storage";
+import { useTheme } from "../hooks/useTheme";
 
 // Plus badge component
 function PlusBadge() {
@@ -41,6 +48,8 @@ function SettingsRow({
   switchValue,
   onSwitchChange,
   subtitle,
+  textColor = "#000000",
+  secondaryTextColor = "#8E8E93",
 }: {
   icon: string;
   iconBg: string;
@@ -53,6 +62,8 @@ function SettingsRow({
   switchValue?: boolean;
   onSwitchChange?: (value: boolean) => void;
   subtitle?: string;
+  textColor?: string;
+  secondaryTextColor?: string;
 }) {
   return (
     <Pressable
@@ -64,8 +75,8 @@ function SettingsRow({
         <Ionicons name={icon as any} size={16} color="#FFFFFF" />
       </View>
       <View style={styles.settingsLabelContainer}>
-        <Text style={styles.settingsLabel}>{label}</Text>
-        {subtitle && <Text style={styles.settingsSubtitle}>{subtitle}</Text>}
+        <Text style={[styles.settingsLabel, { color: textColor }]}>{label}</Text>
+        {subtitle && <Text style={[styles.settingsSubtitle, { color: secondaryTextColor }]}>{subtitle}</Text>}
       </View>
       {showSwitch ? (
         <Switch
@@ -75,16 +86,16 @@ function SettingsRow({
         />
       ) : (
         <View style={styles.settingsRight}>
-          {value && <Text style={styles.settingsValue}>{value}</Text>}
+          {value && <Text style={[styles.settingsValue, { color: secondaryTextColor }]}>{value}</Text>}
           {showPlus && <PlusBadge />}
           {showChevron && (
-            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+            <Ionicons name="chevron-forward" size={16} color={secondaryTextColor} />
           )}
           {value && !showChevron && !showPlus && (
             <Ionicons
               name="chevron-expand"
               size={16}
-              color="#C7C7CC"
+              color={secondaryTextColor}
               style={{ marginLeft: 4 }}
             />
           )}
@@ -108,8 +119,10 @@ export default function SettingsScreen() {
     return date;
   });
   const [hideYouSection, setHideYouSection] = useState(false);
+  const [lifeUnit, setLifeUnitState] = useState<LifeUnit>("years");
+  const [backgroundMode, setBackgroundModeState] = useState<BackgroundMode>("device");
 
-  // Load profile from MMKV on mount
+  // Load profile and preferences from MMKV on mount
   useEffect(() => {
     const storedProfile = getUserProfile();
     if (storedProfile) {
@@ -124,7 +137,35 @@ export default function SettingsScreen() {
         setTempDate(new Date(storedProfile.birthDate));
       }
     }
+    setLifeUnitState(getLifeUnit());
+    setBackgroundModeState(getBackgroundMode());
   }, []);
+
+  const handleLifeUnitChange = (unit: LifeUnit) => {
+    setLifeUnitState(unit);
+    setLifeUnit(unit);
+  };
+
+  const formatLifeUnit = (unit: LifeUnit): string => {
+    switch (unit) {
+      case "years": return "Years";
+      case "months": return "Months";
+      case "weeks": return "Weeks";
+    }
+  };
+
+  const handleBackgroundModeChange = (mode: BackgroundMode) => {
+    setBackgroundModeState(mode);
+    setBackgroundMode(mode);
+  };
+
+  const formatBackgroundMode = (mode: BackgroundMode): string => {
+    switch (mode) {
+      case "dark": return "Dark";
+      case "light": return "Light";
+      case "device": return "Device";
+    }
+  };
 
   const handleSaveName = () => {
     if (tempName.trim()) {
@@ -148,11 +189,15 @@ export default function SettingsScreen() {
     setShowDatePicker(false);
   };
 
+  const { isDark, colors: themeColors } = useTheme();
+
   const colors = {
-    background: "#F2F2F7",
-    cardBg: "#FFFFFF",
-    text: "#000000",
-    secondaryText: "#8E8E93",
+    background: themeColors.background,
+    cardBg: themeColors.card,
+    text: themeColors.textPrimary,
+    secondaryText: themeColors.textSecondary,
+    inputBg: isDark ? "#2C2C2E" : "#F2F2F7",
+    divider: isDark ? "#38383A" : "#E5E5EA",
   };
 
   return (
@@ -163,8 +208,8 @@ export default function SettingsScreen() {
       >
 
         {/* Life Profile Section */}
-        <Text style={styles.sectionTitle}>Life profile</Text>
-        <View style={styles.settingsCard}>
+        <Text style={[styles.sectionTitle, { color: colors.secondaryText }]}>Life profile</Text>
+        <View style={[styles.settingsCard, { backgroundColor: colors.cardBg }]}>
           <SettingsRow
             icon="person"
             iconBg="#007AFF"
@@ -174,8 +219,10 @@ export default function SettingsScreen() {
               setTempName(profile.name || "");
               setShowNameInput(true);
             }}
+            textColor={colors.text}
+            secondaryTextColor={colors.secondaryText}
           />
-          <View style={styles.settingsDivider} />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
           <SettingsRow
             icon="gift"
             iconBg="#AF52DE"
@@ -190,54 +237,136 @@ export default function SettingsScreen() {
                 : "Not set"
             }
             onPress={() => setShowDatePicker(true)}
+            textColor={colors.text}
+            secondaryTextColor={colors.secondaryText}
           />
-          <View style={styles.settingsDivider} />
-          <SettingsRow
-            icon="body"
-            iconBg="#34C759"
-            label="See your life in..."
-            value="Years"
-          />
-          <View style={styles.settingsDivider} />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
+          {/* Life Unit Row with Context Menu */}
+          <View style={styles.settingsRow}>
+            <View style={[styles.settingsIcon, { backgroundColor: "#34C759" }]}>
+              <Ionicons name="body" size={16} color="#FFFFFF" />
+            </View>
+            <View style={styles.settingsLabelContainer}>
+              <Text style={[styles.settingsLabel, { color: colors.text }]}>See your life in...</Text>
+            </View>
+            {Platform.OS === "ios" ? (
+              <Host style={{ height: 24 }}>
+                <ContextMenu activationMethod="singlePress">
+                  <ContextMenu.Items>
+                    <Button
+                      label="Years"
+                      systemImage={lifeUnit === "years" ? "checkmark" : undefined}
+                      onPress={() => handleLifeUnitChange("years")}
+                    />
+                    <Button
+                      label="Months"
+                      systemImage={lifeUnit === "months" ? "checkmark" : undefined}
+                      onPress={() => handleLifeUnitChange("months")}
+                    />
+                    <Button
+                      label="Weeks"
+                      systemImage={lifeUnit === "weeks" ? "checkmark" : undefined}
+                      onPress={() => handleLifeUnitChange("weeks")}
+                    />
+                  </ContextMenu.Items>
+                  <ContextMenu.Trigger>
+                    <View style={styles.settingsRight}>
+                      <Text style={[styles.settingsValue, { color: colors.secondaryText }]}>{formatLifeUnit(lifeUnit)}</Text>
+                      <Ionicons name="chevron-expand" size={16} color={colors.secondaryText} style={{ marginLeft: 4 }} />
+                    </View>
+                  </ContextMenu.Trigger>
+                </ContextMenu>
+              </Host>
+            ) : (
+              <View style={styles.settingsRight}>
+                <Text style={[styles.settingsValue, { color: colors.secondaryText }]}>{formatLifeUnit(lifeUnit)}</Text>
+                <Ionicons name="chevron-expand" size={16} color={colors.secondaryText} style={{ marginLeft: 4 }} />
+              </View>
+            )}
+          </View>
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
           <SettingsRow
             icon="sparkles"
             iconBg="#FF3B30"
             label="What's your lifespan?"
             value="75 years"
             showPlus
+            textColor={colors.text}
+            secondaryTextColor={colors.secondaryText}
           />
-          <View style={styles.settingsDivider} />
-          <Text style={styles.cardFooter}>
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
+          <Text style={[styles.cardFooter, { color: colors.secondaryText }]}>
             The name and birthday is used for the Life view, which is based on a
             default life expectancy of 75 years.
           </Text>
         </View>
 
         {/* Appearance Section */}
-        <Text style={styles.sectionTitle}>Appearance</Text>
-        <View style={styles.settingsCard}>
+        <Text style={[styles.sectionTitle, { color: colors.secondaryText }]}>Appearance</Text>
+        <View style={[styles.settingsCard, { backgroundColor: colors.cardBg }]}>
           <SettingsRow
             icon="color-palette"
             iconBg="#AF52DE"
             label="Theme"
             value="White"
+            textColor={colors.text}
+            secondaryTextColor={colors.secondaryText}
           />
-          <View style={styles.settingsDivider} />
-          <SettingsRow
-            icon="contrast"
-            iconBg="#FF9500"
-            label="Background"
-            value="Device"
-          />
-          <View style={styles.settingsDivider} />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
+          {/* Background Row with Context Menu */}
+          <View style={styles.settingsRow}>
+            <View style={[styles.settingsIcon, { backgroundColor: "#FF9500" }]}>
+              <Ionicons name="contrast" size={16} color="#FFFFFF" />
+            </View>
+            <View style={styles.settingsLabelContainer}>
+              <Text style={[styles.settingsLabel, { color: colors.text }]}>Background</Text>
+            </View>
+            {Platform.OS === "ios" ? (
+              <Host style={{ height: 24 }}>
+                <ContextMenu activationMethod="singlePress">
+                  <ContextMenu.Items>
+                    <Button
+                      label="Dark"
+                      systemImage={backgroundMode === "dark" ? "checkmark" : undefined}
+                      onPress={() => handleBackgroundModeChange("dark")}
+                    />
+                    <Button
+                      label="Light"
+                      systemImage={backgroundMode === "light" ? "checkmark" : undefined}
+                      onPress={() => handleBackgroundModeChange("light")}
+                    />
+                    <Button
+                      label="Device"
+                      systemImage={backgroundMode === "device" ? "checkmark" : undefined}
+                      onPress={() => handleBackgroundModeChange("device")}
+                    />
+                  </ContextMenu.Items>
+                  <ContextMenu.Trigger>
+                    <View style={styles.settingsRight}>
+                      <Text style={[styles.settingsValue, { color: colors.secondaryText }]}>{formatBackgroundMode(backgroundMode)}</Text>
+                      <Ionicons name="chevron-expand" size={16} color={colors.secondaryText} style={{ marginLeft: 4 }} />
+                    </View>
+                  </ContextMenu.Trigger>
+                </ContextMenu>
+              </Host>
+            ) : (
+              <View style={styles.settingsRight}>
+                <Text style={[styles.settingsValue, { color: colors.secondaryText }]}>{formatBackgroundMode(backgroundMode)}</Text>
+                <Ionicons name="chevron-expand" size={16} color={colors.secondaryText} style={{ marginLeft: 4 }} />
+              </View>
+            )}
+          </View>
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
           <SettingsRow
             icon="apps"
             iconBg="#FF9500"
             label="Symbols"
             value="Dots"
             showPlus
+            textColor={colors.text}
+            secondaryTextColor={colors.secondaryText}
           />
-          <View style={styles.settingsDivider} />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
           <SettingsRow
             icon="eye-off"
             iconBg="#FF3B30"
@@ -245,9 +374,11 @@ export default function SettingsScreen() {
             showSwitch
             switchValue={hideYouSection}
             onSwitchChange={setHideYouSection}
+            textColor={colors.text}
+            secondaryTextColor={colors.secondaryText}
           />
-          <View style={styles.settingsDivider} />
-          <Text style={styles.cardFooter}>
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
+          <Text style={[styles.cardFooter, { color: colors.secondaryText }]}>
             The theme and background selected will be used to display the app
             symbols. Plus members can change the dots to other symbols as
             squares, stars, hearts and more.
@@ -255,16 +386,18 @@ export default function SettingsScreen() {
         </View>
 
         {/* Notifications Section */}
-        <Text style={styles.sectionTitle}>Notifications</Text>
-        <View style={styles.settingsCard}>
+        <Text style={[styles.sectionTitle, { color: colors.secondaryText }]}>Notifications</Text>
+        <View style={[styles.settingsCard, { backgroundColor: colors.cardBg }]}>
           <SettingsRow
             icon="notifications"
             iconBg="#A2845E"
             label="Enable notifications (beta)"
             showPlus
+            textColor={colors.text}
+            secondaryTextColor={colors.secondaryText}
           />
-          <View style={styles.settingsDivider} />
-          <Text style={styles.cardFooter}>
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
+          <Text style={[styles.cardFooter, { color: colors.secondaryText }]}>
             Daily notifications are sent at 9:00 AM. Frequent notifications are
             sent at 10% intervals, and occasional notifications at 25%
             intervals. This feature is still in beta and might crash or not be
@@ -273,54 +406,66 @@ export default function SettingsScreen() {
         </View>
 
         {/* About Reko Section */}
-        <Text style={styles.sectionTitle}>About Reko</Text>
-        <View style={styles.settingsCard}>
+        <Text style={[styles.sectionTitle, { color: colors.secondaryText }]}>About Reko</Text>
+        <View style={[styles.settingsCard, { backgroundColor: colors.cardBg }]}>
           <SettingsRow
             icon="gift"
             iconBg="#FF6B6B"
             label="Give Reko+ for free"
             showChevron
+            textColor={colors.text}
+            secondaryTextColor={colors.secondaryText}
           />
-          <View style={styles.settingsDivider} />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
           <SettingsRow
             icon="sparkles"
             iconBg="#AF52DE"
             label="Discover the app"
             showChevron
+            textColor={colors.text}
+            secondaryTextColor={colors.secondaryText}
           />
-          <View style={styles.settingsDivider} />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
           <SettingsRow
             icon="cube"
             iconBg="#007AFF"
             label="What's new?!"
             showChevron
+            textColor={colors.text}
+            secondaryTextColor={colors.secondaryText}
           />
-          <View style={styles.settingsDivider} />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
           <SettingsRow
             icon="layers"
             iconBg="#FF6B6B"
             label="How to add widgets"
             showChevron
+            textColor={colors.text}
+            secondaryTextColor={colors.secondaryText}
           />
-          <View style={styles.settingsDivider} />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
           <SettingsRow
             icon="star"
             iconBg="#FFCC00"
             label="Rate & review Reko"
             showChevron
+            textColor={colors.text}
+            secondaryTextColor={colors.secondaryText}
           />
-          <View style={styles.settingsDivider} />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
           <SettingsRow
             icon="paper-plane"
             iconBg="#007AFF"
             label="Contact developer"
             subtitle="Ask for support, get help, or send feedback"
+            textColor={colors.text}
+            secondaryTextColor={colors.secondaryText}
             showChevron
           />
         </View>
 
         {/* Version Footer */}
-        <Text style={styles.versionText}>v2025.10.4 · Coded in NZ · © cntxt</Text>
+        <Text style={[styles.versionText, { color: colors.secondaryText }]}>v2025.10.4 · Coded in NZ · © cntxt</Text>
       </ScrollView>
 
       {/* Name Input Modal */}
@@ -330,16 +475,16 @@ export default function SettingsScreen() {
           onPress={() => setShowNameInput(false)}
         >
           <Pressable
-            style={styles.inputModal}
+            style={[styles.inputModal, { backgroundColor: colors.cardBg }]}
             onPress={(e) => e.stopPropagation()}
           >
-            <Text style={styles.inputModalTitle}>Your Name</Text>
+            <Text style={[styles.inputModalTitle, { color: colors.text }]}>Your Name</Text>
             <TextInput
-              style={styles.inputModalInput}
+              style={[styles.inputModalInput, { backgroundColor: colors.inputBg, color: colors.text }]}
               value={tempName}
               onChangeText={setTempName}
               placeholder="Enter your name"
-              placeholderTextColor="#8E8E93"
+              placeholderTextColor={colors.secondaryText}
               autoFocus
             />
             <View style={styles.inputModalButtons}>
@@ -367,11 +512,11 @@ export default function SettingsScreen() {
         animationType="slide"
         presentationStyle="formSheet"
       >
-        <View style={styles.datePickerModal}>
+        <View style={[styles.datePickerModal, { backgroundColor: colors.cardBg }]}>
           <View style={styles.datePickerHeader}>
-            <Text style={styles.datePickerTitle}>When were you born?</Text>
-            <Pressable style={styles.doneButton} onPress={handleSaveDate}>
-              <Text style={styles.doneButtonText}>Done</Text>
+            <Text style={[styles.datePickerTitle, { color: colors.text }]}>When were you born?</Text>
+            <Pressable style={[styles.doneButton, { backgroundColor: colors.inputBg }]} onPress={handleSaveDate}>
+              <Text style={[styles.doneButtonText, { color: colors.text }]}>Done</Text>
             </Pressable>
           </View>
           {Platform.OS === "ios" && (
@@ -379,7 +524,10 @@ export default function SettingsScreen() {
               <DatePicker
                 selection={tempDate}
                 onDateChange={setTempDate}
-                range={{ end: new Date() }}
+                range={{
+                  start: new Date(1900, 0, 1),
+                  end: new Date()
+                }}
               />
             </Host>
           )}

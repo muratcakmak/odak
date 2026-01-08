@@ -4,10 +4,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Svg, { Circle } from "react-native-svg";
-import { DatePicker, Host, ContextMenu, Button } from "@expo/ui/swift-ui";
+import { DatePicker, Host, ContextMenu, Button, Divider } from "@expo/ui/swift-ui";
+import { datePickerStyle } from "@expo/ui/swift-ui/modifiers";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import Animated, { LinearTransition, FadeIn, FadeOut } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut, Layout, Easing } from "react-native-reanimated";
 import { getSinceEvents, addSinceEvent, type SinceEvent, getSinceViewMode, setSinceViewMode, saveImageLocally, type ViewMode } from "../../utils/storage";
 import { useTheme } from "../../hooks/useTheme";
 
@@ -337,6 +338,7 @@ function AddEventModal({
                   selection={selectedDate}
                   onDateChange={setSelectedDate}
                   range={{ end: new Date() }}
+                  modifiers={[datePickerStyle("graphical")]}
                 />
               </Host>
             ) : (
@@ -357,12 +359,6 @@ export default function SinceScreen() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [sortType, setSortType] = useState<SortType>("date_desc");
   const [viewMode, setViewMode] = useState<ViewMode>(() => getSinceViewMode());
-
-  const toggleViewMode = useCallback(() => {
-    const newMode = viewMode === "list" ? "grid" : "list";
-    setViewMode(newMode);
-    setSinceViewMode(newMode);
-  }, [viewMode]);
 
   const colors = {
     background: themeColors.background,
@@ -427,6 +423,23 @@ export default function SinceScreen() {
               <ContextMenu activationMethod="singlePress">
                 <ContextMenu.Items>
                   <Button
+                    label="Grid View"
+                    systemImage={viewMode === "grid" ? "checkmark" : undefined}
+                    onPress={() => {
+                      setViewMode("grid");
+                      setSinceViewMode("grid");
+                    }}
+                  />
+                  <Button
+                    label="List View"
+                    systemImage={viewMode === "list" ? "checkmark" : undefined}
+                    onPress={() => {
+                      setViewMode("list");
+                      setSinceViewMode("list");
+                    }}
+                  />
+                  <Divider />
+                  <Button
                     label="Longest First"
                     systemImage={sortType === "date_asc" ? "checkmark" : undefined}
                     onPress={() => setSortType("date_asc")}
@@ -461,13 +474,6 @@ export default function SinceScreen() {
               <Ionicons name="options-outline" size={20} color={colors.text} />
             </HeaderPillButton>
           )}
-          <HeaderPillButton onPress={toggleViewMode}>
-            <Ionicons
-              name={viewMode === "grid" ? "list-outline" : "grid-outline"}
-              size={20}
-              color={colors.text}
-            />
-          </HeaderPillButton>
         </View>
 
         <Text style={[styles.headerTitle, { color: colors.text }]}>Time since</Text>
@@ -494,16 +500,13 @@ export default function SinceScreen() {
             </Text>
           </View>
         ) : (
-          <Animated.View
-            style={viewMode === "grid" ? styles.cardsGrid : styles.cardsList}
-            layout={LinearTransition.springify().damping(18).stiffness(120)}
-          >
+          <View style={viewMode === "grid" ? styles.cardsGrid : styles.cardsList}>
             {sortedEvents.map((event) => (
               <Animated.View
                 key={`${event.id}-${viewMode}`}
-                layout={LinearTransition.springify().damping(18).stiffness(120)}
-                entering={FadeIn.duration(200)}
-                exiting={FadeOut.duration(150)}
+                layout={Layout.duration(250).easing(Easing.out(Easing.quad))}
+                entering={FadeIn.duration(200).easing(Easing.out(Easing.quad))}
+                exiting={FadeOut.duration(150).easing(Easing.in(Easing.quad))}
                 style={viewMode === "grid" ? styles.sinceCardWrapper : styles.sinceCardWrapperList}
               >
                 <SinceCard
@@ -515,7 +518,7 @@ export default function SinceScreen() {
                 />
               </Animated.View>
             ))}
-          </Animated.View>
+          </View>
         )}
       </ScrollView>
 
@@ -572,6 +575,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingTop: 0,
+    paddingBottom: 120,
   },
   // Info Banner
   infoBanner: {

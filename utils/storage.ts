@@ -204,6 +204,20 @@ export function syncAllEventsToWidget(): void {
   }
 }
 
+// Life Unit Preference
+export type LifeUnit = "years" | "months" | "weeks";
+
+const LIFE_UNIT_KEY = "life_unit";
+
+export function getLifeUnit(): LifeUnit {
+  const unit = storage.getString(LIFE_UNIT_KEY);
+  return (unit as LifeUnit) || "years";
+}
+
+export function setLifeUnit(unit: LifeUnit): void {
+  storage.set(LIFE_UNIT_KEY, unit);
+}
+
 // View Mode Preferences
 export type ViewMode = "list" | "grid";
 
@@ -226,4 +240,18 @@ export function getSinceViewMode(): ViewMode {
 
 export function setSinceViewMode(mode: ViewMode): void {
   storage.set(VIEW_MODE_SINCE_KEY, mode);
+}
+
+// Background Preference
+export type BackgroundMode = "dark" | "light" | "device";
+
+const BACKGROUND_MODE_KEY = "background_mode";
+
+export function getBackgroundMode(): BackgroundMode {
+  const mode = storage.getString(BACKGROUND_MODE_KEY);
+  return (mode as BackgroundMode) || "device";
+}
+
+export function setBackgroundMode(mode: BackgroundMode): void {
+  storage.set(BACKGROUND_MODE_KEY, mode);
 }
