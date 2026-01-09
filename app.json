@@ -52,6 +52,12 @@
         {
           "appleTeamId": "32LKZEC649"
         }
+      ],
+      [
+        "./plugins/withNativeTheme",
+        {
+          "appGroupId": "group.com.omc345.reko"
+        }
       ]
     ],
     "experiments": {

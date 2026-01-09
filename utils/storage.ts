@@ -2,6 +2,7 @@ import { MMKV } from "react-native-mmkv";
 import { Paths, File, Directory } from "expo-file-system";
 import { Platform } from "react-native";
 import WidgetSync from "../modules/widget-sync";
+import NativeTheme from "../modules/native-theme";
 
 // Initialize MMKV storage
 export const storage = new MMKV();
@@ -193,6 +194,10 @@ export function syncAllEventsToWidget(): void {
       syncToWidgetStorage(SINCE_EVENTS_KEY, JSON.stringify(sinceEvents));
     }
 
+    // Sync background mode for native theme initialization
+    const backgroundMode = storage.getString(BACKGROUND_MODE_KEY) || "device";
+    syncToWidgetStorage(BACKGROUND_MODE_KEY, backgroundMode);
+
     // Refresh widgets
     refreshWidgets();
     console.log("[WidgetSync] Synced events to widget storage:", {
@@ -254,6 +259,10 @@ export function getBackgroundMode(): BackgroundMode {
 
 export function setBackgroundMode(mode: BackgroundMode): void {
   storage.set(BACKGROUND_MODE_KEY, mode);
+  // Sync to UserDefaults for native code to read at app launch
+  syncToWidgetStorage(BACKGROUND_MODE_KEY, mode);
+  // Update native interface style at runtime (iOS)
+  NativeTheme.setNativeThemeMode(mode);
 }
 
 // Accent Color Preference
