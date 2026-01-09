@@ -33,8 +33,8 @@ function getDaysUntil(date: Date) {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
-// Header pill button
-function HeaderPillButton({
+// Pill button with glass effect
+function PillButton({
   children,
   onPress,
   style,
@@ -59,7 +59,7 @@ function HeaderPillButton({
   }
 
   return (
-    <Pressable onPress={onPress} style={[{ backgroundColor: fallbackColor || theme.colors.surface }, style]}>
+    <Pressable onPress={onPress} style={[{ backgroundColor: fallbackColor || theme.colors.card }, style]}>
       {children}
     </Pressable>
   );
@@ -161,7 +161,6 @@ function AddEventModal({
     return date;
   });
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const isGlassAvailable = hasLiquidGlassSupport();
   const { theme } = useUnistyles();
   const styles = createStyles(theme);
   // Replicating colors logic locally for modal elements if needed or using theme directly
@@ -194,22 +193,12 @@ function AddEventModal({
     }
   };
 
-  const HeaderButton = ({ onPress, disabled, children }: { onPress: () => void; disabled?: boolean; children: React.ReactNode }) => {
-    if (isGlassAvailable) {
-      return (
-        <Pressable onPress={onPress} disabled={disabled}>
-          <GlassView style={styles.headerGlassButton} isInteractive>
-            {children}
-          </GlassView>
-        </Pressable>
-      );
-    }
-    return (
-      <Pressable onPress={onPress} disabled={disabled} style={[styles.headerGlassButton, { backgroundColor: theme.colors.surface }]}>
-        {children}
-      </Pressable>
-    );
-  };
+  // Use PillButton for modal header buttons
+  const HeaderButton = ({ onPress, disabled, children }: { onPress: () => void; disabled?: boolean; children: React.ReactNode }) => (
+    <PillButton onPress={onPress} disabled={disabled} style={styles.headerGlassButton}>
+      {children}
+    </PillButton>
+  );
 
   return (
     <Modal
@@ -392,28 +381,28 @@ export default function AheadScreen() {
                 </ContextMenu.Items>
                 <ContextMenu.Trigger>
                   <View>
-                    <HeaderPillButton style={styles.pillButton} fallbackColor={theme.colors.surface}>
+                    <PillButton style={styles.pillButton}>
                       <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
-                    </HeaderPillButton>
+                    </PillButton>
                   </View>
                 </ContextMenu.Trigger>
               </ContextMenu>
             </Host>
           ) : (
-            <HeaderPillButton style={styles.pillButton} fallbackColor={theme.colors.surface}>
+            <PillButton style={styles.pillButton}>
               <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
-            </HeaderPillButton>
+            </PillButton>
           )}
         </View>
 
         <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>Time ahead</Text>
 
-        <HeaderPillButton style={styles.rightPillButton} onPress={openAddModal} fallbackColor={theme.colors.surface}>
+        <PillButton style={styles.rightPillButton} onPress={openAddModal}>
           <Ionicons name="calendar-outline" size={20} color={theme.colors.textPrimary} />
           <Text style={[styles.plusBadge, { color: theme.colors.textPrimary }]}>+</Text>
           <View style={[styles.buttonDivider, { backgroundColor: theme.colors.cardBorder }]} />
           <Ionicons name="add" size={24} color={theme.colors.textPrimary} />
-        </HeaderPillButton>
+        </PillButton>
       </View>
 
       {/* Content */}

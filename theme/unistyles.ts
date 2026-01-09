@@ -1,4 +1,6 @@
 import { StyleSheet } from 'react-native-unistyles';
+import { Appearance } from 'react-native';
+import { storage } from '../utils/storage';
 import {
     lightColors,
     darkColors,
@@ -47,6 +49,17 @@ type AppThemes = {
 
 type AppBreakpoints = typeof breakpoints;
 
+// Read stored preference synchronously at module load to prevent theme flash
+function getInitialTheme(): 'light' | 'dark' {
+    const storedMode = storage.getString('background_mode') as 'dark' | 'light' | 'device' | undefined;
+    const mode = storedMode || 'device';
+
+    if (mode === 'device') {
+        return Appearance.getColorScheme() || 'dark';
+    }
+    return mode;
+}
+
 // Override library types
 declare module 'react-native-unistyles' {
     export interface UnistylesThemes extends AppThemes { }
@@ -61,6 +74,6 @@ StyleSheet.configure({
         dark: darkTheme,
     },
     settings: {
-        adaptiveThemes: true, // Enable system theme detection by default
+        initialTheme: getInitialTheme(),
     },
 });

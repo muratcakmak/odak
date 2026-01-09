@@ -15,10 +15,16 @@ import { useUnistyles, UnistylesRuntime } from "react-native-unistyles";
 import { getBackgroundMode } from "../utils/storage";
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme() || "dark";
+  // Read stored mode synchronously to prevent theme flash
+  const storedMode = getBackgroundMode();
+  const deviceScheme = useColorScheme() || "dark";
+
+  // Determine effective theme BEFORE first render
+  const effectiveTheme = storedMode === 'device' ? deviceScheme : storedMode;
+  const isDark = effectiveTheme === 'dark';
+
   // Use Unistyles
   const { theme } = useUnistyles();
-  const isDark = colorScheme === 'dark'; // Or theme.colors.background check, but standard hook is fine here for status bar
   const colors = theme.colors;
 
   // Sync events to widget storage on app start
@@ -26,21 +32,20 @@ export default function RootLayout() {
     syncAllEventsToWidget();
 
     // Sync Unistyles theme with stored preference
-    const mode = getBackgroundMode();
-    if (mode === 'device') {
+    if (storedMode === 'device') {
       UnistylesRuntime.setAdaptiveThemes(true);
     } else {
       UnistylesRuntime.setAdaptiveThemes(false);
-      UnistylesRuntime.setTheme(mode);
+      UnistylesRuntime.setTheme(storedMode);
     }
-  }, []);
+  }, [storedMode]);
 
   const useGlass = hasLiquidGlassSupport();
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <ThemeProvider
-        value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        value={isDark ? DarkTheme : DefaultTheme}
       >
         <StatusBar style={isDark ? "light" : "dark"} />
 

@@ -67,24 +67,25 @@ function ProgressRing({ progress, size = 44 }: { progress: number; size?: number
   );
 }
 
-// Header pill button
-function HeaderPillButton({
+// Pill button with glass effect
+function PillButton({
   children,
   onPress,
   style,
+  fallbackColor,
 }: {
   children: React.ReactNode;
   onPress?: () => void;
   style?: any;
+  fallbackColor?: string;
 }) {
-  const isGlassAvailable = hasLiquidGlassSupport();
   const { theme } = useUnistyles();
-  const styles = createStyles(theme);
+  const isGlassAvailable = hasLiquidGlassSupport();
 
   if (isGlassAvailable) {
     return (
       <Pressable onPress={onPress}>
-        <GlassView style={[styles.pillButton, style]} isInteractive>
+        <GlassView style={style} isInteractive>
           {children}
         </GlassView>
       </Pressable>
@@ -92,7 +93,7 @@ function HeaderPillButton({
   }
 
   return (
-    <Pressable onPress={onPress} style={[styles.pillButton, styles.pillButtonFallback, style]}>
+    <Pressable onPress={onPress} style={[{ backgroundColor: fallbackColor || theme.colors.card }, style]}>
       {children}
     </Pressable>
   );
@@ -235,7 +236,6 @@ function AddEventModal({
   const [title, setTitle] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => new Date()); // Default to today
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const isGlassAvailable = hasLiquidGlassSupport();
   const { theme } = useUnistyles();
   const styles = createStyles(theme);
 
@@ -269,22 +269,12 @@ function AddEventModal({
   const secondaryTextColor = theme.colors.textSecondary;
   const inputBg = theme.colors.surface;
 
-  const HeaderButton = ({ onPress, disabled, children }: { onPress: () => void; disabled?: boolean; children: React.ReactNode }) => {
-    if (isGlassAvailable) {
-      return (
-        <Pressable onPress={onPress} disabled={disabled}>
-          <GlassView style={styles.headerGlassButton} isInteractive>
-            {children}
-          </GlassView>
-        </Pressable>
-      );
-    }
-    return (
-      <Pressable onPress={onPress} disabled={disabled} style={[styles.headerGlassButton, styles.headerButtonFallback]}>
-        {children}
-      </Pressable>
-    );
-  };
+  // Use PillButton for modal header buttons
+  const HeaderButton = ({ onPress, disabled, children }: { onPress: () => void; disabled?: boolean; children: React.ReactNode }) => (
+    <PillButton onPress={onPress} disabled={disabled} style={styles.headerGlassButton}>
+      {children}
+    </PillButton>
+  );
 
   return (
     <Modal
@@ -466,25 +456,25 @@ export default function SinceScreen() {
                 </ContextMenu.Items>
                 <ContextMenu.Trigger>
                   <View>
-                    <HeaderPillButton>
+                    <PillButton style={styles.pillButton}>
                       <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
-                    </HeaderPillButton>
+                    </PillButton>
                   </View>
                 </ContextMenu.Trigger>
               </ContextMenu>
             </Host>
           ) : (
-            <HeaderPillButton>
+            <PillButton style={styles.pillButton}>
               <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
-            </HeaderPillButton>
+            </PillButton>
           )}
         </View>
 
         <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>Time since</Text>
 
-        <HeaderPillButton onPress={openAddModal}>
+        <PillButton onPress={openAddModal} style={styles.pillButton}>
           <Ionicons name="add" size={24} color={theme.colors.textPrimary} />
-        </HeaderPillButton>
+        </PillButton>
       </View>
 
       {/* Content */}

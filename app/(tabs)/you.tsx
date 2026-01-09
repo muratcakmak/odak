@@ -1,15 +1,13 @@
 import { useState, useRef } from "react";
 import { StyleSheet, View, Text, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassView } from "expo-glass-effect";
-import { hasLiquidGlassSupport } from "../../utils/capabilities";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { getUserProfile } from "../../utils/storage";
+import { getUserProfile, getAccentColor, type AccentColor } from "../../utils/storage";
 import { useUnistyles } from "react-native-unistyles";
-import { getAccentColor, type AccentColor } from "../../utils/storage";
 import { accentColors } from "../../constants/theme";
+import { AdaptivePillButton } from "../../components/ui";
 import * as Haptics from "expo-haptics";
 import Animated, {
   useSharedValue,
@@ -18,37 +16,6 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-
-// Header pill button
-function HeaderPillButton({
-  children,
-  onPress,
-  style,
-  fallbackColor,
-}: {
-  children: React.ReactNode;
-  onPress?: () => void;
-  style?: any;
-  fallbackColor?: string;
-}) {
-  const isGlassAvailable = hasLiquidGlassSupport();
-
-  if (isGlassAvailable) {
-    return (
-      <Pressable onPress={onPress}>
-        <GlassView style={[styles.pillButton, style]} isInteractive>
-          {children}
-        </GlassView>
-      </Pressable>
-    );
-  }
-
-  return (
-    <Pressable onPress={onPress} style={[styles.pillButton, { backgroundColor: fallbackColor || "#1C1C1E" }, style]}>
-      {children}
-    </Pressable>
-  );
-}
 
 export default function YouScreen() {
   const { theme } = useUnistyles();
@@ -141,9 +108,9 @@ export default function YouScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerSpacer} />
-        <HeaderPillButton onPress={openSettings} fallbackColor={colors.cardBg}>
+        <AdaptivePillButton onPress={openSettings} style={styles.pillButton}>
           <Ionicons name="settings-outline" size={20} color={colors.text} />
-        </HeaderPillButton>
+        </AdaptivePillButton>
       </View>
 
       {/* Content */}
@@ -161,7 +128,7 @@ export default function YouScreen() {
             <Text style={[styles.profileAge, { color: colors.secondaryText }]}>
               {calculateAge(profile.birthDate)} years old
             </Text>
-            <Pressable style={styles.setupButton} onPress={openSettings}>
+            <Pressable style={[styles.setupButton, { backgroundColor: accentColor }]} onPress={openSettings}>
               <Text style={styles.setupButtonText}>Edit profile</Text>
             </Pressable>
           </>
@@ -170,7 +137,7 @@ export default function YouScreen() {
             <Text style={[styles.descriptionText, { color: colors.secondaryText }]}>
               Set up your profile to unlock personalized insights and visual reflections based on your age and lifespan.
             </Text>
-            <Pressable style={styles.setupButton} onPress={openSettings}>
+            <Pressable style={[styles.setupButton, { backgroundColor: accentColor }]} onPress={openSettings}>
               <Text style={styles.setupButtonText}>Set up your profile</Text>
             </Pressable>
           </>
@@ -238,7 +205,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   setupButton: {
-    backgroundColor: "#007AFF",
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 14,

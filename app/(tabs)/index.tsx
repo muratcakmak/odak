@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { StyleSheet, View, Text, Pressable, useWindowDimensions, Platform } from "react-native";
+import { StyleSheet, View, Text, useWindowDimensions, Platform } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { GlassView } from "expo-glass-effect";
-import { hasLiquidGlassSupport } from "../../utils/capabilities";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { AdaptiveCard, AdaptivePillButton } from "../../components/ui";
 import { router } from "expo-router";
 import Animated, {
   FadeIn,
@@ -264,37 +263,6 @@ function SelectionHighlight({
   );
 }
 
-// Pill button component
-function PillButton({
-  children,
-  onPress,
-  style,
-  fallbackColor,
-}: {
-  children: React.ReactNode;
-  onPress?: () => void;
-  style?: any;
-  fallbackColor?: string;
-}) {
-  const { theme } = useUnistyles();
-  const isGlassAvailable = hasLiquidGlassSupport();
-
-  if (isGlassAvailable) {
-    return (
-      <Pressable onPress={onPress}>
-        <GlassView style={style} isInteractive>
-          {children}
-        </GlassView>
-      </Pressable>
-    );
-  }
-
-  return (
-    <Pressable onPress={onPress} style={[{ backgroundColor: fallbackColor || theme.colors.card }, style]}>
-      {children}
-    </Pressable>
-  );
-}
 
 // Grid of dots - renders all dots as simple Views
 function DotGrid({
@@ -609,37 +577,37 @@ export default function LeftScreen() {
               </ContextMenu.Items>
               <ContextMenu.Trigger>
                 <View>
-                  <PillButton style={styles.pillButton} fallbackColor={colors.cardBackground}>
+                  <AdaptivePillButton style={styles.pillButton}>
                     <Text style={[styles.labelText, { color: colors.text }]}>{label}</Text>
-                  </PillButton>
+                  </AdaptivePillButton>
                 </View>
               </ContextMenu.Trigger>
             </ContextMenu>
           </Host>
         ) : (
-          <PillButton style={styles.pillButton} fallbackColor={colors.cardBackground}>
+          <AdaptivePillButton style={styles.pillButton}>
             <Text style={[styles.labelText, { color: colors.text }]}>{label}</Text>
-          </PillButton>
+          </AdaptivePillButton>
         )}
 
         <View style={styles.headerRight}>
-          <PillButton style={styles.pillButton} fallbackColor={colors.cardBackground}>
+          <AdaptivePillButton style={styles.pillButton}>
             <Text style={[styles.daysLeftText, { color: colors.text }]}>
               {selectedDotLabel || timeLeftText}
             </Text>
-          </PillButton>
+          </AdaptivePillButton>
 
-          <PillButton style={[styles.pillButton, styles.shareButton]} onPress={openShareSheet} fallbackColor={colors.cardBackground}>
+          <AdaptivePillButton style={[styles.pillButton, styles.shareButton]} onPress={openShareSheet}>
             <Ionicons name="share-outline" size={20} color={colors.text} />
-          </PillButton>
+          </AdaptivePillButton>
         </View>
       </View>
 
-      {/* Dot Grid Card */}
+      {/* Dot Grid Card - Adaptive for iOS 18+ and fallback */}
       <View style={styles.cardContainer}>
-        <View style={[styles.gridCard, { backgroundColor: colors.cardBackground }]}>
+        <AdaptiveCard style={styles.gridCard} useBlurFallback={false} fallbackBackgroundColor="#000000">
           {gridContent}
-        </View>
+        </AdaptiveCard>
       </View>
     </SafeAreaView>
   );
