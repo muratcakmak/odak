@@ -11,6 +11,16 @@ import { Link, router } from "expo-router";
 import Animated, { FadeIn, FadeOut, Layout, Easing } from "react-native-reanimated";
 import { getAheadEvents, addAheadEvent, deleteAheadEvent, getAheadViewMode, setAheadViewMode, saveImageLocally, type AheadEvent, type ViewMode } from "../../../utils/storage";
 import { useUnistyles } from "react-native-unistyles";
+// Shared Components
+import { TimeScreenLayout } from "../../../components/TimeScreenLayout";
+import { TimeCard } from "../../../components/TimeCard";
+// Re-use AdaptivePillButton if needed for consistency, but local PillButton had glass logic. 
+// TimeScreenLayout expects nodes. We can use local PillButton or refactor it out. 
+// Let's keep local PillButton or use AdaptivePillButton from UI if it supports glass.
+// Checking imports: index.tsx used AdaptivePillButton. Let's try to use that or keep local specific one if distinct.
+// Looking at previous ahead/index.tsx, PillButton uses GlassView if isGlassAvailable.
+// AdaptivePillButton in components/ui likely does similar. Let's import it.
+import { AdaptivePillButton } from "../../../components/ui";
 
 // Sort options
 type SortType = "date_asc" | "date_desc" | "title_asc" | "title_desc";
@@ -31,109 +41,6 @@ function getDaysUntil(date: Date) {
   target.setHours(0, 0, 0, 0);
   const diff = target.getTime() - now.getTime();
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
-
-// Pill button with glass effect
-function PillButton({
-  children,
-  onPress,
-  style,
-  fallbackColor,
-  disabled,
-}: {
-  children: React.ReactNode;
-  onPress?: () => void;
-  style?: any;
-  fallbackColor?: string;
-  disabled?: boolean;
-}) {
-  const { theme } = useUnistyles();
-  const isGlassAvailable = hasLiquidGlassSupport();
-
-  if (isGlassAvailable) {
-    return (
-      <Pressable onPress={onPress} disabled={disabled}>
-        <GlassView style={[style, disabled && { opacity: 0.5 }]} isInteractive>
-          {children}
-        </GlassView>
-      </Pressable>
-    );
-  }
-
-  return (
-    <Pressable onPress={onPress} disabled={disabled} style={[{ backgroundColor: fallbackColor || theme.colors.card }, style, disabled && { opacity: 0.5 }]}>
-      {children}
-    </Pressable>
-  );
-}
-
-// Event card with image background (presentational only - no touch handling)
-function EventCard({
-  title,
-  date,
-  image,
-  compact = false,
-  cardBackgroundColor,
-}: {
-  title: string;
-  date: Date;
-  image?: string;
-  compact?: boolean;
-  cardBackgroundColor: string;
-}) {
-  const { theme } = useUnistyles();
-  const styles = createStyles(theme);
-  const daysUntil = getDaysUntil(date);
-
-  if (compact) {
-    return image ? (
-      <ImageBackground
-        source={{ uri: image }}
-        style={styles.gridCard}
-        imageStyle={styles.gridCardImage}
-      >
-        <View style={styles.gridCardOverlay}>
-          <View style={styles.gridCardContent}>
-            <Text style={styles.gridDaysText}>In {daysUntil} days</Text>
-            <Text style={styles.gridDateText}>{formatDate(date)}</Text>
-            <Text style={styles.gridTitleText} numberOfLines={2}>{title}</Text>
-          </View>
-        </View>
-      </ImageBackground>
-    ) : (
-      <View style={[styles.gridCard, { backgroundColor: cardBackgroundColor }]}>
-        <View style={styles.gridCardContent}>
-          <Text style={styles.gridDaysText}>In {daysUntil} days</Text>
-          <Text style={styles.gridDateText}>{formatDate(date)}</Text>
-          <Text style={styles.gridTitleText} numberOfLines={2}>{title}</Text>
-        </View>
-      </View>
-    );
-  }
-
-  return image ? (
-    <ImageBackground
-      source={{ uri: image }}
-      style={styles.eventCard}
-      imageStyle={styles.eventCardImage}
-    >
-      <View style={styles.eventCardOverlay}>
-        <View style={styles.eventCardContent}>
-          <Text style={styles.eventDaysText}>In {daysUntil} days</Text>
-          <Text style={styles.eventDateText}>{formatDate(date)}</Text>
-          <Text style={styles.eventTitleText}>{title}</Text>
-        </View>
-      </View>
-    </ImageBackground>
-  ) : (
-    <View style={[styles.eventCard, { backgroundColor: cardBackgroundColor }]}>
-      <View style={styles.eventCardContent}>
-        <Text style={[styles.eventDaysText, styles.noImageText]}>In {daysUntil} days</Text>
-        <Text style={[styles.eventDateText, styles.noImageText]}>{formatDate(date)}</Text>
-        <Text style={[styles.eventTitleText, styles.noImageText]}>{title}</Text>
-      </View>
-    </View>
-  );
 }
 
 // Add Event Modal
@@ -185,9 +92,9 @@ function AddEventModal({
   };
 
   const HeaderButton = ({ onPress, disabled, children }: { onPress: () => void; disabled?: boolean; children: React.ReactNode }) => (
-    <PillButton onPress={onPress} disabled={disabled} style={styles.headerGlassButton}>
+    <AdaptivePillButton onPress={onPress} disabled={disabled} style={styles.headerGlassButton}>
       {children}
-    </PillButton>
+    </AdaptivePillButton>
   );
 
   return (
@@ -352,129 +259,123 @@ export default function AheadScreen() {
   // Open add modal
   const openAddModal = () => setShowAddModal(true);
 
+  // Header Components
+  const HeaderLeft = (
+    <View>
+      {Platform.OS === "ios" ? (
+        <Host style={{ width: 44, height: 44 }}>
+          <ContextMenu activationMethod="singlePress">
+            <ContextMenu.Items>
+              <Button
+                label="Grid View"
+                systemImage={viewMode === "grid" ? "checkmark" : undefined}
+                onPress={() => {
+                  setViewMode("grid");
+                  setAheadViewMode("grid");
+                }}
+              />
+              <Button
+                label="List View"
+                systemImage={viewMode === "list" ? "checkmark" : undefined}
+                onPress={() => {
+                  setViewMode("list");
+                  setAheadViewMode("list");
+                }}
+              />
+              <Divider />
+              <Button
+                label="Soonest First"
+                systemImage={sortType === "date_asc" ? "checkmark" : undefined}
+                onPress={() => setSortType("date_asc")}
+              />
+              <Button
+                label="Latest First"
+                systemImage={sortType === "date_desc" ? "checkmark" : undefined}
+                onPress={() => setSortType("date_desc")}
+              />
+              <Button
+                label="Title A-Z"
+                systemImage={sortType === "title_asc" ? "checkmark" : undefined}
+                onPress={() => setSortType("title_asc")}
+              />
+              <Button
+                label="Title Z-A"
+                systemImage={sortType === "title_desc" ? "checkmark" : undefined}
+                onPress={() => setSortType("title_desc")}
+              />
+            </ContextMenu.Items>
+            <ContextMenu.Trigger>
+              <View>
+                <AdaptivePillButton style={styles.pillButton}>
+                  <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
+                </AdaptivePillButton>
+              </View>
+            </ContextMenu.Trigger>
+          </ContextMenu>
+        </Host>
+      ) : (
+        <AdaptivePillButton style={styles.pillButton}>
+          <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
+        </AdaptivePillButton>
+      )}
+    </View>
+  );
+
+  const HeaderRight = (
+    <AdaptivePillButton style={styles.rightPillButton} onPress={openAddModal}>
+      <Ionicons name="calendar-outline" size={20} color={theme.colors.textPrimary} />
+      <Text style={[styles.plusBadge, { color: theme.colors.textPrimary }]}>+</Text>
+      <View style={[styles.buttonDivider, { backgroundColor: theme.colors.cardBorder || 'rgba(128,128,128,0.3)' }]} />
+      <Ionicons name="add" size={24} color={theme.colors.textPrimary} />
+    </AdaptivePillButton>
+  );
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          {Platform.OS === "ios" ? (
-            <Host style={{ width: 44, height: 44 }}>
-              <ContextMenu activationMethod="singlePress">
-                <ContextMenu.Items>
-                  <Button
-                    label="Grid View"
-                    systemImage={viewMode === "grid" ? "checkmark" : undefined}
-                    onPress={() => {
-                      setViewMode("grid");
-                      setAheadViewMode("grid");
-                    }}
-                  />
-                  <Button
-                    label="List View"
-                    systemImage={viewMode === "list" ? "checkmark" : undefined}
-                    onPress={() => {
-                      setViewMode("list");
-                      setAheadViewMode("list");
-                    }}
-                  />
-                  <Divider />
-                  <Button
-                    label="Soonest First"
-                    systemImage={sortType === "date_asc" ? "checkmark" : undefined}
-                    onPress={() => setSortType("date_asc")}
-                  />
-                  <Button
-                    label="Latest First"
-                    systemImage={sortType === "date_desc" ? "checkmark" : undefined}
-                    onPress={() => setSortType("date_desc")}
-                  />
-                  <Button
-                    label="Title A-Z"
-                    systemImage={sortType === "title_asc" ? "checkmark" : undefined}
-                    onPress={() => setSortType("title_asc")}
-                  />
-                  <Button
-                    label="Title Z-A"
-                    systemImage={sortType === "title_desc" ? "checkmark" : undefined}
-                    onPress={() => setSortType("title_desc")}
-                  />
-                </ContextMenu.Items>
-                <ContextMenu.Trigger>
-                  <View>
-                    <PillButton style={styles.pillButton}>
-                      <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
-                    </PillButton>
-                  </View>
-                </ContextMenu.Trigger>
-              </ContextMenu>
-            </Host>
-          ) : (
-            <PillButton style={styles.pillButton}>
-              <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
-            </PillButton>
-          )}
-        </View>
-
-        <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>Time ahead</Text>
-
-        <PillButton style={styles.rightPillButton} onPress={openAddModal}>
-          <Ionicons name="calendar-outline" size={20} color={theme.colors.textPrimary} />
-          <Text style={[styles.plusBadge, { color: theme.colors.textPrimary }]}>+</Text>
-          <View style={[styles.buttonDivider, { backgroundColor: theme.colors.cardBorder }]} />
-          <Ionicons name="add" size={24} color={theme.colors.textPrimary} />
-        </PillButton>
-      </View>
-
-      {/* Content */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <View style={{ flex: 1 }}>
+      <TimeScreenLayout
+        title="Time ahead"
+        headerLeft={HeaderLeft}
+        headerRight={HeaderRight}
+        viewMode={viewMode}
+        isEmpty={events.length === 0}
+        emptyStateText="No upcoming events"
+        emptyStateSubtext="Tap the + button to add an event"
+        emptyStateIcon="calendar-outline"
       >
-        {events.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="calendar-outline" size={48} color={theme.colors.textPrimary} style={{ opacity: 0.3 }} />
-            <Text style={[styles.emptyText, { color: theme.colors.textPrimary }]}>No upcoming events</Text>
-            <Text style={[styles.emptySubtext, { color: theme.colors.textPrimary }]}>
-              Tap the + button to add an event
-            </Text>
-          </View>
-        ) : (
-          <View style={viewMode === "grid" ? styles.gridContainer : styles.listContainer}>
-            {sortedEvents.map((event) => (
-              <Animated.View
-                key={`${event.id}-${viewMode}`}
-                layout={Layout.duration(250).easing(Easing.out(Easing.quad))}
-                entering={FadeIn.duration(200).easing(Easing.out(Easing.quad))}
-                exiting={FadeOut.duration(150).easing(Easing.in(Easing.quad))}
-                style={viewMode === "grid" ? styles.gridCardWrapper : styles.listCardWrapper}
-              >
-                <Link href={`/event/${event.id}`} style={styles.cardLink}>
-                  <Link.Trigger style={styles.cardTrigger}>
-                    <EventCard
-                      title={event.title}
-                      date={event.dateObj}
-                      image={event.image}
-                      compact={viewMode === "grid"}
-                      cardBackgroundColor={theme.colors.surface}
-                    />
-                  </Link.Trigger>
-                  <Link.Preview />
-                  <Link.Menu>
-                    <Link.MenuAction title="Show" icon="eye" onPress={() => handleShowEvent(event.id)} />
-                    <Link.MenuAction
-                      title="Delete"
-                      icon="trash"
-                      destructive
-                      onPress={() => handleDeleteEvent(event.id, event.title)}
-                    />
-                  </Link.Menu>
-                </Link>
-              </Animated.View>
-            ))}
-          </View>
-        )}
-      </ScrollView>
+        {sortedEvents.map((event) => (
+          <Animated.View
+            key={`${event.id}-${viewMode}`}
+            layout={Layout.duration(250).easing(Easing.out(Easing.quad))}
+            entering={FadeIn.duration(200).easing(Easing.out(Easing.quad))}
+            exiting={FadeOut.duration(150).easing(Easing.in(Easing.quad))}
+            style={viewMode === "grid" ? styles.gridCardWrapper : styles.listCardWrapper}
+          >
+            <Link href={`/event/${event.id}`} style={styles.cardLink}>
+              <Link.Trigger style={styles.cardTrigger}>
+                <TimeCard
+                  title={event.title}
+                  daysValue={"In " + getDaysUntil(event.dateObj)}
+                  daysLabel="days"
+                  subtitle={formatDate(event.dateObj)}
+                  image={event.image}
+                  compact={viewMode === "grid"}
+                // Reuse existing card background logic if needed, but TimeCard handles it.
+                />
+              </Link.Trigger>
+              <Link.Preview />
+              <Link.Menu>
+                <Link.MenuAction title="Show" icon="eye" onPress={() => handleShowEvent(event.id)} />
+                <Link.MenuAction
+                  title="Delete"
+                  icon="trash"
+                  destructive
+                  onPress={() => handleDeleteEvent(event.id, event.title)}
+                />
+              </Link.Menu>
+            </Link>
+          </Animated.View>
+        ))}
+      </TimeScreenLayout>
 
       {/* Add Event Modal */}
       <AddEventModal
@@ -487,25 +388,6 @@ export default function AheadScreen() {
 }
 
 const createStyles = (theme: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.sm,
-    paddingBottom: theme.spacing.md,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    gap: theme.spacing.sm,
-  },
-  headerTitle: {
-    fontSize: theme.typography.sizes.lg,
-    fontWeight: "600",
-  },
   pillButton: {
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -532,70 +414,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     height: 20,
     marginHorizontal: 8,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: theme.spacing.lg,
-    paddingTop: 0,
-    paddingBottom: 120,
-  },
-  eventCard: {
-    width: "100%",
-    height: 160,
-    borderRadius: theme.borderRadius.lg,
-    overflow: "hidden",
-    marginBottom: theme.spacing.md,
-  },
-  eventCardImage: {
-    borderRadius: theme.borderRadius.lg,
-  },
-  noImageText: {
-    color: theme.colors.textPrimary,
-  },
-  eventCardOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.2)",
-    justifyContent: "flex-end",
-  },
-  eventCardContent: {
-    padding: theme.spacing.md,
-  },
-  eventDaysText: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 2,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  eventDateText: {
-    fontSize: 13,
-    color: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 4,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  eventTitleText: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  listContainer: {
-    flexDirection: "column",
-    paddingTop: 16,
-  },
-  gridContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    paddingTop: 16,
-  },
   gridCardWrapper: {
     width: "47%",
     marginBottom: theme.spacing.md,
@@ -609,65 +427,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   cardTrigger: {
     width: "100%",
-  },
-  gridCard: {
-    width: "100%",
-    height: 160,
-    borderRadius: theme.borderRadius.md,
-    overflow: "hidden",
-  },
-  gridCardImage: {
-    borderRadius: theme.borderRadius.md,
-  },
-  gridCardOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    justifyContent: "flex-end",
-  },
-  gridCardContent: {
-    padding: 12,
-  },
-  gridDaysText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 2,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  gridDateText: {
-    fontSize: 11,
-    color: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 4,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  gridTitleText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 100,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginTop: 16,
-    opacity: 0.5,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    marginTop: 8,
-    opacity: 0.3,
   },
   modalContainer: {
     flex: 1,

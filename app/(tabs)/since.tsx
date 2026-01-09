@@ -2,16 +2,18 @@ import { useState, useEffect } from "react";
 import { StyleSheet, View, Text, ScrollView, Pressable, ImageBackground, Modal, TextInput, Platform, Image, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GlassView } from "expo-glass-effect";
-import { hasLiquidGlassSupport } from "../../utils/capabilities";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import Svg, { Circle } from "react-native-svg";
 import { DatePicker, Host, ContextMenu, Button, Divider } from "@expo/ui/swift-ui";
 import { datePickerStyle } from "@expo/ui/swift-ui/modifiers";
 import * as ImagePicker from "expo-image-picker";
 import { Link, router } from "expo-router";
 import Animated, { FadeIn, FadeOut, Layout, Easing } from "react-native-reanimated";
-import { getSinceEvents, addSinceEvent, deleteSinceEvent, type SinceEvent, getSinceViewMode, setSinceViewMode, saveImageLocally, type ViewMode } from "../../utils/storage";
+import { getSinceEvents, addSinceEvent, deleteSinceEvent, getSinceViewMode, setSinceViewMode, saveImageLocally, type SinceEvent, type ViewMode } from "../../utils/storage";
 import { useUnistyles } from "react-native-unistyles";
+// Shared Components
+import { TimeScreenLayout } from "../../components/TimeScreenLayout";
+import { TimeCard } from "../../components/TimeCard";
+import { AdaptivePillButton } from "../../components/ui";
 
 // Sort options
 type SortType = "date_asc" | "date_desc" | "title_asc" | "title_desc";
@@ -32,187 +34,6 @@ function getDaysSince(date: Date) {
   start.setHours(0, 0, 0, 0);
   const diff = now.getTime() - start.getTime();
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
-}
-
-// Progress ring component
-function ProgressRing({ progress, size = 44 }: { progress: number; size?: number }) {
-  const strokeWidth = 3;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
-
-  return (
-    <Svg width={size} height={size}>
-      <Circle
-        stroke="rgba(255, 255, 255, 0.3)"
-        fill="none"
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        strokeWidth={strokeWidth}
-      />
-      <Circle
-        stroke="#FFFFFF"
-        fill="none"
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        strokeWidth={strokeWidth}
-        strokeDasharray={`${circumference} ${circumference}`}
-        strokeDashoffset={strokeDashoffset}
-        strokeLinecap="round"
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      />
-    </Svg>
-  );
-}
-
-// Pill button with glass effect
-function PillButton({
-  children,
-  onPress,
-  style,
-  fallbackColor,
-  disabled,
-}: {
-  children: React.ReactNode;
-  onPress?: () => void;
-  style?: any;
-  fallbackColor?: string;
-  disabled?: boolean;
-}) {
-  const { theme } = useUnistyles();
-  const isGlassAvailable = hasLiquidGlassSupport();
-
-  if (isGlassAvailable) {
-    return (
-      <Pressable onPress={onPress} disabled={disabled}>
-        <GlassView style={[style, disabled && { opacity: 0.5 }]} isInteractive>
-          {children}
-        </GlassView>
-      </Pressable>
-    );
-  }
-
-  return (
-    <Pressable onPress={onPress} disabled={disabled} style={[{ backgroundColor: fallbackColor || theme.colors.card }, style, disabled && { opacity: 0.5 }]}>
-      {children}
-    </Pressable>
-  );
-}
-
-// Info banner component
-function InfoBanner({ onPress }: { onPress?: () => void }) {
-  const { theme } = useUnistyles();
-  const styles = createStyles(theme);
-  return (
-    <Pressable onPress={onPress}>
-      <View style={styles.infoBanner}>
-        {/* Decorative circles */}
-        <View style={styles.decorativeCircle1} />
-        <View style={styles.decorativeCircle2} />
-        <View style={styles.decorativeCircle3} />
-
-        <View style={styles.infoBannerContent}>
-          <View style={styles.infoBannerText}>
-            <Text style={styles.infoBannerTitle}>What is Time Since?</Text>
-            <Text style={styles.infoBannerSubtitle}>
-              Learn about how to build habits and streaks with Time Since
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="rgba(255, 255, 255, 0.7)" />
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
-// Event card with image background (presentational only - no touch handling)
-function SinceCard({
-  title,
-  startDate,
-  image,
-  showProgress,
-  compact = true,
-  cardBackgroundColor,
-}: {
-  title: string;
-  startDate: Date;
-  image?: string;
-  showProgress?: boolean;
-  compact?: boolean;
-  cardBackgroundColor: string;
-}) {
-  const { theme } = useUnistyles();
-  const styles = createStyles(theme);
-  const daysSince = getDaysSince(startDate);
-
-  if (!compact) {
-    // List view - full width
-    return image ? (
-      <ImageBackground
-        source={{ uri: image }}
-        style={styles.sinceCardList}
-        imageStyle={styles.sinceCardImage}
-      >
-        <View style={styles.sinceCardOverlayList}>
-          <View style={styles.sinceCardContentList}>
-            <Text style={styles.sinceTitleTextList}>{title}</Text>
-            <Text style={styles.sinceDateTextList}>{formatDate(startDate)}</Text>
-          </View>
-          <View style={styles.sinceDaysContainerList}>
-            <Text style={styles.sinceDaysTextList}>{daysSince}</Text>
-            <Text style={styles.sinceDaysLabelList}>days</Text>
-          </View>
-        </View>
-      </ImageBackground>
-    ) : (
-      <View style={[styles.sinceCardList, { backgroundColor: cardBackgroundColor }]}>
-        <View style={styles.sinceCardOverlayList}>
-          <View style={styles.sinceCardContentList}>
-            <Text style={styles.sinceTitleTextList}>{title}</Text>
-            <Text style={styles.sinceDateTextList}>{formatDate(startDate)}</Text>
-          </View>
-          <View style={styles.sinceDaysContainerList}>
-            <Text style={styles.sinceDaysTextList}>{daysSince}</Text>
-            <Text style={styles.sinceDaysLabelList}>days</Text>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  // Grid view - compact
-  return image ? (
-    <ImageBackground
-      source={{ uri: image }}
-      style={styles.sinceCard}
-      imageStyle={styles.sinceCardImage}
-    >
-      <View style={styles.sinceCardOverlay}>
-        <View style={styles.sinceCardContent}>
-          <Text style={styles.sinceDaysText}>{daysSince} days</Text>
-          <Text style={styles.sinceDateText}>{formatDate(startDate)}</Text>
-          <Text style={styles.sinceTitleText}>{title}</Text>
-        </View>
-        {showProgress && (
-          <View style={styles.progressContainer}>
-            <ProgressRing progress={0} />
-          </View>
-        )}
-      </View>
-    </ImageBackground>
-  ) : (
-    <View style={[styles.sinceCard, { backgroundColor: cardBackgroundColor }]}>
-      <View style={styles.sinceCardOverlay}>
-        <View style={styles.sinceCardContent}>
-          <Text style={styles.sinceDaysText}>{daysSince} days</Text>
-          <Text style={styles.sinceDateText}>{formatDate(startDate)}</Text>
-          <Text style={styles.sinceTitleText}>{title}</Text>
-        </View>
-      </View>
-    </View>
-  );
 }
 
 // Add Event Modal
@@ -245,7 +66,7 @@ function AddEventModal({
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
-      aspect: [1, 1],
+      aspect: [1, 1], // Since cards are often square/compact, but list is wide. 1:1 is safe for cropping.
       quality: 0.8,
     });
 
@@ -254,18 +75,15 @@ function AddEventModal({
     }
   };
 
-  // Styles using theme directly since creating local style object is tedious for dynamic colors if not using StyleSheet
-  // Actually, we can just use inline styles with theme.colors
   const bg = theme.colors.background;
   const textColor = theme.colors.textPrimary;
   const secondaryTextColor = theme.colors.textSecondary;
   const inputBg = theme.colors.surface;
 
-  // Use PillButton for modal header buttons
   const HeaderButton = ({ onPress, disabled, children }: { onPress: () => void; disabled?: boolean; children: React.ReactNode }) => (
-    <PillButton onPress={onPress} disabled={disabled} style={styles.headerGlassButton}>
+    <AdaptivePillButton onPress={onPress} disabled={disabled} style={styles.headerGlassButton}>
       {children}
-    </PillButton>
+    </AdaptivePillButton>
   );
 
   return (
@@ -429,131 +247,128 @@ export default function SinceScreen() {
   // Open add modal
   const openAddModal = () => setShowAddModal(true);
 
+  // Header Left Buttons
+  const HeaderLeft = (
+    <View style={styles.headerLeft}>
+      {Platform.OS === "ios" ? (
+        <Host style={{ width: 44, height: 44 }}>
+          <ContextMenu activationMethod="singlePress">
+            <ContextMenu.Items>
+              <Button
+                label="Grid View"
+                systemImage={viewMode === "grid" ? "checkmark" : undefined}
+                onPress={() => {
+                  setViewMode("grid");
+                  setSinceViewMode("grid");
+                }}
+              />
+              <Button
+                label="List View"
+                systemImage={viewMode === "list" ? "checkmark" : undefined}
+                onPress={() => {
+                  setViewMode("list");
+                  setSinceViewMode("list");
+                }}
+              />
+              <Divider />
+              <Button
+                label="Longest First"
+                systemImage={sortType === "date_asc" ? "checkmark" : undefined}
+                onPress={() => setSortType("date_asc")}
+              />
+              <Button
+                label="Recent First"
+                systemImage={sortType === "date_desc" ? "checkmark" : undefined}
+                onPress={() => setSortType("date_desc")}
+              />
+              <Button
+                label="Title A-Z"
+                systemImage={sortType === "title_asc" ? "checkmark" : undefined}
+                onPress={() => setSortType("title_asc")}
+              />
+              <Button
+                label="Title Z-A"
+                systemImage={sortType === "title_desc" ? "checkmark" : undefined}
+                onPress={() => setSortType("title_desc")}
+              />
+            </ContextMenu.Items>
+            <ContextMenu.Trigger>
+              <View>
+                <AdaptivePillButton style={styles.pillButton}>
+                  <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
+                </AdaptivePillButton>
+              </View>
+            </ContextMenu.Trigger>
+          </ContextMenu>
+        </Host>
+      ) : (
+        <AdaptivePillButton style={styles.pillButton}>
+          <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
+        </AdaptivePillButton>
+      )}
+    </View>
+  );
+
+  // Header Right Buttons
+  const HeaderRight = (
+    <AdaptivePillButton style={styles.rightPillButton} onPress={openAddModal}>
+      <Ionicons name="calendar-outline" size={20} color={theme.colors.textPrimary} />
+      <Text style={[styles.plusBadge, { color: theme.colors.textPrimary }]}>+</Text>
+      <View style={[styles.buttonDivider, { backgroundColor: theme.colors.cardBorder || 'rgba(128,128,128,0.3)' }]} />
+      <Ionicons name="add" size={24} color={theme.colors.textPrimary} />
+    </AdaptivePillButton>
+  );
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          {Platform.OS === "ios" ? (
-            <Host style={{ width: 44, height: 44 }}>
-              <ContextMenu activationMethod="singlePress">
-                <ContextMenu.Items>
-                  <Button
-                    label="Grid View"
-                    systemImage={viewMode === "grid" ? "checkmark" : undefined}
-                    onPress={() => {
-                      setViewMode("grid");
-                      setSinceViewMode("grid");
-                    }}
-                  />
-                  <Button
-                    label="List View"
-                    systemImage={viewMode === "list" ? "checkmark" : undefined}
-                    onPress={() => {
-                      setViewMode("list");
-                      setSinceViewMode("list");
-                    }}
-                  />
-                  <Divider />
-                  <Button
-                    label="Longest First"
-                    systemImage={sortType === "date_asc" ? "checkmark" : undefined}
-                    onPress={() => setSortType("date_asc")}
-                  />
-                  <Button
-                    label="Recent First"
-                    systemImage={sortType === "date_desc" ? "checkmark" : undefined}
-                    onPress={() => setSortType("date_desc")}
-                  />
-                  <Button
-                    label="Title A-Z"
-                    systemImage={sortType === "title_asc" ? "checkmark" : undefined}
-                    onPress={() => setSortType("title_asc")}
-                  />
-                  <Button
-                    label="Title Z-A"
-                    systemImage={sortType === "title_desc" ? "checkmark" : undefined}
-                    onPress={() => setSortType("title_desc")}
-                  />
-                </ContextMenu.Items>
-                <ContextMenu.Trigger>
-                  <View>
-                    <PillButton style={styles.pillButton}>
-                      <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
-                    </PillButton>
-                  </View>
-                </ContextMenu.Trigger>
-              </ContextMenu>
-            </Host>
-          ) : (
-            <PillButton style={styles.pillButton}>
-              <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
-            </PillButton>
-          )}
-        </View>
-
-        <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>Time since</Text>
-
-        <PillButton style={styles.rightPillButton} onPress={openAddModal}>
-          <Ionicons name="calendar-outline" size={20} color={theme.colors.textPrimary} />
-          <Text style={[styles.plusBadge, { color: theme.colors.textPrimary }]}>+</Text>
-          <View style={[styles.buttonDivider, { backgroundColor: theme.colors.cardBorder || 'rgba(128,128,128,0.3)' }]} />
-          <Ionicons name="add" size={24} color={theme.colors.textPrimary} />
-        </PillButton>
-      </View>
-
-      {/* Content */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <View style={{ flex: 1 }}>
+      <TimeScreenLayout
+        title="Time since"
+        headerLeft={HeaderLeft}
+        headerRight={HeaderRight}
+        viewMode={viewMode}
+        isEmpty={events.length === 0}
+        emptyStateText="No habits yet"
+        emptyStateSubtext="Tap the + button to track a habit"
+        emptyStateIcon="time-outline"
       >
-
-        {/* Cards Grid/List */}
-        {events.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="time-outline" size={48} color={theme.colors.textPrimary} style={{ opacity: 0.3 }} />
-            <Text style={[styles.emptyText, { color: theme.colors.textPrimary }]}>No habits yet</Text>
-            <Text style={[styles.emptySubtext, { color: theme.colors.textPrimary }]}>
-              Tap the + button to track a habit
-            </Text>
-          </View>
-        ) : (
-          <View style={viewMode === "grid" ? styles.cardsGrid : styles.cardsList}>
-            {sortedEvents.map((event) => (
-              <Animated.View
-                key={`${event.id}-${viewMode}`}
-                layout={Layout.duration(250).easing(Easing.out(Easing.quad))}
-                entering={FadeIn.duration(200).easing(Easing.out(Easing.quad))}
-                exiting={FadeOut.duration(150).easing(Easing.in(Easing.quad))}
-                style={viewMode === "grid" ? styles.sinceCardWrapper : styles.sinceCardWrapperList}
-              >
-                <Link href={`/event/${event.id}`} style={styles.cardLink}>
-                  <Link.Trigger style={styles.cardTrigger}>
-                    <SinceCard
-                      title={event.title}
-                      startDate={event.dateObj}
-                      image={event.image}
-                      compact={viewMode === "grid"}
-                      cardBackgroundColor={theme.colors.surface}
-                    />
-                  </Link.Trigger>
-                  <Link.Preview />
-                  <Link.Menu>
-                    <Link.MenuAction title="Show" icon="eye" onPress={() => handleShowEvent(event.id)} />
-                    <Link.MenuAction
-                      title="Delete"
-                      icon="trash"
-                      destructive
-                      onPress={() => handleDeleteEvent(event.id, event.title)}
-                    />
-                  </Link.Menu>
-                </Link>
-              </Animated.View>
-            ))}
-          </View>
-        )}
-      </ScrollView>
+        {sortedEvents.map((event) => {
+          const daysSince = getDaysSince(event.dateObj);
+          return (
+            <Animated.View
+              key={`${event.id}-${viewMode}`}
+              layout={Layout.duration(250).easing(Easing.out(Easing.quad))}
+              entering={FadeIn.duration(200).easing(Easing.out(Easing.quad))}
+              exiting={FadeOut.duration(150).easing(Easing.in(Easing.quad))}
+              style={viewMode === "grid" ? styles.gridCardWrapper : styles.listCardWrapper}
+            >
+              <Link href={`/event/${event.id}`} style={styles.cardLink}>
+                <Link.Trigger style={styles.cardTrigger}>
+                  <TimeCard
+                    title={event.title}
+                    daysValue={daysSince + " days"} // Or just number? Screenshot showed "In 26 days". For since: "206 days"?
+                    // User screenshot was Ahead. Since usually says "51 days".
+                    // Let's stick to daysValue="50 days" for consistency with "In 26 days"
+                    daysLabel="since"
+                    subtitle={formatDate(event.dateObj)}
+                    image={event.image}
+                    compact={viewMode === "grid"}
+                  />
+                </Link.Trigger>
+                <Link.Preview />
+                <Link.Menu>
+                  <Link.MenuAction title="Show" icon="eye" onPress={() => handleShowEvent(event.id)} />
+                  <Link.MenuAction
+                    title="Delete"
+                    icon="trash"
+                    destructive
+                    onPress={() => handleDeleteEvent(event.id, event.title)}
+                  />
+                </Link.Menu>
+              </Link>
+            </Animated.View>
+          );
+        })}
+      </TimeScreenLayout>
 
       {/* Add Event Modal */}
       <AddEventModal
@@ -566,36 +381,21 @@ export default function SinceScreen() {
 }
 
 const createStyles = (theme: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 16,
-  },
   headerLeft: {
     flexDirection: "row",
     gap: 8,
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
   pillButton: {
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: theme.borderRadius.xl,
     flexDirection: "row",
     alignItems: "center",
   },
   rightPillButton: {
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: theme.borderRadius.xl,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
@@ -611,96 +411,13 @@ const createStyles = (theme: any) => StyleSheet.create({
     height: 20,
     marginHorizontal: 8,
   },
-  pillButtonFallback: {
-    backgroundColor: theme.colors.surface,
-  },
-  exclamationMark: {
-    fontSize: 10,
-    fontWeight: "700",
-    marginLeft: 1,
-    marginTop: -6,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingTop: 0,
-    paddingBottom: 120,
-  },
-  // Info Banner
-  infoBanner: {
-    backgroundColor: "#FF6B6B",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    overflow: "hidden",
-  },
-  decorativeCircle1: {
-    position: "absolute",
-    right: -20,
-    top: -20,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  decorativeCircle2: {
-    position: "absolute",
-    right: 20,
-    bottom: -30,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  decorativeCircle3: {
-    position: "absolute",
-    right: 60,
-    top: 10,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-  },
-  infoBannerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  infoBannerText: {
-    flex: 1,
-    marginRight: 16,
-  },
-  infoBannerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 4,
-  },
-  infoBannerSubtitle: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.9)",
-    lineHeight: 20,
-  },
-  // Cards Grid
-  cardsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    paddingTop: 16,
-  },
-  cardsList: {
-    flexDirection: "column",
-    paddingTop: 16,
-  },
-  sinceCardWrapper: {
+  gridCardWrapper: {
     width: "47%",
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
-  sinceCardWrapperList: {
+  listCardWrapper: {
     width: "100%",
-    marginBottom: 12,
+    marginBottom: theme.spacing.md,
   },
   cardLink: {
     width: "100%",
@@ -708,131 +425,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   cardTrigger: {
     width: "100%",
   },
-  sinceCard: {
-    width: "100%",
-    height: 160,
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  sinceCardImage: {
-    borderRadius: 20,
-  },
-
-  sinceCardOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    padding: 12,
-    justifyContent: "space-between",
-  },
-  sinceCardContent: {
-    flex: 1,
-  },
-  sinceDaysText: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 2,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  sinceDateText: {
-    fontSize: 12,
-    color: "rgba(255, 255, 255, 0.85)",
-    marginBottom: 4,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  sinceTitleText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  progressContainer: {
-    position: "absolute",
-    bottom: 12,
-    right: 12,
-  },
-  // List view styles
-  sinceCardList: {
-    width: "100%",
-    height: 100,
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  sinceCardOverlayList: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  sinceCardContentList: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  sinceTitleTextList: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 4,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  sinceDateTextList: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.85)",
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  sinceDaysContainerList: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingLeft: 16,
-  },
-  sinceDaysTextList: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  sinceDaysLabelList: {
-    fontSize: 12,
-    color: "rgba(255, 255, 255, 0.85)",
-    textTransform: "uppercase",
-    fontWeight: "600",
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  // Empty state
-  emptyState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 60,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginTop: 16,
-    opacity: 0.5,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    marginTop: 8,
-    opacity: 0.3,
-  },
-  // Modal styles
+  // Modal Styles
   modalContainer: {
     flex: 1,
   },
@@ -847,9 +440,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-  },
-  headerButtonFallback: {
-    backgroundColor: theme.colors.surface,
   },
   modalHeaderButton: {
     fontSize: 17,

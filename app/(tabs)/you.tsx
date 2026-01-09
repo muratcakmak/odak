@@ -19,7 +19,17 @@ import Animated, {
 import { LifeInsights } from "../../components/LifeInsights";
 
 // Precise Countdown Component
-function PreciseCountdown({ birthDate, lifespan }: { birthDate: Date; lifespan: number }) {
+function PreciseCountdown({ 
+  birthDate, 
+  lifespan, 
+  textColor, 
+  secondaryTextColor 
+}: { 
+  birthDate: Date; 
+  lifespan: number;
+  textColor: string;
+  secondaryTextColor: string;
+}) {
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
@@ -44,12 +54,12 @@ function PreciseCountdown({ birthDate, lifespan }: { birthDate: Date; lifespan: 
 
   return (
     <View style={styles.countdownContainer}>
-      <Ionicons name="leaf-outline" size={24} color="#000" style={styles.laurelIcon} />
+      <Ionicons name="leaf-outline" size={24} color={secondaryTextColor} style={styles.laurelIcon} />
       <View style={styles.countdownContent}>
-        <Text style={styles.countdownValue}>{timeLeft}</Text>
-        <Text style={styles.countdownLabel}>years left</Text>
+        <Text style={[styles.countdownValue, { color: textColor }]}>{timeLeft}</Text>
+        <Text style={[styles.countdownLabel, { color: secondaryTextColor }]}>years left</Text>
       </View>
-      <Ionicons name="leaf-outline" size={24} color="#000" style={[styles.laurelIcon, { transform: [{ scaleX: -1 }] }]} />
+      <Ionicons name="leaf-outline" size={24} color={secondaryTextColor} style={[styles.laurelIcon, { transform: [{ scaleX: -1 }] }]} />
     </View>
   );
 }
@@ -196,7 +206,12 @@ export default function YouScreen() {
               <Text style={[styles.profileName, { color: colors.text }]}>{profile.name}</Text>
 
               {/* Precise Countdown */}
-              <PreciseCountdown birthDate={profile.birthDate} lifespan={lifespan} />
+              <PreciseCountdown 
+                birthDate={profile.birthDate} 
+                lifespan={lifespan}
+                textColor={colors.text}
+                secondaryTextColor={colors.secondaryText}
+              />
 
               {/* Graphs */}
               <View style={styles.graphsContainer}>
