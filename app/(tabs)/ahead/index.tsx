@@ -1,25 +1,18 @@
 import { useState, useEffect } from "react";
 import { StyleSheet, View, Text, ScrollView, Pressable, ImageBackground, Modal, TextInput, Platform, Image, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { GlassView } from "expo-glass-effect";
 import { hasLiquidGlassSupport } from "../../../utils/capabilities";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { DatePicker, Host, ContextMenu, Button, Divider } from "@expo/ui/swift-ui";
+import { DatePicker, Host } from "@expo/ui/swift-ui";
 import { datePickerStyle } from "@expo/ui/swift-ui/modifiers";
 import * as ImagePicker from "expo-image-picker";
-import { Link, router } from "expo-router";
+import { Link, router, Stack } from "expo-router";
 import Animated, { FadeIn, FadeOut, Layout, Easing } from "react-native-reanimated";
 import { getAheadEvents, addAheadEvent, deleteAheadEvent, getAheadViewMode, setAheadViewMode, saveImageLocally, type AheadEvent, type ViewMode } from "../../../utils/storage";
 import { useUnistyles } from "react-native-unistyles";
 // Shared Components
 import { TimeScreenLayout } from "../../../components/TimeScreenLayout";
 import { TimeCard } from "../../../components/TimeCard";
-// Re-use AdaptivePillButton if needed for consistency, but local PillButton had glass logic. 
-// TimeScreenLayout expects nodes. We can use local PillButton or refactor it out. 
-// Let's keep local PillButton or use AdaptivePillButton from UI if it supports glass.
-// Checking imports: index.tsx used AdaptivePillButton. Let's try to use that or keep local specific one if distinct.
-// Looking at previous ahead/index.tsx, PillButton uses GlassView if isGlassAvailable.
-// AdaptivePillButton in components/ui likely does similar. Let's import it.
 import { AdaptivePillButton } from "../../../components/ui";
 
 // Sort options
@@ -259,83 +252,76 @@ export default function AheadScreen() {
   // Open add modal
   const openAddModal = () => setShowAddModal(true);
 
-  // Header Components
-  const HeaderLeft = (
-    <View>
-      {Platform.OS === "ios" ? (
-        <Host style={{ width: 44, height: 44 }}>
-          <ContextMenu activationMethod="singlePress">
-            <ContextMenu.Items>
-              <Button
-                label="Grid View"
-                systemImage={viewMode === "grid" ? "checkmark" : undefined}
-                onPress={() => {
-                  setViewMode("grid");
-                  setAheadViewMode("grid");
-                }}
-              />
-              <Button
-                label="List View"
-                systemImage={viewMode === "list" ? "checkmark" : undefined}
-                onPress={() => {
-                  setViewMode("list");
-                  setAheadViewMode("list");
-                }}
-              />
-              <Divider />
-              <Button
-                label="Soonest First"
-                systemImage={sortType === "date_asc" ? "checkmark" : undefined}
-                onPress={() => setSortType("date_asc")}
-              />
-              <Button
-                label="Latest First"
-                systemImage={sortType === "date_desc" ? "checkmark" : undefined}
-                onPress={() => setSortType("date_desc")}
-              />
-              <Button
-                label="Title A-Z"
-                systemImage={sortType === "title_asc" ? "checkmark" : undefined}
-                onPress={() => setSortType("title_asc")}
-              />
-              <Button
-                label="Title Z-A"
-                systemImage={sortType === "title_desc" ? "checkmark" : undefined}
-                onPress={() => setSortType("title_desc")}
-              />
-            </ContextMenu.Items>
-            <ContextMenu.Trigger>
-              <View>
-                <AdaptivePillButton style={styles.pillButton}>
-                  <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
-                </AdaptivePillButton>
-              </View>
-            </ContextMenu.Trigger>
-          </ContextMenu>
-        </Host>
-      ) : (
-        <AdaptivePillButton style={styles.pillButton}>
-          <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
-        </AdaptivePillButton>
-      )}
-    </View>
-  );
-
-  const HeaderRight = (
-    <AdaptivePillButton style={styles.rightPillButton} onPress={openAddModal}>
-      <Ionicons name="calendar-outline" size={20} color={theme.colors.textPrimary} />
-      <Text style={[styles.plusBadge, { color: theme.colors.textPrimary }]}>+</Text>
-      <View style={[styles.buttonDivider, { backgroundColor: theme.colors.cardBorder || 'rgba(128,128,128,0.3)' }]} />
-      <Ionicons name="add" size={24} color={theme.colors.textPrimary} />
-    </AdaptivePillButton>
-  );
+  // View mode and sort handlers for menu
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    setAheadViewMode(mode);
+  };
 
   return (
     <View style={{ flex: 1 }}>
+      {/* Native header using experimental Stack.Header API */}
+      <Stack.Header>
+        <Stack.Header.Title>Time ahead</Stack.Header.Title>
+
+        {/* Left side - Filter/Sort menu */}
+        <Stack.Header.Left>
+          <Stack.Header.Menu icon="line.3.horizontal.decrease.circle">
+            <Stack.Header.MenuAction
+              icon={viewMode === "grid" ? "checkmark" : undefined}
+              onPress={() => handleViewModeChange("grid")}
+            >
+              Grid View
+            </Stack.Header.MenuAction>
+            <Stack.Header.MenuAction
+              icon={viewMode === "list" ? "checkmark" : undefined}
+              onPress={() => handleViewModeChange("list")}
+            >
+              List View
+            </Stack.Header.MenuAction>
+            <Stack.Header.MenuAction
+              icon={sortType === "date_asc" ? "checkmark" : undefined}
+              onPress={() => setSortType("date_asc")}
+            >
+              Soonest First
+            </Stack.Header.MenuAction>
+            <Stack.Header.MenuAction
+              icon={sortType === "date_desc" ? "checkmark" : undefined}
+              onPress={() => setSortType("date_desc")}
+            >
+              Latest First
+            </Stack.Header.MenuAction>
+            <Stack.Header.MenuAction
+              icon={sortType === "title_asc" ? "checkmark" : undefined}
+              onPress={() => setSortType("title_asc")}
+            >
+              Title A-Z
+            </Stack.Header.MenuAction>
+            <Stack.Header.MenuAction
+              icon={sortType === "title_desc" ? "checkmark" : undefined}
+              onPress={() => setSortType("title_desc")}
+            >
+              Title Z-A
+            </Stack.Header.MenuAction>
+          </Stack.Header.Menu>
+        </Stack.Header.Left>
+
+        {/* Right side - Calendar and Add buttons in ONE glass container */}
+        <Stack.Header.Right>
+          <Stack.Header.Button
+            icon="calendar.badge.plus"
+            onPress={openAddModal}
+          />
+          <Stack.Header.Button
+            icon="plus"
+            onPress={openAddModal}
+          />
+        </Stack.Header.Right>
+      </Stack.Header>
+
       <TimeScreenLayout
         title="Time ahead"
-        headerLeft={HeaderLeft}
-        headerRight={HeaderRight}
+        showHeader={false}
         viewMode={viewMode}
         isEmpty={events.length === 0}
         emptyStateText="No upcoming events"
@@ -388,32 +374,6 @@ export default function AheadScreen() {
 }
 
 const createStyles = (theme: any) => StyleSheet.create({
-  pillButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: theme.borderRadius.xl,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  rightPillButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: theme.borderRadius.xl,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  plusBadge: {
-    fontSize: 12,
-    fontWeight: "600",
-    marginLeft: -4,
-    marginTop: -8,
-  },
-  buttonDivider: {
-    width: 1,
-    height: 20,
-    marginHorizontal: 8,
-  },
   gridCardWrapper: {
     width: "47%",
     marginBottom: theme.spacing.md,

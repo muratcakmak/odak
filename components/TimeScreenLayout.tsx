@@ -27,6 +27,9 @@ export interface TimeScreenLayoutProps {
     sortType?: string;
     onSortChange?: (type: any) => void;
     sortOptions?: { label: string; value: string; }[];
+
+    // Header visibility - set to false when using native transparent header
+    showHeader?: boolean;
 }
 
 
@@ -40,30 +43,34 @@ export function TimeScreenLayout({
     emptyStateText = "No items",
     emptyStateSubtext,
     viewMode,
+    showHeader = true,
 }: TimeScreenLayoutProps) {
     const { theme } = useUnistyles();
     const styles = createStyles(theme);
     const insets = useSafeAreaInsets();
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-            {/* Header */}
-            <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    {headerLeft}
-                </View>
+        <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: showHeader ? insets.top : 0 }]}>
+            {/* Header - hidden when using native transparent header */}
+            {showHeader && (
+                <View style={styles.header}>
+                    <View style={styles.headerLeft}>
+                        {headerLeft}
+                    </View>
 
-                <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>{title}</Text>
+                    <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>{title}</Text>
 
-                <View style={styles.headerRight}>
-                    {headerRight}
+                    <View style={styles.headerRight}>
+                        {headerRight}
+                    </View>
                 </View>
-            </View>
+            )}
 
             {/* Content */}
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
+                contentInsetAdjustmentBehavior={showHeader ? undefined : "automatic"}
                 showsVerticalScrollIndicator={false}
             >
                 {isEmpty ? (

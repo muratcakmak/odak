@@ -2,9 +2,10 @@ import { Stack } from "expo-router";
 import { hasLiquidGlassSupport } from "../../../utils/capabilities";
 import { useUnistyles } from "react-native-unistyles";
 
-export default function AheadLayout() {
-  const isGlassAvailable = hasLiquidGlassSupport();
+export default function SinceLayout() {
   const { rt } = useUnistyles();
+  // get color scheme from unistyles
+  const isLiquidGlassAvailable = hasLiquidGlassSupport();
 
   return (
     <Stack
@@ -15,9 +16,11 @@ export default function AheadLayout() {
         },
         // When liquid glass is available, let the system handle blur natively
         // Otherwise, use systemMaterial blur for older iOS
-        headerBlurEffect: isGlassAvailable ? undefined : rt.themeName === "dark"
-          ? "systemMaterialDark"
-          : "systemMaterialLight",
+        headerBlurEffect: isLiquidGlassAvailable
+          ? undefined
+          : rt.themeName === "dark"
+            ? "systemMaterialDark"
+            : "systemMaterialLight",
         headerLargeTitle: false,
         headerTitleAlign: "center",
       }}
