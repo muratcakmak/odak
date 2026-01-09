@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import { StyleSheet, View, Text, Pressable, Switch, useColorScheme, Platform } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Svg, { Path, Polygon } from "react-native-svg";
@@ -315,7 +315,7 @@ export default function ShareScreen() {
   }));
 
   // Handle card tap - random tilt with spring animation
-  const handleCardTap = useCallback(() => {
+  const handleCardTap = () => {
     const newRotation = Math.random() * 10 - 5;
     cardRotation.value = withSpring(newRotation, {
       damping: 10,
@@ -326,16 +326,16 @@ export default function ShareScreen() {
       withTiming(0.82, { duration: 100 }),
       withSpring(0.85, { damping: 10, stiffness: 200 })
     );
-  }, []);
+  };
 
   // Handle button press in/out
-  const handleButtonPressIn = useCallback(() => {
+  const handleButtonPressIn = () => {
     buttonScale.value = withSpring(0.95, { damping: 15, stiffness: 300 });
-  }, []);
+  };
 
-  const handleButtonPressOut = useCallback(() => {
+  const handleButtonPressOut = () => {
     buttonScale.value = withSpring(1, { damping: 15, stiffness: 300 });
-  }, []);
+  };
 
   const handleShare = async () => {
     if (isSharing) return;

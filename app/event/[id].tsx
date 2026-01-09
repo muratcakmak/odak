@@ -10,7 +10,8 @@ import {
   useColorScheme,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import { GlassView } from "expo-glass-effect";
+import { hasLiquidGlassSupport } from "../../utils/capabilities";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   getAheadEvents,
@@ -268,7 +269,7 @@ function HeaderPillButton({
   onPress?: () => void;
   style?: any;
 }) {
-  const isGlassAvailable = isLiquidGlassAvailable();
+  const isGlassAvailable = hasLiquidGlassSupport();
 
   if (isGlassAvailable) {
     return (

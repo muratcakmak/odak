@@ -101,11 +101,15 @@ const LIQUID_SHADER = Skia.RuntimeEffect.Make(`
   }
 `)!;
 
+import { useUnistyles } from "react-native-unistyles";
+
+// ... existing imports ...
+
 export function LiquidCard({
   title,
   subtitle,
   fillLevel,
-  color = "#4A9EFF",
+  color, // Optional override
   width: customWidth,
   height: customHeight,
 }: LiquidCardProps) {
@@ -113,9 +117,16 @@ export function LiquidCard({
   const width = customWidth ?? dimensions.width - 40;
   const height = customHeight ?? 300;
 
+  // Use Unistyles
+  const { theme } = useUnistyles();
+  const styles = createStyles(theme, width, height);
+
+  // Use theme color if no override provided
+  const liquidColor = color ?? theme.colors.liquid.blue;
+
   const time = useSharedValue(0);
 
-  // Parse color to RGB values (0-1 range)
+  // ... (color parsing and shader logic remains the same) ...
   const parseColor = (hex: string): [number, number, number] => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     if (result) {
@@ -128,7 +139,7 @@ export function LiquidCard({
     return [0.29, 0.62, 1.0]; // Default blue
   };
 
-  const [r, g, b] = parseColor(color);
+  const [r, g, b] = parseColor(liquidColor);
 
   useEffect(() => {
     time.value = withRepeat(
@@ -152,9 +163,9 @@ export function LiquidCard({
   const percentage = Math.round(fillLevel * 100);
 
   return (
-    <View style={[styles.container, { width, height }]}>
+    <View style={styles.container}>
       <Canvas style={StyleSheet.absoluteFill}>
-        <RoundedRect x={0} y={0} width={width} height={height} r={24} color="#111111" />
+        <RoundedRect x={0} y={0} width={width} height={height} r={24} color={theme.colors.surfaceElevated} />
         <Fill>
           <Shader source={LIQUID_SHADER} uniforms={uniforms} />
         </Fill>
@@ -168,40 +179,43 @@ export function LiquidCard({
   );
 }
 
-const styles = StyleSheet.create({
+// Manual StyleSheet creation using Unistyles theme
+const createStyles = (theme: any, width: number, height: number) => StyleSheet.create({
   container: {
     borderRadius: 24,
     overflow: "hidden",
-    backgroundColor: "#111111",
+    backgroundColor: theme.colors.surfaceElevated,
+    width,
+    height,
   },
   content: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: theme.spacing.lg,
   },
   percentage: {
-    fontSize: 72,
+    fontSize: theme.typography.sizes.hero,
     fontWeight: "100",
-    color: "#FFFFFF",
-    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    color: theme.colors.textPrimary,
+    textShadowColor: theme.colors.textMuted,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   title: {
-    fontSize: 24,
+    fontSize: theme.typography.sizes.xxl,
     fontWeight: "300",
-    color: "#FFFFFF",
-    marginTop: 8,
-    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    color: theme.colors.textPrimary,
+    marginTop: theme.spacing.sm,
+    textShadowColor: theme.colors.textMuted,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   subtitle: {
-    fontSize: 14,
-    color: "#FFFFFF99",
-    marginTop: 4,
-    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    fontSize: theme.typography.sizes.md,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.xs,
+    textShadowColor: theme.colors.textMuted,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },

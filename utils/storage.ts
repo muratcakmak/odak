@@ -255,3 +255,17 @@ export function getBackgroundMode(): BackgroundMode {
 export function setBackgroundMode(mode: BackgroundMode): void {
   storage.set(BACKGROUND_MODE_KEY, mode);
 }
+
+// Accent Color Preference
+export type AccentColor = "white" | "blue" | "green" | "orange" | "yellow" | "pink" | "red" | "mint" | "purple" | "brown";
+
+const ACCENT_COLOR_KEY = "accent_color";
+
+export function getAccentColor(): AccentColor {
+  const color = storage.getString(ACCENT_COLOR_KEY);
+  return (color as AccentColor) || "blue";
+}
+
+export function setAccentColor(color: AccentColor): void {
+  storage.set(ACCENT_COLOR_KEY, color);
+}

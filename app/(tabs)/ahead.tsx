@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { StyleSheet, View, Text, ScrollView, Pressable, ImageBackground, Modal, TextInput, Platform, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import { GlassView } from "expo-glass-effect";
+import { hasLiquidGlassSupport } from "../../utils/capabilities";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { DatePicker, Host, ContextMenu, Button, Divider } from "@expo/ui/swift-ui";
 import { datePickerStyle } from "@expo/ui/swift-ui/modifiers";
@@ -9,7 +10,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import Animated, { FadeIn, FadeOut, Layout, Easing } from "react-native-reanimated";
 import { getAheadEvents, addAheadEvent, getAheadViewMode, setAheadViewMode, saveImageLocally, type AheadEvent, type ViewMode } from "../../utils/storage";
-import { useTheme } from "../../hooks/useTheme";
+import { useUnistyles } from "react-native-unistyles";
 
 // Sort options
 type SortType = "date_asc" | "date_desc" | "title_asc" | "title_desc";
@@ -44,12 +45,13 @@ function HeaderPillButton({
   style?: any;
   fallbackColor?: string;
 }) {
-  const isGlassAvailable = isLiquidGlassAvailable();
+  const { theme } = useUnistyles();
+  const isGlassAvailable = hasLiquidGlassSupport();
 
   if (isGlassAvailable) {
     return (
       <Pressable onPress={onPress}>
-        <GlassView style={[styles.pillButton, style]} isInteractive>
+        <GlassView style={style} isInteractive>
           {children}
         </GlassView>
       </Pressable>
@@ -57,7 +59,7 @@ function HeaderPillButton({
   }
 
   return (
-    <Pressable onPress={onPress} style={[styles.pillButton, { backgroundColor: fallbackColor || "#F2F2F7" }, style]}>
+    <Pressable onPress={onPress} style={[{ backgroundColor: fallbackColor || theme.colors.surface }, style]}>
       {children}
     </Pressable>
   );
@@ -70,13 +72,17 @@ function EventCard({
   image,
   onPress,
   compact = false,
+  cardBackgroundColor,
 }: {
   title: string;
   date: Date;
   image?: string;
   onPress?: () => void;
   compact?: boolean;
+  cardBackgroundColor: string;
 }) {
+  const { theme } = useUnistyles();
+  const styles = createStyles(theme);
   const daysUntil = getDaysUntil(date);
 
   if (compact) {
@@ -97,7 +103,7 @@ function EventCard({
             </View>
           </ImageBackground>
         ) : (
-          <View style={[styles.gridCard, styles.gridCardNoImage]}>
+          <View style={[styles.gridCard, { backgroundColor: cardBackgroundColor }]}>
             <View style={styles.gridCardContent}>
               <Text style={styles.gridDaysText}>In {daysUntil} days</Text>
               <Text style={styles.gridDateText}>{formatDate(date)}</Text>
@@ -126,7 +132,7 @@ function EventCard({
           </View>
         </ImageBackground>
       ) : (
-        <View style={[styles.eventCard, styles.eventCardNoImage]}>
+        <View style={[styles.eventCard, { backgroundColor: cardBackgroundColor }]}>
           <View style={styles.eventCardContent}>
             <Text style={[styles.eventDaysText, styles.noImageText]}>In {daysUntil} days</Text>
             <Text style={[styles.eventDateText, styles.noImageText]}>{formatDate(date)}</Text>
@@ -143,12 +149,10 @@ function AddEventModal({
   visible,
   onClose,
   onAdd,
-  isDark,
 }: {
   visible: boolean;
   onClose: () => void;
   onAdd: (title: string, date: Date, image?: string) => void;
-  isDark: boolean;
 }) {
   const [title, setTitle] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -157,7 +161,11 @@ function AddEventModal({
     return date;
   });
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const isGlassAvailable = isLiquidGlassAvailable();
+  const isGlassAvailable = hasLiquidGlassSupport();
+  const { theme } = useUnistyles();
+  const styles = createStyles(theme);
+  // Replicating colors logic locally for modal elements if needed or using theme directly
+  const inputBg = theme.colors.surface;
 
   const handleAdd = () => {
     if (title.trim()) {
@@ -186,13 +194,6 @@ function AddEventModal({
     }
   };
 
-  const colors = {
-    background: isDark ? "#1C1C1E" : "#FFFFFF",
-    text: isDark ? "#FFFFFF" : "#000000",
-    secondaryText: isDark ? "#8E8E93" : "#8E8E93",
-    inputBg: isDark ? "#2C2C2E" : "#F2F2F7",
-  };
-
   const HeaderButton = ({ onPress, disabled, children }: { onPress: () => void; disabled?: boolean; children: React.ReactNode }) => {
     if (isGlassAvailable) {
       return (
@@ -204,7 +205,7 @@ function AddEventModal({
       );
     }
     return (
-      <Pressable onPress={onPress} disabled={disabled} style={[styles.headerGlassButton, styles.headerButtonFallback]}>
+      <Pressable onPress={onPress} disabled={disabled} style={[styles.headerGlassButton, { backgroundColor: theme.colors.surface }]}>
         {children}
       </Pressable>
     );
@@ -217,15 +218,15 @@ function AddEventModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+      <View style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
         {/* Header */}
         <View style={styles.modalHeader}>
           <HeaderButton onPress={onClose}>
             <Text style={[styles.modalHeaderButton, { color: "#007AFF" }]}>Cancel</Text>
           </HeaderButton>
-          <Text style={[styles.modalTitle, { color: colors.text }]}>New Event</Text>
+          <Text style={[styles.modalTitle, { color: theme.colors.textPrimary }]}>New Event</Text>
           <HeaderButton onPress={handleAdd} disabled={!title.trim()}>
-            <Text style={[styles.modalHeaderButton, { color: title.trim() ? "#007AFF" : colors.secondaryText }]}>
+            <Text style={[styles.modalHeaderButton, { color: title.trim() ? "#007AFF" : theme.colors.textSecondary }]}>
               Add
             </Text>
           </HeaderButton>
@@ -235,14 +236,14 @@ function AddEventModal({
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
           {/* Photo Picker */}
           <View style={styles.inputSection}>
-            <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>Event Photo</Text>
-            <Pressable onPress={pickImage} style={[styles.photoPicker, { backgroundColor: colors.inputBg }]}>
+            <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>Event Photo</Text>
+            <Pressable onPress={pickImage} style={[styles.photoPicker, { backgroundColor: inputBg }]}>
               {selectedImage ? (
                 <Image source={{ uri: selectedImage }} style={styles.selectedPhoto} />
               ) : (
                 <View style={styles.photoPlaceholder}>
-                  <Ionicons name="image-outline" size={32} color={colors.secondaryText} />
-                  <Text style={[styles.photoPlaceholderText, { color: colors.secondaryText }]}>
+                  <Ionicons name="image-outline" size={32} color={theme.colors.textSecondary} />
+                  <Text style={[styles.photoPlaceholderText, { color: theme.colors.textSecondary }]}>
                     Tap to select photo
                   </Text>
                 </View>
@@ -252,11 +253,11 @@ function AddEventModal({
 
           {/* Title Input */}
           <View style={styles.inputSection}>
-            <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>Event Title</Text>
+            <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>Event Title</Text>
             <TextInput
-              style={[styles.textInput, { backgroundColor: colors.inputBg, color: colors.text }]}
+              style={[styles.textInput, { backgroundColor: inputBg, color: theme.colors.textPrimary }]}
               placeholder="Enter event title..."
-              placeholderTextColor={colors.secondaryText}
+              placeholderTextColor={theme.colors.textSecondary}
               value={title}
               onChangeText={setTitle}
             />
@@ -264,7 +265,7 @@ function AddEventModal({
 
           {/* Date Picker */}
           <View style={styles.inputSection}>
-            <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>Event Date</Text>
+            <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>Event Date</Text>
             {Platform.OS === "ios" ? (
               <Host style={styles.datePickerHost}>
                 <DatePicker
@@ -275,8 +276,8 @@ function AddEventModal({
                 />
               </Host>
             ) : (
-              <Pressable style={[styles.dateButton, { backgroundColor: colors.inputBg }]}>
-                <Text style={{ color: colors.text }}>{selectedDate.toLocaleDateString()}</Text>
+              <Pressable style={[styles.dateButton, { backgroundColor: inputBg }]}>
+                <Text style={{ color: theme.colors.textPrimary }}>{selectedDate.toLocaleDateString()}</Text>
               </Pressable>
             )}
           </View>
@@ -287,18 +288,13 @@ function AddEventModal({
 }
 
 export default function AheadScreen() {
-  const { isDark, colors: themeColors } = useTheme();
+  const { theme } = useUnistyles();
+  const styles = createStyles(theme);
+
   const [events, setEvents] = useState<AheadEvent[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [sortType, setSortType] = useState<SortType>("date_asc");
   const [viewMode, setViewMode] = useState<ViewMode>(() => getAheadViewMode());
-
-  const colors = {
-    background: themeColors.background,
-    text: themeColors.textPrimary,
-    card: themeColors.card,
-    surface: themeColors.surface,
-  };
 
   // Sort events based on current sort type
   const sortedEvents = [...events]
@@ -331,7 +327,7 @@ export default function AheadScreen() {
   }, []);
 
   // Add new event with local image storage
-  const handleAddEvent = useCallback(async (title: string, date: Date, image?: string) => {
+  const handleAddEvent = async (title: string, date: Date, image?: string) => {
     let localImageUri: string | undefined;
     if (image) {
       localImageUri = await saveImageLocally(image);
@@ -342,13 +338,13 @@ export default function AheadScreen() {
       image: localImageUri,
     });
     setEvents((prev) => [...prev, newEvent]);
-  }, []);
+  };
 
   // Open add modal (calendar button opens date picker modal)
   const openAddModal = () => setShowAddModal(true);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -396,27 +392,27 @@ export default function AheadScreen() {
                 </ContextMenu.Items>
                 <ContextMenu.Trigger>
                   <View>
-                    <HeaderPillButton fallbackColor={colors.surface}>
-                      <Ionicons name="options-outline" size={20} color={colors.text} />
+                    <HeaderPillButton style={styles.pillButton} fallbackColor={theme.colors.surface}>
+                      <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
                     </HeaderPillButton>
                   </View>
                 </ContextMenu.Trigger>
               </ContextMenu>
             </Host>
           ) : (
-            <HeaderPillButton fallbackColor={colors.surface}>
-              <Ionicons name="options-outline" size={20} color={colors.text} />
+            <HeaderPillButton style={styles.pillButton} fallbackColor={theme.colors.surface}>
+              <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
             </HeaderPillButton>
           )}
         </View>
 
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Time ahead</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>Time ahead</Text>
 
-        <HeaderPillButton style={styles.rightPillButton} onPress={openAddModal} fallbackColor={colors.surface}>
-          <Ionicons name="calendar-outline" size={20} color={colors.text} />
-          <Text style={[styles.plusBadge, { color: colors.text }]}>+</Text>
-          <View style={[styles.buttonDivider, { backgroundColor: isDark ? "#48484A" : "#C7C7CC" }]} />
-          <Ionicons name="add" size={24} color={colors.text} />
+        <HeaderPillButton style={styles.rightPillButton} onPress={openAddModal} fallbackColor={theme.colors.surface}>
+          <Ionicons name="calendar-outline" size={20} color={theme.colors.textPrimary} />
+          <Text style={[styles.plusBadge, { color: theme.colors.textPrimary }]}>+</Text>
+          <View style={[styles.buttonDivider, { backgroundColor: theme.colors.cardBorder }]} />
+          <Ionicons name="add" size={24} color={theme.colors.textPrimary} />
         </HeaderPillButton>
       </View>
 
@@ -428,9 +424,9 @@ export default function AheadScreen() {
       >
         {events.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="calendar-outline" size={48} color={colors.text} style={{ opacity: 0.3 }} />
-            <Text style={[styles.emptyText, { color: colors.text }]}>No upcoming events</Text>
-            <Text style={[styles.emptySubtext, { color: colors.text }]}>
+            <Ionicons name="calendar-outline" size={48} color={theme.colors.textPrimary} style={{ opacity: 0.3 }} />
+            <Text style={[styles.emptyText, { color: theme.colors.textPrimary }]}>No upcoming events</Text>
+            <Text style={[styles.emptySubtext, { color: theme.colors.textPrimary }]}>
               Tap the + button to add an event
             </Text>
           </View>
@@ -450,6 +446,7 @@ export default function AheadScreen() {
                   image={event.image}
                   onPress={() => router.push(`/event/${event.id}`)}
                   compact={viewMode === "grid"}
+                  cardBackgroundColor={theme.colors.surface}
                 />
               </Animated.View>
             ))}
@@ -462,13 +459,12 @@ export default function AheadScreen() {
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddEvent}
-        isDark={isDark}
       />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -476,26 +472,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.md,
   },
   headerLeft: {
     flexDirection: "row",
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: theme.typography.sizes.lg,
     fontWeight: "600",
   },
   pillButton: {
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: theme.borderRadius.xl,
     flexDirection: "row",
     alignItems: "center",
   },
   rightPillButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: theme.borderRadius.xl,
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   plusBadge: {
@@ -507,32 +508,29 @@ const styles = StyleSheet.create({
   buttonDivider: {
     width: 1,
     height: 20,
-    backgroundColor: "#C7C7CC",
+    // backgroundColor handled in component via prop? no, handled here via theme.colors.cardBorder in component or style?
+    // The component used style override for color. Let's make it theme aware in component.
     marginHorizontal: 8,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: theme.spacing.lg,
     paddingTop: 0,
     paddingBottom: 120,
   },
   eventCard: {
     height: 160,
-    borderRadius: 20,
+    borderRadius: theme.borderRadius.lg,
     overflow: "hidden",
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   eventCardImage: {
-    borderRadius: 20,
-  },
-  eventCardNoImage: {
-    backgroundColor: "#2C2C2E",
-    justifyContent: "flex-end",
+    borderRadius: theme.borderRadius.lg,
   },
   noImageText: {
-    color: "#FFFFFF",
+    color: theme.colors.textPrimary,
   },
   eventCardOverlay: {
     flex: 1,
@@ -540,7 +538,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   eventCardContent: {
-    padding: 16,
+    padding: theme.spacing.md,
   },
   eventDaysText: {
     fontSize: 22,
@@ -579,19 +577,15 @@ const styles = StyleSheet.create({
   },
   gridCardWrapper: {
     width: "48%",
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   gridCard: {
     height: 160,
-    borderRadius: 16,
+    borderRadius: theme.borderRadius.md,
     overflow: "hidden",
   },
   gridCardImage: {
-    borderRadius: 16,
-  },
-  gridCardNoImage: {
-    backgroundColor: "#2C2C2E",
-    justifyContent: "flex-end",
+    borderRadius: theme.borderRadius.md,
   },
   gridCardOverlay: {
     flex: 1,
@@ -659,9 +653,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-  },
-  headerButtonFallback: {
-    backgroundColor: "#F2F2F7",
   },
   modalHeaderButton: {
     fontSize: 17,

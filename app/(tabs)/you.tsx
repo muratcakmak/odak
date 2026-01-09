@@ -1,12 +1,15 @@
-import { useState, useCallback } from "react";
+import { useState, useRef } from "react";
 import { StyleSheet, View, Text, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import { GlassView } from "expo-glass-effect";
+import { hasLiquidGlassSupport } from "../../utils/capabilities";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { getUserProfile } from "../../utils/storage";
-import { useTheme } from "../../hooks/useTheme";
+import { useUnistyles } from "react-native-unistyles";
+import { getAccentColor, type AccentColor } from "../../utils/storage";
+import { accentColors } from "../../constants/theme";
 import * as Haptics from "expo-haptics";
 import Animated, {
   useSharedValue,
@@ -28,7 +31,7 @@ function HeaderPillButton({
   style?: any;
   fallbackColor?: string;
 }) {
-  const isGlassAvailable = isLiquidGlassAvailable();
+  const isGlassAvailable = hasLiquidGlassSupport();
 
   if (isGlassAvailable) {
     return (
@@ -48,8 +51,16 @@ function HeaderPillButton({
 }
 
 export default function YouScreen() {
-  const { isDark, colors: themeColors } = useTheme();
+  const { theme } = useUnistyles();
+  const themeColors = theme.colors;
+  const isDark = theme.colors.background === '#000000' || theme.colors.background === '#111111';
+
+  // Local accent color logic
+  const [accentColorName] = useState<AccentColor>(() => getAccentColor());
+  const accent = accentColors[accentColorName];
+  const accentColor = isDark ? accent.secondary : accent.primary;
   const [profile, setProfile] = useState<{ name: string; birthDate: Date | null }>({ name: "", birthDate: null });
+  const lastLoadedProfileRef = useRef<string | null>(null);
 
   const colors = {
     background: themeColors.background,
@@ -59,22 +70,29 @@ export default function YouScreen() {
   };
 
   // Haptic feedback helper
-  const triggerHaptic = useCallback(() => {
+  const triggerHaptic = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+  };
 
   // Load profile from MMKV on mount and when returning from settings
-  useFocusEffect(
-    useCallback(() => {
-      const storedProfile = getUserProfile();
-      if (storedProfile) {
+  useFocusEffect(() => {
+    const storedProfile = getUserProfile();
+    if (storedProfile) {
+      // Create a stable key to compare profiles
+      const profileKey = `${storedProfile.name}-${storedProfile.birthDate || ''}`;
+      // Only update if this is a different profile than what we last loaded
+      if (lastLoadedProfileRef.current !== profileKey) {
+        lastLoadedProfileRef.current = profileKey;
         setProfile({
           name: storedProfile.name,
           birthDate: storedProfile.birthDate ? new Date(storedProfile.birthDate) : null,
         });
       }
-    }, [])
-  );
+    } else {
+      // If no stored profile, reset the ref
+      lastLoadedProfileRef.current = null;
+    }
+  });
 
   const hasProfile = profile.name && profile.birthDate;
 
@@ -91,7 +109,7 @@ export default function YouScreen() {
   }));
 
   // Handle card tap - random tilt with spring animation
-  const handleCardTap = useCallback(() => {
+  const handleCardTap = () => {
     triggerHaptic();
     const newRotation = Math.random() * 10 - 5;
     cardRotation.value = withSpring(newRotation, {
@@ -102,7 +120,7 @@ export default function YouScreen() {
       withTiming(0.95, { duration: 100 }),
       withSpring(1, { damping: 10, stiffness: 200 })
     );
-  }, [triggerHaptic]);
+  };
 
   const calculateAge = (birthDate: Date) => {
     const today = new Date();
@@ -132,7 +150,7 @@ export default function YouScreen() {
       <View style={styles.content}>
         {/* Profile Card */}
         <Pressable onPress={handleCardTap}>
-          <Animated.View style={[styles.profileCard, { backgroundColor: colors.cardBg }, cardAnimatedStyle]}>
+          <Animated.View style={[styles.profileCard, { backgroundColor: accentColor }, cardAnimatedStyle]}>
             <Ionicons name="person" size={80} color="rgba(255, 255, 255, 0.6)" />
           </Animated.View>
         </Pressable>

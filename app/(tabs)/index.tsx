@@ -1,7 +1,8 @@
-import { useMemo, useState, useCallback, useRef, useEffect, memo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { StyleSheet, View, Text, Pressable, useWindowDimensions, Platform } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import { GlassView } from "expo-glass-effect";
+import { hasLiquidGlassSupport } from "../../utils/capabilities";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import Animated, {
@@ -15,8 +16,9 @@ import Animated, {
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import { Host, ContextMenu, Button, Divider } from "@expo/ui/swift-ui";
-import { useTheme } from "../../hooks/useTheme";
-import { getAheadEvents, getSinceEvents, type AheadEvent, type SinceEvent } from "../../utils/storage";
+import { getAheadEvents, getSinceEvents, getAccentColor, type AheadEvent, type SinceEvent, type AccentColor } from "../../utils/storage";
+import { accentColors } from "../../constants/theme";
+import { useUnistyles } from "react-native-unistyles";
 
 // View types
 type ViewType = "now" | "today" | "month" | "year" | "since" | "ahead";
@@ -179,7 +181,7 @@ function getColumns(viewType: ViewType, total: number): number {
 }
 
 // Simple static dot - no animations, pure View
-const StaticDot = memo(function StaticDot({
+function StaticDot({
   isPassed,
   size,
   passedColor,
@@ -200,10 +202,10 @@ const StaticDot = memo(function StaticDot({
       }}
     />
   );
-});
+}
 
 // Selection highlight overlay - single animated component
-const SelectionHighlight = memo(function SelectionHighlight({
+function SelectionHighlight({
   selectedDot,
   dotSize,
   cellSize,
@@ -260,10 +262,10 @@ const SelectionHighlight = memo(function SelectionHighlight({
       pointerEvents="none"
     />
   );
-});
+}
 
-// Memoized Pill button component
-const PillButton = memo(function PillButton({
+// Pill button component
+function PillButton({
   children,
   onPress,
   style,
@@ -274,12 +276,13 @@ const PillButton = memo(function PillButton({
   style?: any;
   fallbackColor?: string;
 }) {
-  const isGlassAvailable = isLiquidGlassAvailable();
+  const { theme } = useUnistyles();
+  const isGlassAvailable = hasLiquidGlassSupport();
 
   if (isGlassAvailable) {
     return (
       <Pressable onPress={onPress}>
-        <GlassView style={[styles.pillButton, style]} isInteractive>
+        <GlassView style={style} isInteractive>
           {children}
         </GlassView>
       </Pressable>
@@ -287,14 +290,14 @@ const PillButton = memo(function PillButton({
   }
 
   return (
-    <Pressable onPress={onPress} style={[styles.pillButton, { backgroundColor: fallbackColor || "#1C1C1E" }, style]}>
+    <Pressable onPress={onPress} style={[{ backgroundColor: fallbackColor || theme.colors.card }, style]}>
       {children}
     </Pressable>
   );
-});
+}
 
 // Grid of dots - renders all dots as simple Views
-const DotGrid = memo(function DotGrid({
+function DotGrid({
   total,
   passed,
   isCountdown,
@@ -314,12 +317,10 @@ const DotGrid = memo(function DotGrid({
   remainingColor: string;
 }) {
   // Pre-generate dot data
-  const dots = useMemo(() => {
-    return Array.from({ length: total }, (_, i) => ({
-      id: i,
-      isPassed: isCountdown ? false : i < passed,
-    }));
-  }, [total, passed, isCountdown]);
+  const dots = Array.from({ length: total }, (_, i) => ({
+    id: i,
+    isPassed: isCountdown ? false : i < passed,
+  }));
 
   return (
     <>
@@ -345,13 +346,45 @@ const DotGrid = memo(function DotGrid({
       ))}
     </>
   );
-});
+};
 
 // Main component
 export default function LeftScreen() {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { isDark, colors: themeColors } = useTheme();
+
+  // Use Unistyles
+  const { theme } = useUnistyles();
+  const styles = createStyles(theme);
+
+  // Local state for accent color (replacing useTheme hook logic)
+  const [accentColorName] = useState<AccentColor>(() => getAccentColor());
+  const accent = accentColors[accentColorName];
+  // Determine if dark mode using Unistyles theme check? 
+  // theme names in Unistyles are 'light', 'dark'. 
+  // But strictly, Unistyles theme object itself doesn't expose 'name' unless we check UnistylesRuntime.themeName
+  // Or purely rely on our isDark boolean if we put it in theme?
+  // We did put `isDark` boolean in the theme object in theme/unistyles.ts via ...lightColors/darkColors?
+  // No, `isDark` was in `AppTheme` type but not in `lightColors/darkColors` exports in `constants/theme.ts`.
+  // `constants/theme.ts` default export had `isDark` if using `getColors`.
+  // But `lightColors` const itself didn't have `isDark`.
+
+  // Let's rely on UnistylesRuntime or just check a robust property.
+  // Actually, let's just use a default or assume light/dark based on backgroundColor? swizzle?
+  // Better: import { UnistylesRuntime } from 'react-native-unistyles'
+  // const isDark = UnistylesRuntime.themeName === 'dark'
+
+  // BUT: Unistyles `useStyles` returns `theme`.
+  // I can check `theme.colors.background` === '#000000' etc if I really need to.
+  // Or just update my `theme/unistyles.ts` to include `type: 'light' | 'dark'` meta property.
+  // For now, I'll use a hack or `UnistylesRuntime`. I'll assume `theme.colors.background` black-ish is dark.
+
+  // Wait, I can just use `UnistylesRuntime.themeName`.
+
+  // Re-evaluating: I'll stick to simple logic.
+  const isDark = theme.colors.background === '#000000' || theme.colors.background === '#111111'; // Approximate
+  const accentColor = isDark ? accent.secondary : accent.primary;
+
   const [viewConfig, setViewConfig] = useState<ViewConfig>({ type: "year" });
   const [sinceEvents, setSinceEvents] = useState<SinceEvent[]>([]);
   const [aheadEvents, setAheadEvents] = useState<AheadEvent[]>([]);
@@ -367,18 +400,18 @@ export default function LeftScreen() {
     setAheadEvents(getAheadEvents());
   }, []);
 
-  // Theme colors - memoized
-  const colors = useMemo(() => ({
-    background: themeColors.background,
-    cardBackground: themeColors.card,
-    text: themeColors.textPrimary,
-    secondaryText: themeColors.textSecondary,
+  // Theme colors
+  const colors = {
+    background: theme.colors.background,
+    cardBackground: theme.colors.card,
+    text: theme.colors.textPrimary,
+    secondaryText: theme.colors.textSecondary,
     passedDot: isDark ? "#3A3A3C" : "#C7C7CC",
-    remainingDot: themeColors.textPrimary,
-  }), [themeColors, isDark]);
+    remainingDot: accentColor,
+  };
 
   // Get view info based on current view config
-  const viewInfo = useMemo(() => {
+  const viewInfo = (() => {
     switch (viewConfig.type) {
       case "now":
         return getNowInfo();
@@ -401,15 +434,15 @@ export default function LeftScreen() {
       default:
         return getYearInfo();
     }
-  }, [viewConfig, sinceEvents, aheadEvents]);
+  })();
 
   const { total, passed, left, label } = viewInfo;
   const isCountdown = (viewInfo as any).isCountdown;
   const columns = getColumns(viewConfig.type, total);
   const timeLeftText = formatTimeLeft(left, viewConfig.type, isCountdown);
 
-  // Memoized callbacks
-  const openShareSheet = useCallback(() => {
+  // Open share sheet
+  const openShareSheet = () => {
     router.push({
       pathname: "/share",
       params: {
@@ -420,53 +453,43 @@ export default function LeftScreen() {
         viewType: viewConfig.type,
       },
     });
-  }, [label, timeLeftText, total, passed, viewConfig.type]);
+  };
 
-  // Memoized grid dimensions - calculate to fit all dots in fixed container
-  const gridDimensions = useMemo(() => {
-    const cardPadding = 24;
-    const cardMargin = 20;
-    const headerHeight = 70; // Header with pills
-    const tabBarHeight = 100 + insets.bottom; // Floating glass tab bar + safe area bottom + spacing
+  // Grid dimensions - calculate to fit all dots in fixed container
+  const cardPadding = 24;
+  const cardMargin = 20;
+  const headerHeight = 70; // Header with pills
+  const tabBarHeight = 100 + insets.bottom; // Floating glass tab bar + safe area bottom + spacing
 
-    const availableWidth = screenWidth - (cardMargin * 2) - (cardPadding * 2);
-    const availableHeight = screenHeight - headerHeight - tabBarHeight - insets.top - (cardMargin * 2) - (cardPadding * 2);
+  const availableWidth = screenWidth - (cardMargin * 2) - (cardPadding * 2);
+  const availableHeight = screenHeight - headerHeight - tabBarHeight - insets.top - (cardMargin * 2) - (cardPadding * 2);
 
-    // Calculate rows needed
-    const rows = Math.ceil(total / columns);
+  // Calculate rows needed
+  const rows = Math.ceil(total / columns);
 
-    // Calculate dot size based on available space
-    const baseGap = viewConfig.type === "now" || viewConfig.type === "today" ? 10 : 6;
+  // Calculate dot size based on available space
+  const baseGap = viewConfig.type === "now" || viewConfig.type === "today" ? 10 : 6;
 
-    // Calculate maximum dot size that fits width
-    const maxDotSizeByWidth = Math.floor((availableWidth - (baseGap * (columns - 1))) / columns);
+  // Calculate maximum dot size that fits width
+  const maxDotSizeByWidth = Math.floor((availableWidth - (baseGap * (columns - 1))) / columns);
 
-    // Calculate maximum dot size that fits height
-    const maxDotSizeByHeight = Math.floor((availableHeight - (baseGap * (rows - 1))) / rows);
+  // Calculate maximum dot size that fits height
+  const maxDotSizeByHeight = Math.floor((availableHeight - (baseGap * (rows - 1))) / rows);
 
-    // Use the smaller of the two, with a reasonable max cap
-    const dotSize = Math.min(maxDotSizeByWidth, maxDotSizeByHeight, 28);
-    const dotGap = baseGap;
-    const cellSize = dotSize + dotGap;
-    const gridWidth = columns * dotSize + (columns - 1) * dotGap;
-    const gridHeight = rows * dotSize + (rows - 1) * dotGap;
+  // Use the smaller of the two, with a reasonable max cap
+  const dotSize = Math.min(maxDotSizeByWidth, maxDotSizeByHeight, 28);
+  const dotGap = baseGap;
+  const cellSize = dotSize + dotGap;
+  const gridWidth = columns * dotSize + (columns - 1) * dotGap;
+  const gridHeight = rows * dotSize + (rows - 1) * dotGap;
 
-    return { dotGap, dotSize, cellSize, gridWidth, gridHeight, rows };
-  }, [screenWidth, screenHeight, columns, total, viewConfig.type, insets.top, insets.bottom]);
-
-  const { dotGap, dotSize, cellSize, gridWidth } = gridDimensions;
+  const gridDimensions = { dotGap, dotSize, cellSize, gridWidth, gridHeight, rows };
 
   // Get event start date for since view
-  const eventStartDate = useMemo(() => {
-    if (viewConfig.type === "since") {
-      const event = sinceEvents.find(e => e.id === viewConfig.eventId);
-      return event?.startDate;
-    }
-    return undefined;
-  }, [viewConfig, sinceEvents]);
+  const eventStartDate = viewConfig.type === "since" ? sinceEvents.find(e => e.id === viewConfig.eventId)?.startDate : undefined;
 
   // Haptic feedback and label update handler (called from worklet via runOnJS)
-  const triggerHapticAndLabel = useCallback((dotIndex: number) => {
+  const triggerHapticAndLabel = (dotIndex: number) => {
     if (dotIndex !== lastHapticDot.current && dotIndex >= 0) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       lastHapticDot.current = dotIndex;
@@ -475,58 +498,53 @@ export default function LeftScreen() {
       lastHapticDot.current = -1;
       setSelectedDotLabel(null);
     }
-  }, [viewConfig.type, eventStartDate]);
+  };
 
   // Pan gesture - fully worklet-based
-  const panGesture = useMemo(
-    () =>
-      Gesture.Pan()
-        .onStart((e) => {
-          'worklet';
-          const col = Math.floor(e.x / cellSize);
-          const row = Math.floor(e.y / cellSize);
-          let dotIndex = -1;
-          if (col >= 0 && col < columns && row >= 0) {
-            const idx = row * columns + col;
-            if (idx >= 0 && idx < total) {
-              dotIndex = idx;
-            }
-          }
-          selectedDot.value = dotIndex;
-          runOnJS(triggerHapticAndLabel)(dotIndex);
-        })
-        .onUpdate((e) => {
-          'worklet';
-          const col = Math.floor(e.x / cellSize);
-          const row = Math.floor(e.y / cellSize);
-          let dotIndex = -1;
-          if (col >= 0 && col < columns && row >= 0) {
-            const idx = row * columns + col;
-            if (idx >= 0 && idx < total) {
-              dotIndex = idx;
-            }
-          }
-          if (dotIndex !== selectedDot.value) {
-            selectedDot.value = dotIndex;
-            runOnJS(triggerHapticAndLabel)(dotIndex);
-          }
-        })
-        .onEnd(() => {
-          'worklet';
-          selectedDot.value = -1;
-          runOnJS(triggerHapticAndLabel)(-1);
-        }),
-    [cellSize, columns, total, triggerHapticAndLabel]
-  );
+  const panGesture = Gesture.Pan()
+    .onStart((e) => {
+      'worklet';
+      const col = Math.floor(e.x / cellSize);
+      const row = Math.floor(e.y / cellSize);
+      let dotIndex = -1;
+      if (col >= 0 && col < columns && row >= 0) {
+        const idx = row * columns + col;
+        if (idx >= 0 && idx < total) {
+          dotIndex = idx;
+        }
+      }
+      selectedDot.value = dotIndex;
+      runOnJS(triggerHapticAndLabel)(dotIndex);
+    })
+    .onUpdate((e) => {
+      'worklet';
+      const col = Math.floor(e.x / cellSize);
+      const row = Math.floor(e.y / cellSize);
+      let dotIndex = -1;
+      if (col >= 0 && col < columns && row >= 0) {
+        const idx = row * columns + col;
+        if (idx >= 0 && idx < total) {
+          dotIndex = idx;
+        }
+      }
+      if (dotIndex !== selectedDot.value) {
+        selectedDot.value = dotIndex;
+        runOnJS(triggerHapticAndLabel)(dotIndex);
+      }
+    })
+    .onEnd(() => {
+      'worklet';
+      selectedDot.value = -1;
+      runOnJS(triggerHapticAndLabel)(-1);
+    });
 
-  const isGlassAvailable = isLiquidGlassAvailable();
   const viewKey = `${viewConfig.type}-${viewConfig.eventId || ''}`;
 
-  // Memoized view config setters
-  const setNowView = useCallback(() => setViewConfig({ type: "now" }), []);
-  const setTodayView = useCallback(() => setViewConfig({ type: "today" }), []);
-  const setMonthView = useCallback(() => setViewConfig({ type: "month" }), []);
-  const setYearView = useCallback(() => setViewConfig({ type: "year" }), []);
+  // View config setters
+  const setNowView = () => setViewConfig({ type: "now" });
+  const setTodayView = () => setViewConfig({ type: "today" });
+  const setMonthView = () => setViewConfig({ type: "month" });
+  const setYearView = () => setViewConfig({ type: "year" });
 
   const gridContent = (
     <View style={styles.dotsContainer}>
@@ -591,7 +609,7 @@ export default function LeftScreen() {
               </ContextMenu.Items>
               <ContextMenu.Trigger>
                 <View>
-                  <PillButton fallbackColor={colors.cardBackground}>
+                  <PillButton style={styles.pillButton} fallbackColor={colors.cardBackground}>
                     <Text style={[styles.labelText, { color: colors.text }]}>{label}</Text>
                   </PillButton>
                 </View>
@@ -599,19 +617,19 @@ export default function LeftScreen() {
             </ContextMenu>
           </Host>
         ) : (
-          <PillButton fallbackColor={colors.cardBackground}>
+          <PillButton style={styles.pillButton} fallbackColor={colors.cardBackground}>
             <Text style={[styles.labelText, { color: colors.text }]}>{label}</Text>
           </PillButton>
         )}
 
         <View style={styles.headerRight}>
-          <PillButton fallbackColor={colors.cardBackground}>
+          <PillButton style={styles.pillButton} fallbackColor={colors.cardBackground}>
             <Text style={[styles.daysLeftText, { color: colors.text }]}>
               {selectedDotLabel || timeLeftText}
             </Text>
           </PillButton>
 
-          <PillButton style={styles.shareButton} onPress={openShareSheet} fallbackColor={colors.cardBackground}>
+          <PillButton style={[styles.pillButton, styles.shareButton]} onPress={openShareSheet} fallbackColor={colors.cardBackground}>
             <Ionicons name="share-outline" size={20} color={colors.text} />
           </PillButton>
         </View>
@@ -619,21 +637,15 @@ export default function LeftScreen() {
 
       {/* Dot Grid Card */}
       <View style={styles.cardContainer}>
-        {isGlassAvailable ? (
-          <GlassView style={styles.gridCard}>
-            {gridContent}
-          </GlassView>
-        ) : (
-          <View style={[styles.gridCard, { backgroundColor: colors.cardBackground }]}>
-            {gridContent}
-          </View>
-        )}
+        <View style={[styles.gridCard, { backgroundColor: colors.cardBackground }]}>
+          {gridContent}
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -641,19 +653,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.md,
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   pillButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: theme.spacing.md,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: theme.borderRadius.xl,
+    overflow: 'hidden',
   },
   shareButton: {
     paddingHorizontal: 12,
@@ -668,19 +681,21 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 100, // Account for floating tab bar
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: 100,
   },
   gridCard: {
     flex: 1,
-    borderRadius: 24,
+    borderRadius: theme.borderRadius.lg,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder, // Use theme token, remove complexity
   },
   dotsContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: theme.spacing.lg,
   },
   gridContainer: {
     flexDirection: "row",

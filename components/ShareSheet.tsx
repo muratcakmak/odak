@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { StyleSheet, View, Text, Pressable, Switch, Modal } from "react-native";
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
-import { BlurView } from "expo-blur";
+import { GlassView } from "expo-glass-effect";
+import { useUnistyles } from "react-native-unistyles";
+import { hasLiquidGlassSupport } from "../utils/capabilities";
 
 interface ShareSheetProps {
   visible: boolean;
@@ -101,7 +102,8 @@ export function ShareSheet({
   const [showTimeLeft, setShowTimeLeft] = useState(true);
   const [showLeftApp, setShowLeftApp] = useState(false);
 
-  const isGlassAvailable = isLiquidGlassAvailable();
+  const isGlassAvailable = hasLiquidGlassSupport();
+  const { theme: appTheme } = useUnistyles();
 
   const handleShare = () => {
     // TODO: Implement actual share functionality
@@ -138,7 +140,7 @@ export function ShareSheet({
               />
             </GlassView>
           ) : (
-            <BlurView intensity={80} tint="dark" style={styles.sheet}>
+            <View style={[styles.sheet, { backgroundColor: appTheme.colors.card }]}>
               <SheetContent
                 year={year}
                 daysLeft={daysLeft}
@@ -155,7 +157,7 @@ export function ShareSheet({
                 setShowLeftApp={setShowLeftApp}
                 onShare={handleShare}
               />
-            </BlurView>
+            </View>
           )}
         </Pressable>
       </Pressable>

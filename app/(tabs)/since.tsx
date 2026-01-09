@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { StyleSheet, View, Text, ScrollView, Pressable, ImageBackground, Modal, TextInput, Platform, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import { GlassView } from "expo-glass-effect";
+import { hasLiquidGlassSupport } from "../../utils/capabilities";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Svg, { Circle } from "react-native-svg";
 import { DatePicker, Host, ContextMenu, Button, Divider } from "@expo/ui/swift-ui";
@@ -10,7 +11,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import Animated, { FadeIn, FadeOut, Layout, Easing } from "react-native-reanimated";
 import { getSinceEvents, addSinceEvent, type SinceEvent, getSinceViewMode, setSinceViewMode, saveImageLocally, type ViewMode } from "../../utils/storage";
-import { useTheme } from "../../hooks/useTheme";
+import { useUnistyles } from "react-native-unistyles";
 
 // Sort options
 type SortType = "date_asc" | "date_desc" | "title_asc" | "title_desc";
@@ -76,7 +77,9 @@ function HeaderPillButton({
   onPress?: () => void;
   style?: any;
 }) {
-  const isGlassAvailable = isLiquidGlassAvailable();
+  const isGlassAvailable = hasLiquidGlassSupport();
+  const { theme } = useUnistyles();
+  const styles = createStyles(theme);
 
   if (isGlassAvailable) {
     return (
@@ -97,6 +100,8 @@ function HeaderPillButton({
 
 // Info banner component
 function InfoBanner({ onPress }: { onPress?: () => void }) {
+  const { theme } = useUnistyles();
+  const styles = createStyles(theme);
   return (
     <Pressable onPress={onPress}>
       <View style={styles.infoBanner}>
@@ -127,6 +132,7 @@ function SinceCard({
   showProgress,
   onPress,
   compact = true,
+  cardBackgroundColor,
 }: {
   title: string;
   startDate: Date;
@@ -134,7 +140,10 @@ function SinceCard({
   showProgress?: boolean;
   onPress?: () => void;
   compact?: boolean;
+  cardBackgroundColor: string;
 }) {
+  const { theme } = useUnistyles();
+  const styles = createStyles(theme);
   const daysSince = getDaysSince(startDate);
 
   if (!compact) {
@@ -159,7 +168,7 @@ function SinceCard({
             </View>
           </ImageBackground>
         ) : (
-          <View style={[styles.sinceCardList, styles.sinceCardNoImage]}>
+          <View style={[styles.sinceCardList, { backgroundColor: cardBackgroundColor }]}>
             <View style={styles.sinceCardOverlayList}>
               <View style={styles.sinceCardContentList}>
                 <Text style={styles.sinceTitleTextList}>{title}</Text>
@@ -199,7 +208,7 @@ function SinceCard({
           </View>
         </ImageBackground>
       ) : (
-        <View style={[styles.sinceCard, styles.sinceCardNoImage]}>
+        <View style={[styles.sinceCard, { backgroundColor: cardBackgroundColor }]}>
           <View style={styles.sinceCardOverlay}>
             <View style={styles.sinceCardContent}>
               <Text style={styles.sinceDaysText}>{daysSince} days</Text>
@@ -218,17 +227,17 @@ function AddEventModal({
   visible,
   onClose,
   onAdd,
-  isDark,
 }: {
   visible: boolean;
   onClose: () => void;
   onAdd: (title: string, date: Date, image?: string) => void;
-  isDark: boolean;
 }) {
   const [title, setTitle] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => new Date()); // Default to today
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const isGlassAvailable = isLiquidGlassAvailable();
+  const isGlassAvailable = hasLiquidGlassSupport();
+  const { theme } = useUnistyles();
+  const styles = createStyles(theme);
 
   const handleAdd = () => {
     if (title.trim()) {
@@ -253,12 +262,12 @@ function AddEventModal({
     }
   };
 
-  const colors = {
-    background: isDark ? "#1C1C1E" : "#FFFFFF",
-    text: isDark ? "#FFFFFF" : "#000000",
-    secondaryText: isDark ? "#8E8E93" : "#8E8E93",
-    inputBg: isDark ? "#2C2C2E" : "#F2F2F7",
-  };
+  // Styles using theme directly since creating local style object is tedious for dynamic colors if not using StyleSheet
+  // Actually, we can just use inline styles with theme.colors
+  const bg = theme.colors.background;
+  const textColor = theme.colors.textPrimary;
+  const secondaryTextColor = theme.colors.textSecondary;
+  const inputBg = theme.colors.surface;
 
   const HeaderButton = ({ onPress, disabled, children }: { onPress: () => void; disabled?: boolean; children: React.ReactNode }) => {
     if (isGlassAvailable) {
@@ -284,15 +293,15 @@ function AddEventModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+      <View style={[styles.modalContainer, { backgroundColor: bg }]}>
         {/* Header */}
         <View style={styles.modalHeader}>
           <HeaderButton onPress={onClose}>
             <Text style={[styles.modalHeaderButton, { color: "#007AFF" }]}>Cancel</Text>
           </HeaderButton>
-          <Text style={[styles.modalTitle, { color: colors.text }]}>New Habit</Text>
+          <Text style={[styles.modalTitle, { color: textColor }]}>New Habit</Text>
           <HeaderButton onPress={handleAdd} disabled={!title.trim()}>
-            <Text style={[styles.modalHeaderButton, { color: title.trim() ? "#007AFF" : colors.secondaryText }]}>
+            <Text style={[styles.modalHeaderButton, { color: title.trim() ? "#007AFF" : secondaryTextColor }]}>
               Add
             </Text>
           </HeaderButton>
@@ -302,14 +311,14 @@ function AddEventModal({
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
           {/* Photo Picker */}
           <View style={styles.inputSection}>
-            <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>Habit Photo</Text>
-            <Pressable onPress={pickImage} style={[styles.photoPicker, { backgroundColor: colors.inputBg }]}>
+            <Text style={[styles.inputLabel, { color: secondaryTextColor }]}>Habit Photo</Text>
+            <Pressable onPress={pickImage} style={[styles.photoPicker, { backgroundColor: inputBg }]}>
               {selectedImage ? (
                 <Image source={{ uri: selectedImage }} style={styles.selectedPhoto} />
               ) : (
                 <View style={styles.photoPlaceholder}>
-                  <Ionicons name="image-outline" size={32} color={colors.secondaryText} />
-                  <Text style={[styles.photoPlaceholderText, { color: colors.secondaryText }]}>
+                  <Ionicons name="image-outline" size={32} color={secondaryTextColor} />
+                  <Text style={[styles.photoPlaceholderText, { color: secondaryTextColor }]}>
                     Tap to select photo
                   </Text>
                 </View>
@@ -319,11 +328,11 @@ function AddEventModal({
 
           {/* Title Input */}
           <View style={styles.inputSection}>
-            <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>Habit Title</Text>
+            <Text style={[styles.inputLabel, { color: secondaryTextColor }]}>Habit Title</Text>
             <TextInput
-              style={[styles.textInput, { backgroundColor: colors.inputBg, color: colors.text }]}
+              style={[styles.textInput, { backgroundColor: inputBg, color: textColor }]}
               placeholder="Enter habit title..."
-              placeholderTextColor={colors.secondaryText}
+              placeholderTextColor={secondaryTextColor}
               value={title}
               onChangeText={setTitle}
             />
@@ -331,7 +340,7 @@ function AddEventModal({
 
           {/* Date Picker */}
           <View style={styles.inputSection}>
-            <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>Start Date</Text>
+            <Text style={[styles.inputLabel, { color: secondaryTextColor }]}>Start Date</Text>
             {Platform.OS === "ios" ? (
               <Host style={styles.datePickerHost}>
                 <DatePicker
@@ -342,8 +351,8 @@ function AddEventModal({
                 />
               </Host>
             ) : (
-              <Pressable style={[styles.dateButton, { backgroundColor: colors.inputBg }]}>
-                <Text style={{ color: colors.text }}>{selectedDate.toLocaleDateString()}</Text>
+              <Pressable style={[styles.dateButton, { backgroundColor: inputBg }]}>
+                <Text style={{ color: textColor }}>{selectedDate.toLocaleDateString()}</Text>
               </Pressable>
             )}
           </View>
@@ -354,17 +363,12 @@ function AddEventModal({
 }
 
 export default function SinceScreen() {
-  const { isDark, colors: themeColors } = useTheme();
+  const { theme } = useUnistyles();
+  const styles = createStyles(theme);
   const [events, setEvents] = useState<SinceEvent[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [sortType, setSortType] = useState<SortType>("date_desc");
   const [viewMode, setViewMode] = useState<ViewMode>(() => getSinceViewMode());
-
-  const colors = {
-    background: themeColors.background,
-    text: themeColors.textPrimary,
-    surface: themeColors.surface,
-  };
 
   // Sort events based on current sort type
   const sortedEvents = [...events]
@@ -397,7 +401,7 @@ export default function SinceScreen() {
   }, []);
 
   // Add new event with local image storage
-  const handleAddEvent = useCallback(async (title: string, date: Date, image?: string) => {
+  const handleAddEvent = async (title: string, date: Date, image?: string) => {
     let localImageUri: string | undefined;
     if (image) {
       localImageUri = await saveImageLocally(image);
@@ -408,13 +412,13 @@ export default function SinceScreen() {
       image: localImageUri,
     });
     setEvents((prev) => [...prev, newEvent]);
-  }, []);
+  };
 
   // Open add modal
   const openAddModal = () => setShowAddModal(true);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -463,7 +467,7 @@ export default function SinceScreen() {
                 <ContextMenu.Trigger>
                   <View>
                     <HeaderPillButton>
-                      <Ionicons name="options-outline" size={20} color={colors.text} />
+                      <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
                     </HeaderPillButton>
                   </View>
                 </ContextMenu.Trigger>
@@ -471,15 +475,15 @@ export default function SinceScreen() {
             </Host>
           ) : (
             <HeaderPillButton>
-              <Ionicons name="options-outline" size={20} color={colors.text} />
+              <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
             </HeaderPillButton>
           )}
         </View>
 
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Time since</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>Time since</Text>
 
         <HeaderPillButton onPress={openAddModal}>
-          <Ionicons name="add" size={24} color={colors.text} />
+          <Ionicons name="add" size={24} color={theme.colors.textPrimary} />
         </HeaderPillButton>
       </View>
 
@@ -493,9 +497,9 @@ export default function SinceScreen() {
         {/* Cards Grid/List */}
         {events.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="time-outline" size={48} color={colors.text} style={{ opacity: 0.3 }} />
-            <Text style={[styles.emptyText, { color: colors.text }]}>No habits yet</Text>
-            <Text style={[styles.emptySubtext, { color: colors.text }]}>
+            <Ionicons name="time-outline" size={48} color={theme.colors.textPrimary} style={{ opacity: 0.3 }} />
+            <Text style={[styles.emptyText, { color: theme.colors.textPrimary }]}>No habits yet</Text>
+            <Text style={[styles.emptySubtext, { color: theme.colors.textPrimary }]}>
               Tap the + button to track a habit
             </Text>
           </View>
@@ -515,6 +519,7 @@ export default function SinceScreen() {
                   image={event.image}
                   compact={viewMode === "grid"}
                   onPress={() => router.push(`/event/${event.id}`)}
+                  cardBackgroundColor={theme.colors.surface}
                 />
               </Animated.View>
             ))}
@@ -527,13 +532,12 @@ export default function SinceScreen() {
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddEvent}
-        isDark={isDark}
       />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -561,7 +565,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   pillButtonFallback: {
-    backgroundColor: "#F2F2F7",
+    backgroundColor: theme.colors.surface,
   },
   exclamationMark: {
     fontSize: 10,
@@ -657,9 +661,7 @@ const styles = StyleSheet.create({
   sinceCardImage: {
     borderRadius: 20,
   },
-  sinceCardNoImage: {
-    backgroundColor: "#2C2C2E",
-  },
+
   sinceCardOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.3)",
@@ -790,7 +792,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   headerButtonFallback: {
-    backgroundColor: "#F2F2F7",
+    backgroundColor: theme.colors.surface,
   },
   modalHeaderButton: {
     fontSize: 17,

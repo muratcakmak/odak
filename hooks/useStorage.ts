@@ -1,5 +1,5 @@
 import { MMKV } from "react-native-mmkv";
-import { useCallback, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import type { TimeEvent, CountdownEvent, SinceEvent, AheadEvent } from "../types/event";
 
 // Initialize MMKV storage
@@ -33,22 +33,22 @@ function setStoredValue<T>(key: string, value: T): void {
 
 // Countdown Events
 export function useCountdownEvents() {
-  const subscribe = useCallback((callback: () => void) => {
+  const subscribe = (callback: () => void) => {
     const listener = storage.addOnValueChangedListener((changedKey) => {
       if (changedKey === STORAGE_KEYS.COUNTDOWN_EVENTS) {
         callback();
       }
     });
     return () => listener.remove();
-  }, []);
+  };
 
-  const getSnapshot = useCallback(() => {
+  const getSnapshot = () => {
     return getStoredValue<CountdownEvent[]>(STORAGE_KEYS.COUNTDOWN_EVENTS, []);
-  }, []);
+  };
 
   const events = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
-  const addEvent = useCallback((event: Omit<CountdownEvent, "id" | "createdAt" | "type">) => {
+  const addEvent = (event: Omit<CountdownEvent, "id" | "createdAt" | "type">) => {
     const newEvent: CountdownEvent = {
       ...event,
       id: Date.now().toString(),
@@ -58,45 +58,45 @@ export function useCountdownEvents() {
     const currentEvents = getStoredValue<CountdownEvent[]>(STORAGE_KEYS.COUNTDOWN_EVENTS, []);
     setStoredValue(STORAGE_KEYS.COUNTDOWN_EVENTS, [...currentEvents, newEvent]);
     return newEvent;
-  }, []);
+  };
 
-  const removeEvent = useCallback((id: string) => {
+  const removeEvent = (id: string) => {
     const currentEvents = getStoredValue<CountdownEvent[]>(STORAGE_KEYS.COUNTDOWN_EVENTS, []);
     setStoredValue(
       STORAGE_KEYS.COUNTDOWN_EVENTS,
       currentEvents.filter((e) => e.id !== id)
     );
-  }, []);
+  };
 
-  const updateEvent = useCallback((id: string, updates: Partial<CountdownEvent>) => {
+  const updateEvent = (id: string, updates: Partial<CountdownEvent>) => {
     const currentEvents = getStoredValue<CountdownEvent[]>(STORAGE_KEYS.COUNTDOWN_EVENTS, []);
     setStoredValue(
       STORAGE_KEYS.COUNTDOWN_EVENTS,
       currentEvents.map((e) => (e.id === id ? { ...e, ...updates } : e))
     );
-  }, []);
+  };
 
   return { events, addEvent, removeEvent, updateEvent };
 }
 
 // Since Events
 export function useSinceEvents() {
-  const subscribe = useCallback((callback: () => void) => {
+  const subscribe = (callback: () => void) => {
     const listener = storage.addOnValueChangedListener((changedKey) => {
       if (changedKey === STORAGE_KEYS.SINCE_EVENTS) {
         callback();
       }
     });
     return () => listener.remove();
-  }, []);
+  };
 
-  const getSnapshot = useCallback(() => {
+  const getSnapshot = () => {
     return getStoredValue<SinceEvent[]>(STORAGE_KEYS.SINCE_EVENTS, []);
-  }, []);
+  };
 
   const events = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
-  const addEvent = useCallback((event: Omit<SinceEvent, "id" | "createdAt" | "type">) => {
+  const addEvent = (event: Omit<SinceEvent, "id" | "createdAt" | "type">) => {
     const newEvent: SinceEvent = {
       ...event,
       id: Date.now().toString(),
@@ -106,45 +106,45 @@ export function useSinceEvents() {
     const currentEvents = getStoredValue<SinceEvent[]>(STORAGE_KEYS.SINCE_EVENTS, []);
     setStoredValue(STORAGE_KEYS.SINCE_EVENTS, [...currentEvents, newEvent]);
     return newEvent;
-  }, []);
+  };
 
-  const removeEvent = useCallback((id: string) => {
+  const removeEvent = (id: string) => {
     const currentEvents = getStoredValue<SinceEvent[]>(STORAGE_KEYS.SINCE_EVENTS, []);
     setStoredValue(
       STORAGE_KEYS.SINCE_EVENTS,
       currentEvents.filter((e) => e.id !== id)
     );
-  }, []);
+  };
 
-  const updateEvent = useCallback((id: string, updates: Partial<SinceEvent>) => {
+  const updateEvent = (id: string, updates: Partial<SinceEvent>) => {
     const currentEvents = getStoredValue<SinceEvent[]>(STORAGE_KEYS.SINCE_EVENTS, []);
     setStoredValue(
       STORAGE_KEYS.SINCE_EVENTS,
       currentEvents.map((e) => (e.id === id ? { ...e, ...updates } : e))
     );
-  }, []);
+  };
 
   return { events, addEvent, removeEvent, updateEvent };
 }
 
 // Ahead Events
 export function useAheadEvents() {
-  const subscribe = useCallback((callback: () => void) => {
+  const subscribe = (callback: () => void) => {
     const listener = storage.addOnValueChangedListener((changedKey) => {
       if (changedKey === STORAGE_KEYS.AHEAD_EVENTS) {
         callback();
       }
     });
     return () => listener.remove();
-  }, []);
+  };
 
-  const getSnapshot = useCallback(() => {
+  const getSnapshot = () => {
     return getStoredValue<AheadEvent[]>(STORAGE_KEYS.AHEAD_EVENTS, []);
-  }, []);
+  };
 
   const events = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
-  const addEvent = useCallback((event: Omit<AheadEvent, "id" | "createdAt" | "type">) => {
+  const addEvent = (event: Omit<AheadEvent, "id" | "createdAt" | "type">) => {
     const newEvent: AheadEvent = {
       ...event,
       id: Date.now().toString(),
@@ -154,23 +154,23 @@ export function useAheadEvents() {
     const currentEvents = getStoredValue<AheadEvent[]>(STORAGE_KEYS.AHEAD_EVENTS, []);
     setStoredValue(STORAGE_KEYS.AHEAD_EVENTS, [...currentEvents, newEvent]);
     return newEvent;
-  }, []);
+  };
 
-  const removeEvent = useCallback((id: string) => {
+  const removeEvent = (id: string) => {
     const currentEvents = getStoredValue<AheadEvent[]>(STORAGE_KEYS.AHEAD_EVENTS, []);
     setStoredValue(
       STORAGE_KEYS.AHEAD_EVENTS,
       currentEvents.filter((e) => e.id !== id)
     );
-  }, []);
+  };
 
-  const updateEvent = useCallback((id: string, updates: Partial<AheadEvent>) => {
+  const updateEvent = (id: string, updates: Partial<AheadEvent>) => {
     const currentEvents = getStoredValue<AheadEvent[]>(STORAGE_KEYS.AHEAD_EVENTS, []);
     setStoredValue(
       STORAGE_KEYS.AHEAD_EVENTS,
       currentEvents.map((e) => (e.id === id ? { ...e, ...updates } : e))
     );
-  }, []);
+  };
 
   return { events, addEvent, removeEvent, updateEvent };
 }

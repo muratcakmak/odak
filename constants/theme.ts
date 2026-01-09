@@ -82,6 +82,52 @@ export const sharedColors = {
   },
 };
 
+// Apple-style accent colors (works in both light and dark modes)
+export const accentColors = {
+  white: {
+    primary: "#FFFFFF",
+    secondary: "#F5F5F7",
+  },
+  blue: {
+    primary: "#007AFF",
+    secondary: "#0A84FF",
+  },
+  green: {
+    primary: "#34C759",
+    secondary: "#30D158",
+  },
+  orange: {
+    primary: "#FF9500",
+    secondary: "#FF9F0A",
+  },
+  yellow: {
+    primary: "#FFCC00",
+    secondary: "#FFD60A",
+  },
+  pink: {
+    primary: "#FF2D55",
+    secondary: "#FF375F",
+  },
+  red: {
+    primary: "#FF3B30",
+    secondary: "#FF453A",
+  },
+  mint: {
+    primary: "#00C7BE",
+    secondary: "#63E6E2",
+  },
+  purple: {
+    primary: "#AF52DE",
+    secondary: "#BF5AF2",
+  },
+  brown: {
+    primary: "#A2845E",
+    secondary: "#AC8E68",
+  },
+} as const;
+
+export type AccentColorName = keyof typeof accentColors;
+
 export const spacing = {
   xs: 4,
   sm: 8,
@@ -158,13 +204,23 @@ export function getColors(colorScheme: ColorScheme) {
   };
 }
 
-export const theme = {
-  light: { ...lightColors, ...sharedColors },
-  dark: { ...darkColors, ...sharedColors },
+export type AppTheme = {
+  colors: typeof lightColors & typeof sharedColors;
+  spacing: typeof spacing;
+  borderRadius: typeof borderRadius;
+  typography: typeof typography;
+  animation: typeof animation;
+  isDark: boolean;
+};
+
+// Don't export the 'theme' object directly as it was confused between light/dark map
+// Instead export the tokens directly which we already do.
+export default {
+  lightColors,
+  darkColors,
+  sharedColors,
   spacing,
   borderRadius,
   typography,
   animation,
 };
-
-export default theme;

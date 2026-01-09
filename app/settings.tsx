@@ -20,11 +20,14 @@ import {
   setLifeUnit,
   getBackgroundMode,
   setBackgroundMode,
+  getAccentColor,
+  setAccentColor,
   type UserProfile,
   type LifeUnit,
   type BackgroundMode,
+  type AccentColor,
 } from "../utils/storage";
-import { useTheme } from "../hooks/useTheme";
+import { useUnistyles, UnistylesRuntime } from "react-native-unistyles";
 
 // Plus badge component
 function PlusBadge() {
@@ -121,6 +124,7 @@ export default function SettingsScreen() {
   const [hideYouSection, setHideYouSection] = useState(false);
   const [lifeUnit, setLifeUnitState] = useState<LifeUnit>("years");
   const [backgroundMode, setBackgroundModeState] = useState<BackgroundMode>("device");
+  const [accentColorState, setAccentColorState] = useState<AccentColor>("blue");
 
   // Load profile and preferences from MMKV on mount
   useEffect(() => {
@@ -139,6 +143,7 @@ export default function SettingsScreen() {
     }
     setLifeUnitState(getLifeUnit());
     setBackgroundModeState(getBackgroundMode());
+    setAccentColorState(getAccentColor());
   }, []);
 
   const handleLifeUnitChange = (unit: LifeUnit) => {
@@ -157,6 +162,13 @@ export default function SettingsScreen() {
   const handleBackgroundModeChange = (mode: BackgroundMode) => {
     setBackgroundModeState(mode);
     setBackgroundMode(mode);
+
+    if (mode === 'device') {
+      UnistylesRuntime.setAdaptiveThemes(true);
+    } else {
+      UnistylesRuntime.setAdaptiveThemes(false);
+      UnistylesRuntime.setTheme(mode);
+    }
   };
 
   const formatBackgroundMode = (mode: BackgroundMode): string => {
@@ -165,6 +177,15 @@ export default function SettingsScreen() {
       case "light": return "Light";
       case "device": return "Device";
     }
+  };
+
+  const handleAccentColorChange = (color: AccentColor) => {
+    setAccentColorState(color);
+    setAccentColor(color);
+  };
+
+  const formatAccentColor = (color: AccentColor): string => {
+    return color.charAt(0).toUpperCase() + color.slice(1);
   };
 
   const handleSaveName = () => {
@@ -189,7 +210,9 @@ export default function SettingsScreen() {
     setShowDatePicker(false);
   };
 
-  const { isDark, colors: themeColors } = useTheme();
+  const { theme } = useUnistyles();
+  const isDark = theme.colors.background === '#000000' || theme.colors.background === '#111111'; // Simple dark check
+  const themeColors = theme.colors;
 
   const colors = {
     background: themeColors.background,
@@ -208,6 +231,11 @@ export default function SettingsScreen() {
       >
 
         {/* Life Profile Section */}
+        <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+          <Text style={{ color: colors.secondaryText, fontSize: 10 }}>
+            Debug: Unistyles={UnistylesRuntime.themeName}, Mode={backgroundMode}, Adaptive={String(UnistylesRuntime.hasAdaptiveThemes)}
+          </Text>
+        </View>
         <Text style={[styles.sectionTitle, { color: colors.secondaryText }]}>Life profile</Text>
         <View style={[styles.settingsCard, { backgroundColor: colors.cardBg }]}>
           <SettingsRow
@@ -230,10 +258,10 @@ export default function SettingsScreen() {
             value={
               profile.birthDate
                 ? profile.birthDate.toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })
                 : "Not set"
             }
             onPress={() => setShowDatePicker(true)}
@@ -304,14 +332,84 @@ export default function SettingsScreen() {
         {/* Appearance Section */}
         <Text style={[styles.sectionTitle, { color: colors.secondaryText }]}>Appearance</Text>
         <View style={[styles.settingsCard, { backgroundColor: colors.cardBg }]}>
-          <SettingsRow
-            icon="color-palette"
-            iconBg="#AF52DE"
-            label="Theme"
-            value="White"
-            textColor={colors.text}
-            secondaryTextColor={colors.secondaryText}
-          />
+          {/* Theme Row with Context Menu */}
+          <View style={styles.settingsRow}>
+            <View style={[styles.settingsIcon, { backgroundColor: "#AF52DE" }]}>
+              <Ionicons name="color-palette" size={16} color="#FFFFFF" />
+            </View>
+            <View style={styles.settingsLabelContainer}>
+              <Text style={[styles.settingsLabel, { color: colors.text }]}>Theme</Text>
+            </View>
+            {Platform.OS === "ios" ? (
+              <Host style={{ height: 24 }}>
+                <ContextMenu activationMethod="singlePress">
+                  <ContextMenu.Items>
+                    <Button
+                      label="White"
+                      systemImage={accentColorState === "white" ? "checkmark" : undefined}
+                      onPress={() => handleAccentColorChange("white")}
+                    />
+                    <Button
+                      label="Blue"
+                      systemImage={accentColorState === "blue" ? "checkmark" : undefined}
+                      onPress={() => handleAccentColorChange("blue")}
+                    />
+                    <Button
+                      label="Green"
+                      systemImage={accentColorState === "green" ? "checkmark" : undefined}
+                      onPress={() => handleAccentColorChange("green")}
+                    />
+                    <Button
+                      label="Orange"
+                      systemImage={accentColorState === "orange" ? "checkmark" : undefined}
+                      onPress={() => handleAccentColorChange("orange")}
+                    />
+                    <Button
+                      label="Yellow"
+                      systemImage={accentColorState === "yellow" ? "checkmark" : undefined}
+                      onPress={() => handleAccentColorChange("yellow")}
+                    />
+                    <Button
+                      label="Pink"
+                      systemImage={accentColorState === "pink" ? "checkmark" : undefined}
+                      onPress={() => handleAccentColorChange("pink")}
+                    />
+                    <Button
+                      label="Red"
+                      systemImage={accentColorState === "red" ? "checkmark" : undefined}
+                      onPress={() => handleAccentColorChange("red")}
+                    />
+                    <Button
+                      label="Mint"
+                      systemImage={accentColorState === "mint" ? "checkmark" : undefined}
+                      onPress={() => handleAccentColorChange("mint")}
+                    />
+                    <Button
+                      label="Purple"
+                      systemImage={accentColorState === "purple" ? "checkmark" : undefined}
+                      onPress={() => handleAccentColorChange("purple")}
+                    />
+                    <Button
+                      label="Brown"
+                      systemImage={accentColorState === "brown" ? "checkmark" : undefined}
+                      onPress={() => handleAccentColorChange("brown")}
+                    />
+                  </ContextMenu.Items>
+                  <ContextMenu.Trigger>
+                    <View style={styles.settingsRight}>
+                      <Text style={[styles.settingsValue, { color: colors.secondaryText }]}>{formatAccentColor(accentColorState)}</Text>
+                      <Ionicons name="chevron-expand" size={16} color={colors.secondaryText} style={{ marginLeft: 4 }} />
+                    </View>
+                  </ContextMenu.Trigger>
+                </ContextMenu>
+              </Host>
+            ) : (
+              <View style={styles.settingsRight}>
+                <Text style={[styles.settingsValue, { color: colors.secondaryText }]}>{formatAccentColor(accentColorState)}</Text>
+                <Ionicons name="chevron-expand" size={16} color={colors.secondaryText} style={{ marginLeft: 4 }} />
+              </View>
+            )}
+          </View>
           <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
           {/* Background Row with Context Menu */}
           <View style={styles.settingsRow}>
