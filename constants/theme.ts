@@ -42,7 +42,7 @@ export const darkColors = {
 
   // Card backgrounds
   card: "#1C1C1E",
-  cardBorder: "#FFFFFF10",
+  cardBorder: "#ffffffc5",
 
   // Glass effect tints
   glass: {

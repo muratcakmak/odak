@@ -1,5 +1,5 @@
 import { useLocalSearchParams, router } from "expo-router";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -24,6 +24,7 @@ import {
 } from "../utils/storage";
 import { accentColors } from "../constants/theme";
 import { AdaptivePillButton } from "./ui";
+import { useUnistyles } from "react-native-unistyles";
 
 type EventData =
   | { type: "ahead"; event: AheadEvent }
@@ -158,13 +159,27 @@ function getMainTimeUnit(countdown: CountdownValues, isAhead: boolean): string {
 // Calendar Section Component using native DatePicker
 function CalendarSection({ targetDate, isAhead }: { targetDate: Date; isAhead: boolean }) {
   const [displayDate, setDisplayDate] = useState(targetDate);
+  const { theme } = useUnistyles();
 
   if (Platform.OS !== "ios") {
     return null; // Only show on iOS
   }
 
+  // Use same card style as other sections
+  const cardStyle = {
+    backgroundColor: theme.colors.background,
+    borderColor: theme.colors.cardBorder,
+    borderWidth: StyleSheet.hairlineWidth,
+    // Premium shadow
+    shadowColor: theme.colors.textPrimary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  };
+
   return (
-    <View style={styles.calendarContainer}>
+    <View style={[styles.calendarContainer, cardStyle]}>
       <Host style={styles.calendarHost}>
         <DatePicker
           selection={displayDate}
@@ -172,13 +187,13 @@ function CalendarSection({ targetDate, isAhead }: { targetDate: Date; isAhead: b
           range={
             isAhead
               ? {
-                  start: new Date(),
-                  end: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000),
-                }
+                start: new Date(),
+                end: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000),
+              }
               : {
-                  start: new Date(Date.now() - 50 * 365 * 24 * 60 * 60 * 1000),
-                  end: new Date(),
-                }
+                start: new Date(Date.now() - 50 * 365 * 24 * 60 * 60 * 1000),
+                end: new Date(),
+              }
           }
           modifiers={[datePickerStyle("graphical")]}
         />
@@ -222,6 +237,7 @@ function HeaderPillButton({
 export function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  const { theme } = useUnistyles();
   const [eventData, setEventData] = useState<EventData>(null);
   const [countdown, setCountdown] = useState<CountdownValues | null>(null);
 
@@ -229,6 +245,32 @@ export function EventDetailScreen() {
   const accentColorName = useAccentColor();
   // This screen is always dark-themed (Hero UI)
   const accentColor = accentColors[accentColorName].primary;
+
+  const isDark = theme.colors.background === '#000000' || theme.colors.background === '#111111';
+
+  const colors = {
+    background: theme.colors.background,
+    surface: theme.colors.card, // Fallback, but we might override
+    text: theme.colors.textPrimary,
+    textSecondary: theme.colors.textSecondary,
+    accent: accentColor,
+    progressDone: isDark ? "#3A3A3C" : "#E5E5EA",
+    progressLeft: accentColor,
+    cardBg: theme.colors.background, // Match app background (Black/White)
+    cardBorder: theme.colors.cardBorder,
+  };
+
+  const cardStyle = {
+    backgroundColor: colors.cardBg,
+    borderColor: colors.cardBorder,
+    borderWidth: StyleSheet.hairlineWidth,
+    // Premium shadow
+    shadowColor: theme.colors.textPrimary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  };
 
   // Load event data
   useEffect(() => {
@@ -292,16 +334,6 @@ export function EventDetailScreen() {
   const image =
     event.image ||
     "https://images.unsplash.com/photo-1448375240586-882707db888b?w=800";
-
-  const colors = {
-    background: "#000000",
-    surface: "#1C1C1E",
-    text: "#FFFFFF",
-    textSecondary: "#8E8E93",
-    accent: accentColor,
-    progressDone: "#8E8E93",
-    progressLeft: accentColor,
-  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -374,7 +406,7 @@ export function EventDetailScreen() {
 
         {/* Progress Section - Only for ahead events */}
         {isAhead && (
-          <View style={[styles.section, { backgroundColor: colors.surface }]}>
+          <View style={[styles.section, cardStyle]}>
             <View style={styles.progressHeader}>
               <Text style={styles.progressText}>
                 {countdown.percentDone}% done
@@ -407,26 +439,26 @@ export function EventDetailScreen() {
         )}
 
         {/* Date Details Section */}
-        <View style={[styles.section, { backgroundColor: colors.surface }]}>
+        <View style={[styles.section, cardStyle]}>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
               {isAhead ? "From" : "Started"}
             </Text>
-            <Text style={styles.detailValue}>
+            <Text style={[styles.detailValue, { color: colors.text }]}>
               {isAhead ? formatDate(new Date()) : formatDate(targetDate)}
             </Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{isAhead ? "Until" : "Now"}</Text>
-            <Text style={styles.detailValue}>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{isAhead ? "Until" : "Now"}</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>
               {isAhead ? formatDate(targetDate) : formatDate(new Date())}
             </Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
               {isAhead ? "Time between" : "Duration"}
             </Text>
-            <Text style={styles.detailValue}>
+            <Text style={[styles.detailValue, { color: colors.text }]}>
               {formatTimeBetween(
                 isAhead ? new Date() : targetDate,
                 isAhead ? targetDate : new Date()
@@ -434,10 +466,10 @@ export function EventDetailScreen() {
             </Text>
           </View>
           <View style={[styles.detailRow, styles.detailRowLast]}>
-            <Text style={styles.detailLabel}>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
               {isAhead ? "Time left" : "Time elapsed"}
             </Text>
-            <Text style={styles.detailValue}>
+            <Text style={[styles.detailValue, { color: colors.text }]}>
               {countdown.totalDays} day{countdown.totalDays !== 1 ? "s" : ""}
             </Text>
           </View>
@@ -626,7 +658,7 @@ const styles = StyleSheet.create({
   calendarContainer: {
     marginHorizontal: 16,
     marginTop: 16,
-    backgroundColor: "#1C1C1E",
+    // backgroundColor: "#1C1C1E", // Removed hardcoded
     borderRadius: 12,
     overflow: "hidden",
   },

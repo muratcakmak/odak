@@ -93,14 +93,7 @@ function getLifeInfo() {
 
   let total, passed, left, label;
 
-  if (lifeUnit === "weeks") {
-    total = lifespan * 52;
-    const diffTime = Math.abs(now.getTime() - birthDate.getTime());
-    const passedWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
-    passed = passedWeeks;
-    left = total - passed;
-    label = `${lifespan} Years`; // Keep label as Years generally? Or "In Weeks"? Let's stick to lifespan in years as title usually.
-  } else if (lifeUnit === "months") {
+  if (lifeUnit === "months") {
     total = lifespan * 12;
     passed = (now.getFullYear() - birthDate.getFullYear()) * 12 + (now.getMonth() - birthDate.getMonth());
     left = total - passed;
@@ -158,7 +151,6 @@ function formatTimeLeft(left: number, viewType: ViewType, isCountdown?: boolean)
       return `${left} hours left`;
     case "life": {
       const unit = getLifeUnit();
-      if (unit === "weeks") return `${left} Weeks left`;
       if (unit === "months") return `${left} Months left`;
       return `${left} Years left`;
     }
@@ -203,12 +195,7 @@ function getDotLabel(dotIndex: number, viewType: ViewType, eventStartDate?: stri
       const birthDate = profile?.birthDate ? new Date(profile.birthDate) : new Date(now.getFullYear() - 25, 0, 1);
       const unit = getLifeUnit();
 
-      if (unit === "weeks") {
-        const totalWeeks = dotIndex;
-        const years = Math.floor(totalWeeks / 52);
-        const weeks = totalWeeks % 52;
-        return `${years}y ${weeks}w`;
-      } else if (unit === "months") {
+      if (unit === "months") {
         const totalMonths = dotIndex;
         const ageYears = Math.floor(totalMonths / 12);
         const ageMonths = totalMonths % 12;
@@ -248,7 +235,6 @@ function getColumns(viewType: ViewType, total: number): number {
       return 14;
     case "life": {
       const unit = getLifeUnit();
-      if (unit === "weeks") return 52; // 52 weeks per year (good ratio for ~80 years)
       if (unit === "months") return 24; // 24 months/row (2 years) -> fills screen better than 12
       return 7; // ~70-90 years -> 7 cols gives ~10-13 rows (good vertical feel)
     }
@@ -578,7 +564,6 @@ export default function LeftScreen() {
   const getBaseGap = () => {
     if (viewConfig.type === "life") {
       const unit = getLifeUnit();
-      if (unit === "weeks") return 1.5;
       if (unit === "months") return 2;
     }
     if (viewConfig.type === "now" || viewConfig.type === "today") return 10;
@@ -774,9 +759,11 @@ export default function LeftScreen() {
 
       {/* Dot Grid Card - Adaptive for iOS 18+ and fallback */}
       <View style={styles.cardContainer}>
-        <AdaptiveCard style={styles.gridCard} useBlurFallback={false} fallbackBackgroundColor="#000000">
-          {gridContent}
-        </AdaptiveCard>
+        <View style={styles.cardShadowWrapper}>
+          <AdaptiveCard style={styles.gridCard} useBlurFallback={false}>
+            {gridContent}
+          </AdaptiveCard>
+        </View>
       </View>
     </View>
   );
@@ -821,12 +808,22 @@ const createStyles = (theme: any) => StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     paddingBottom: 100,
   },
+  cardShadowWrapper: {
+    flex: 1,
+    // Premium float effect
+    shadowColor: theme.colors.textPrimary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
   gridCard: {
     flex: 1,
     borderRadius: theme.borderRadius.lg,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder, // Use theme token, remove complexity
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.cardBorder,
+    backgroundColor: theme.colors.background,
   },
   dotsContainer: {
     flex: 1,

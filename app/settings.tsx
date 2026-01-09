@@ -262,8 +262,7 @@ export default function SettingsScreen() {
 
         {/* Life Profile Section */}
         <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-          <Text style={{ color: colors.secondaryText, fontSize: 10 }}>
-            Debug: Unistyles={UnistylesRuntime.themeName}, Mode={backgroundMode}, Adaptive={String(UnistylesRuntime.hasAdaptiveThemes)}
+          <Text style={{ color: colors.secondaryText, fontSize: 14 }}>
           </Text>
         </View>
         <Text style={[styles.sectionTitle, { color: colors.secondaryText }]}>Life profile</Text>
