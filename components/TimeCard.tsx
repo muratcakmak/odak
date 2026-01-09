@@ -36,14 +36,14 @@ export function TimeCard({
 
     const containerStyle = compact ? styles.cardGrid : styles.cardList;
     const content = (
-        <View style={styles.overlay}>
+        <View style={compact ? styles.overlayGrid : styles.overlayList}>
             <View style={styles.topContent}>
-                <Text style={styles.daysValue}>{daysValue}</Text>
-                {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+                <Text style={compact ? styles.daysValueGrid : styles.daysValueList}>{daysValue}</Text>
+                {subtitle && <Text style={compact ? styles.subtitleGrid : styles.subtitleList}>{subtitle}</Text>}
             </View>
 
             <View style={styles.bottomContent}>
-                <Text style={styles.title}>{title}</Text>
+                <Text style={compact ? styles.titleGrid : styles.titleList}>{title}</Text>
             </View>
         </View>
     );
@@ -90,7 +90,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     },
     cardGrid: {
         width: "100%",
-        height: 160, // Sqaure-ish for grid
+        height: 130, // Smaller for grid
         borderRadius: theme.borderRadius.lg,
         overflow: "hidden",
     },
@@ -106,9 +106,14 @@ const createStyles = (theme: any) => StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.3)',
     },
-    overlay: {
+    overlayList: {
         flex: 1,
         padding: 20,
+        justifyContent: 'space-between', // Split top and bottom
+    },
+    overlayGrid: {
+        flex: 1,
+        padding: 14,
         justifyContent: 'space-between', // Split top and bottom
     },
     topContent: {
@@ -117,7 +122,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     bottomContent: {
         gap: 4,
     },
-    daysValue: {
+    daysValueList: {
         fontSize: 32, // Large as seen in screenshot "In 30 days"
         fontWeight: "800",
         color: "#FFFFFF",
@@ -125,7 +130,15 @@ const createStyles = (theme: any) => StyleSheet.create({
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 3,
     },
-    title: {
+    daysValueGrid: {
+        fontSize: 24, // Smaller for grid
+        fontWeight: "800",
+        color: "#FFFFFF",
+        textShadowColor: "rgba(0, 0, 0, 0.3)",
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
+    titleList: {
         fontSize: 18,
         fontWeight: "700",
         color: "#FFFFFF",
@@ -133,8 +146,25 @@ const createStyles = (theme: any) => StyleSheet.create({
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 3,
     },
-    subtitle: {
+    titleGrid: {
+        fontSize: 15, // Smaller for grid
+        fontWeight: "700",
+        color: "#FFFFFF",
+        textShadowColor: "rgba(0, 0, 0, 0.3)",
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
+    subtitleList: {
         fontSize: 14,
+        fontWeight: "500",
+        color: "rgba(255, 255, 255, 0.9)",
+        textShadowColor: "rgba(0, 0, 0, 0.3)",
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+        marginTop: 2,
+    },
+    subtitleGrid: {
+        fontSize: 12, // Smaller for grid
         fontWeight: "500",
         color: "rgba(255, 255, 255, 0.9)",
         textShadowColor: "rgba(0, 0, 0, 0.3)",
