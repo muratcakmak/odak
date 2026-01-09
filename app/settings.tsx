@@ -170,7 +170,6 @@ export default function SettingsScreen() {
     switch (unit) {
       case "years": return "Years";
       case "months": return "Months";
-      case "weeks": return "Weeks";
     }
   };
 
@@ -322,11 +321,6 @@ export default function SettingsScreen() {
                       label="Months"
                       systemImage={lifeUnit === "months" ? "checkmark" : undefined}
                       onPress={() => handleLifeUnitChange("months")}
-                    />
-                    <Button
-                      label="Weeks"
-                      systemImage={lifeUnit === "weeks" ? "checkmark" : undefined}
-                      onPress={() => handleLifeUnitChange("weeks")}
                     />
                   </ContextMenu.Items>
                   <ContextMenu.Trigger>

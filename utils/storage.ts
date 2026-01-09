@@ -222,7 +222,7 @@ export function syncAllEventsToWidget(): void {
 }
 
 // Life Unit Preference
-export type LifeUnit = "years" | "months" | "weeks";
+export type LifeUnit = "years" | "months";
 
 const LIFE_UNIT_KEY = "life_unit";
 

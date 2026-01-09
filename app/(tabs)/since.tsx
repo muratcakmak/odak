@@ -494,7 +494,10 @@ export default function SinceScreen() {
 
         <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>Time since</Text>
 
-        <PillButton onPress={openAddModal} style={styles.pillButton}>
+        <PillButton style={styles.rightPillButton} onPress={openAddModal}>
+          <Ionicons name="calendar-outline" size={20} color={theme.colors.textPrimary} />
+          <Text style={[styles.plusBadge, { color: theme.colors.textPrimary }]}>+</Text>
+          <View style={[styles.buttonDivider, { backgroundColor: theme.colors.cardBorder || 'rgba(128,128,128,0.3)' }]} />
           <Ionicons name="add" size={24} color={theme.colors.textPrimary} />
         </PillButton>
       </View>
@@ -588,6 +591,25 @@ const createStyles = (theme: any) => StyleSheet.create({
     borderRadius: 20,
     flexDirection: "row",
     alignItems: "center",
+  },
+  rightPillButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  plusBadge: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: -4,
+    marginTop: -8,
+  },
+  buttonDivider: {
+    width: 1,
+    height: 20,
+    marginHorizontal: 8,
   },
   pillButtonFallback: {
     backgroundColor: theme.colors.surface,

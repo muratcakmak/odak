@@ -1,10 +1,10 @@
-import { useState, useRef } from "react";
-import { StyleSheet, View, Text, Pressable } from "react-native";
+import { useState, useRef, useEffect } from "react";
+import { StyleSheet, View, Text, Pressable, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { getUserProfile, useAccentColor, type AccentColor } from "../../utils/storage";
+import { getUserProfile, useAccentColor, type AccentColor, getLifespan } from "../../utils/storage";
 import { useUnistyles } from "react-native-unistyles";
 import { accentColors } from "../../constants/theme";
 import { AdaptivePillButton } from "../../components/ui";
@@ -16,6 +16,43 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { LifeInsights } from "../../components/LifeInsights";
+
+// Precise Countdown Component
+function PreciseCountdown({ birthDate, lifespan }: { birthDate: Date; lifespan: number }) {
+  const [timeLeft, setTimeLeft] = useState("");
+
+  useEffect(() => {
+    let animationFrame: number;
+
+    const update = () => {
+      const now = new Date();
+      const endOfLife = new Date(birthDate);
+      endOfLife.setFullYear(birthDate.getFullYear() + lifespan);
+
+      const diffMs = endOfLife.getTime() - now.getTime();
+      // Convert to years with high precision (approximate year length)
+      const yearsLeft = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+
+      setTimeLeft(yearsLeft.toFixed(9));
+      animationFrame = requestAnimationFrame(update);
+    };
+
+    update();
+    return () => cancelAnimationFrame(animationFrame);
+  }, [birthDate, lifespan]);
+
+  return (
+    <View style={styles.countdownContainer}>
+      <Ionicons name="leaf-outline" size={24} color="#000" style={styles.laurelIcon} />
+      <View style={styles.countdownContent}>
+        <Text style={styles.countdownValue}>{timeLeft}</Text>
+        <Text style={styles.countdownLabel}>years left</Text>
+      </View>
+      <Ionicons name="leaf-outline" size={24} color="#000" style={[styles.laurelIcon, { transform: [{ scaleX: -1 }] }]} />
+    </View>
+  );
+}
 
 export default function YouScreen() {
   const { theme } = useUnistyles();
@@ -27,7 +64,15 @@ export default function YouScreen() {
   const accentColorName = useAccentColor();
   const accent = accentColors[accentColorName];
   const accentColor = isDark ? accent.secondary : accent.primary;
-  const [profile, setProfile] = useState<{ name: string; birthDate: Date | null }>({ name: "", birthDate: null });
+  // Initialize state synchronously to prevent CLS (flash of "No Profile")
+  const [profile, setProfile] = useState<{ name: string; birthDate: Date | null }>(() => {
+    const stored = getUserProfile();
+    return stored ? { name: stored.name, birthDate: stored.birthDate ? new Date(stored.birthDate) : null } : { name: "", birthDate: null };
+  });
+
+  // Initialize lifespan synchronously
+  const [lifespan, setLifespanValue] = useState(() => getLifespan());
+
   const lastLoadedProfileRef = useRef<string | null>(null);
 
   const colors = {
@@ -42,23 +87,34 @@ export default function YouScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  // Load profile from MMKV on mount and when returning from settings
+  // Still use FocusEffect to update if changed (e.g. returning from Settings)
   useFocusEffect(() => {
+    // We fetch again to check for updates
     const storedProfile = getUserProfile();
+    const storedLifespan = getLifespan();
+
+    // Always sync lifespan if changed
+    setLifespanValue(prev => prev !== storedLifespan ? storedLifespan : prev);
+
     if (storedProfile) {
-      // Create a stable key to compare profiles
-      const profileKey = `${storedProfile.name}-${storedProfile.birthDate || ''}`;
-      // Only update if this is a different profile than what we last loaded
+      const profileKey = `${storedProfile.name}-${storedProfile.birthDate || ''}-${storedLifespan}`;
       if (lastLoadedProfileRef.current !== profileKey) {
         lastLoadedProfileRef.current = profileKey;
-        setProfile({
-          name: storedProfile.name,
-          birthDate: storedProfile.birthDate ? new Date(storedProfile.birthDate) : null,
+        // Only set state if actually different to avoid unnecessary re-renders
+        setProfile(prev => {
+          const newDate = storedProfile.birthDate ? new Date(storedProfile.birthDate) : null;
+          if (prev.name === storedProfile.name && prev.birthDate?.getTime() === newDate?.getTime()) {
+            return prev;
+          }
+          return {
+            name: storedProfile.name,
+            birthDate: newDate,
+          };
         });
       }
     } else {
-      // If no stored profile, reset the ref
       lastLoadedProfileRef.current = null;
+      setProfile(prev => prev.name ? { name: "", birthDate: null } : prev);
     }
   });
 
@@ -100,6 +156,12 @@ export default function YouScreen() {
     return age;
   };
 
+  const calculateExactAge = (birthDate: Date) => {
+    const today = new Date();
+    const diff = today.getTime() - birthDate.getTime();
+    return diff / (1000 * 60 * 60 * 24 * 365.25);
+  };
+
   const openSettings = () => {
     router.push("/settings");
   };
@@ -115,35 +177,50 @@ export default function YouScreen() {
       </View>
 
       {/* Content */}
-      <View style={styles.content}>
-        {/* Profile Card */}
-        <Pressable onPress={handleCardTap}>
-          <Animated.View style={[styles.profileCard, { backgroundColor: accentColor }, cardAnimatedStyle]}>
-            <Ionicons name="person" size={80} color="rgba(255, 255, 255, 0.6)" />
-          </Animated.View>
-        </Pressable>
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        alwaysBounceVertical={true}
+      >
+        <View style={styles.profileSection}>
+          {/* Profile Card */}
+          <Pressable onPress={handleCardTap}>
+            <Animated.View style={[styles.profileCard, { backgroundColor: accentColor }, cardAnimatedStyle]}>
+              <Ionicons name="person" size={80} color="rgba(255, 255, 255, 0.6)" />
+            </Animated.View>
+          </Pressable>
 
-        {hasProfile && profile.birthDate ? (
-          <>
-            <Text style={[styles.profileName, { color: colors.text }]}>{profile.name}</Text>
-            <Text style={[styles.profileAge, { color: colors.secondaryText }]}>
-              {calculateAge(profile.birthDate)} years old
-            </Text>
-            <Pressable style={[styles.setupButton, { backgroundColor: accentColor }]} onPress={openSettings}>
-              <Text style={styles.setupButtonText}>Edit profile</Text>
-            </Pressable>
-          </>
-        ) : (
-          <>
-            <Text style={[styles.descriptionText, { color: colors.secondaryText }]}>
-              Set up your profile to unlock personalized insights and visual reflections based on your age and lifespan.
-            </Text>
-            <Pressable style={[styles.setupButton, { backgroundColor: accentColor }]} onPress={openSettings}>
-              <Text style={styles.setupButtonText}>Set up your profile</Text>
-            </Pressable>
-          </>
-        )}
-      </View>
+          {hasProfile && profile.birthDate ? (
+            <>
+              <Text style={[styles.profileName, { color: colors.text }]}>{profile.name}</Text>
+
+              {/* Precise Countdown */}
+              <PreciseCountdown birthDate={profile.birthDate} lifespan={lifespan} />
+
+              {/* Graphs */}
+              <View style={styles.graphsContainer}>
+                <LifeInsights
+                  ageYears={calculateExactAge(profile.birthDate)}
+                  lifespan={lifespan}
+                  accentColor={accentColor}
+                  isDark={isDark}
+                  themeColors={themeColors}
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={[styles.descriptionText, { color: colors.secondaryText }]}>
+                Set up your profile to unlock personalized insights and visual reflections based on your age and lifespan.
+              </Text>
+              <Pressable style={[styles.setupButton, { backgroundColor: accentColor }]} onPress={openSettings}>
+                <Text style={styles.setupButtonText}>Set up your profile</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -158,7 +235,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 16,
+    paddingBottom: 0,
+    zIndex: 10,
   },
   headerSpacer: {
     flex: 1,
@@ -170,16 +248,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  content: {
-    flex: 1,
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  profileSection: {
     alignItems: "center",
-    paddingHorizontal: 40,
-    paddingTop: 40,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   profileCard: {
-    width: 180,
-    height: 180,
-    borderRadius: 40,
+    width: 140, // Smaller profile card to fit charts
+    height: 140,
+    borderRadius: 35,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
@@ -187,11 +267,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
+    marginBottom: 20,
   },
   profileName: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "700",
-    marginTop: 24,
+    marginBottom: 16,
   },
   profileAge: {
     fontSize: 17,
@@ -202,8 +283,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     lineHeight: 24,
-    marginTop: 40,
+    marginTop: 20,
     marginBottom: 24,
+    paddingHorizontal: 20,
   },
   setupButton: {
     paddingHorizontal: 32,
@@ -217,4 +299,30 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "600",
   },
+  countdownContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    marginBottom: 40,
+  },
+  countdownContent: {
+    alignItems: "center",
+  },
+  countdownValue: {
+    fontSize: 28, // Large ticker
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"], // Monospaced numbers prevent jitter
+  },
+  countdownLabel: {
+    fontSize: 15,
+    fontWeight: "500",
+    marginTop: 4,
+  },
+  laurelIcon: {
+    opacity: 0.8,
+  },
+  graphsContainer: {
+    width: "100%",
+  }
 });
