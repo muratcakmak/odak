@@ -40,7 +40,55 @@ async function ensureImageDir() {
   }
 }
 
+// Helper: Normalize image storage path
+// Stores strictly relative path (filename) to persist across app updates/UUID changes
+function makeImageRelative(uri: string | undefined): string | undefined {
+  if (!uri) return undefined;
+
+  // If it's already just a filename (no slashes), return it
+  if (!uri.includes("/")) return uri;
+
+  // If it's an absolute path to our own image directory, extract filename
+  if (uri.includes("/Documents/images/")) {
+    return uri.split("/images/").pop();
+  }
+
+  // Fallback: if it's some other path, return strictly the filename to be safe
+  // This assumes we only store images in our controlled directory
+  return uri.split("/").pop();
+}
+
+// Helper: Hydrate image path for usage
+// Reconstructs valid absolute URI for the current app execution context
+function resolveImageUri(path: string | undefined): string | undefined {
+  if (!path) return undefined;
+
+  // If it looks like a full URI (e.g. file:// or https://), check validity
+  if (path.startsWith("file://") || path.startsWith("http")) {
+    // If it's a file URI, it might be stale (old UUID). 
+    // We try to rescue it by extracting the filename and checking current storage.
+    if (path.startsWith("file://")) {
+      const filename = path.split("/").pop();
+      if (filename) {
+        const currentFile = new File(getImageDir(), filename);
+        if (currentFile.exists) {
+          return currentFile.uri;
+        }
+      }
+      // If we can't rescue it, return original path (might work if it's temp or persistent in a different way)
+      return path;
+    }
+    return path;
+  }
+
+  // If it's just a filename, prepend current directory
+  const currentFile = new File(getImageDir(), path);
+  return currentFile.uri;
+}
+
 // Save image locally and return local URI
+// NOTE: Returns ABSOLUTE URI for immediate UI usage.
+// You must rely on saveAheadEvents/saveSinceEvents to strip this to relative path for storage.
 export async function saveImageLocally(uri: string): Promise<string> {
   await ensureImageDir();
   const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
@@ -86,27 +134,37 @@ export function getAheadEvents(): AheadEvent[] {
   const data = storage.getString(AHEAD_EVENTS_KEY);
   if (!data) return [];
   try {
-    return JSON.parse(data);
+    const events: AheadEvent[] = JSON.parse(data);
+    return events.map(event => ({
+      ...event,
+      image: resolveImageUri(event.image)
+    }));
   } catch {
     return [];
   }
 }
 
 export function saveAheadEvents(events: AheadEvent[]): void {
-  const json = JSON.stringify(events);
+  // Store only relative paths
+  const cleanEvents = events.map(event => ({
+    ...event,
+    image: makeImageRelative(event.image)
+  }));
+
+  const json = JSON.stringify(cleanEvents);
   storage.set(AHEAD_EVENTS_KEY, json);
   syncToWidgetStorage(AHEAD_EVENTS_KEY, json);
   refreshWidgets();
 }
 
 export function addAheadEvent(event: Omit<AheadEvent, "id">): AheadEvent {
-  const events = getAheadEvents();
+  const events = getAheadEvents(); // Returns absolute URIs
   const newEvent: AheadEvent = {
     ...event,
     id: Date.now().toString(),
   };
   events.push(newEvent);
-  saveAheadEvents(events);
+  saveAheadEvents(events); // Strips to relative
   return newEvent;
 }
 
@@ -121,14 +179,24 @@ export function getSinceEvents(): SinceEvent[] {
   const data = storage.getString(SINCE_EVENTS_KEY);
   if (!data) return [];
   try {
-    return JSON.parse(data);
+    const events: SinceEvent[] = JSON.parse(data);
+    return events.map(event => ({
+      ...event,
+      image: resolveImageUri(event.image)
+    }));
   } catch {
     return [];
   }
 }
 
 export function saveSinceEvents(events: SinceEvent[]): void {
-  const json = JSON.stringify(events);
+  // Store only relative paths
+  const cleanEvents = events.map(event => ({
+    ...event,
+    image: makeImageRelative(event.image)
+  }));
+
+  const json = JSON.stringify(cleanEvents);
   storage.set(SINCE_EVENTS_KEY, json);
   syncToWidgetStorage(SINCE_EVENTS_KEY, json);
   refreshWidgets();
@@ -195,6 +263,13 @@ export function syncAllEventsToWidget(): void {
 
   try {
     // Sync ahead events
+    // NOTE: Widgets might need absolute paths? 
+    // But widgets have their own limited file access. Passing image paths might be tricky.
+    // Usually widgets use App Group container. 
+    // For now, we save relative, but maybe widgets expect full? 
+    // Or we just save what we have. getAheadEvents returns Absolute, so we save Absolute to widget.
+    // If widget needs to load it, it must be in a shared group. 
+    // This is a separate concern but standard syncing sends JSON.
     const aheadEvents = getAheadEvents();
     if (aheadEvents.length > 0) {
       syncToWidgetStorage(AHEAD_EVENTS_KEY, JSON.stringify(aheadEvents));
@@ -398,3 +473,4 @@ export function setSharePreferences(prefs: {
   if (prefs.showTimeLeft !== undefined) storage.set(SHARE_SHOW_TIME_LEFT_KEY, prefs.showTimeLeft);
   if (prefs.showApp !== undefined) storage.set(SHARE_SHOW_APP_KEY, prefs.showApp);
 }
+

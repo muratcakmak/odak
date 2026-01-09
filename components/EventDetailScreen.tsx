@@ -157,50 +157,51 @@ function getMainTimeUnit(countdown: CountdownValues, isAhead: boolean): string {
 }
 
 // Calendar Section Component using native DatePicker
-function CalendarSection({ targetDate, isAhead }: { targetDate: Date; isAhead: boolean }) {
-  const [displayDate, setDisplayDate] = useState(targetDate);
+const CalendarSection = React.memo(function CalendarSection({ targetDate, isAhead }: { targetDate: Date; isAhead: boolean }) {
   const { theme } = useUnistyles();
 
-  if (Platform.OS !== "ios") {
-    return null; // Only show on iOS
-  }
+  // Memoize the date range to prevent creating new Date objects on every render
+  const dateRange = React.useMemo(() => {
+    const now = Date.now();
+    return isAhead
+      ? {
+          start: new Date(now),
+          end: new Date(now + 10 * 365 * 24 * 60 * 60 * 1000),
+        }
+      : {
+          start: new Date(now - 50 * 365 * 24 * 60 * 60 * 1000),
+          end: new Date(now),
+        };
+  }, [isAhead]);
 
-  // Use same card style as other sections
-  const cardStyle = {
+  // Memoize card style to prevent object recreation
+  const cardStyle = React.useMemo(() => ({
     backgroundColor: theme.colors.background,
     borderColor: theme.colors.cardBorder,
     borderWidth: StyleSheet.hairlineWidth,
-    // Premium shadow
     shadowColor: theme.colors.textPrimary,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 10,
-  };
+  }), [theme.colors.background, theme.colors.cardBorder, theme.colors.textPrimary]);
+
+  if (Platform.OS !== "ios") {
+    return null;
+  }
 
   return (
-    <View style={[styles.calendarContainer, cardStyle]}>
+    <View style={[styles.calendarContainer, cardStyle]} pointerEvents="none">
       <Host style={styles.calendarHost}>
         <DatePicker
-          selection={displayDate}
-          onDateChange={setDisplayDate}
-          range={
-            isAhead
-              ? {
-                start: new Date(),
-                end: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000),
-              }
-              : {
-                start: new Date(Date.now() - 50 * 365 * 24 * 60 * 60 * 1000),
-                end: new Date(),
-              }
-          }
+          selection={targetDate}
+          range={dateRange}
           modifiers={[datePickerStyle("graphical")]}
         />
       </Host>
     </View>
   );
-}
+});
 
 // Header Pill Button
 function HeaderPillButton({
