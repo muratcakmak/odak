@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { StyleSheet, View, Text, ScrollView, Pressable, ImageBackground, Modal, TextInput, Platform, Image } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GlassView } from "expo-glass-effect";
 import { hasLiquidGlassSupport } from "../../utils/capabilities";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -355,6 +355,7 @@ function AddEventModal({
 export default function SinceScreen() {
   const { theme } = useUnistyles();
   const styles = createStyles(theme);
+  const insets = useSafeAreaInsets();
   const [events, setEvents] = useState<SinceEvent[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [sortType, setSortType] = useState<SortType>("date_desc");
@@ -408,7 +409,7 @@ export default function SinceScreen() {
   const openAddModal = () => setShowAddModal(true);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={["top"]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -523,7 +524,7 @@ export default function SinceScreen() {
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddEvent}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

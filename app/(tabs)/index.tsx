@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { StyleSheet, View, Text, useWindowDimensions, Platform } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { AdaptiveCard, AdaptivePillButton } from "../../components/ui";
 import { router } from "expo-router";
@@ -546,7 +546,7 @@ export default function LeftScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         {Platform.OS === "ios" ? (
@@ -609,7 +609,7 @@ export default function LeftScreen() {
           {gridContent}
         </AdaptiveCard>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

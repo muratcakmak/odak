@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import { StyleSheet, View, Text, ScrollView, Pressable, ImageBackground, Modal, TextInput, Platform, Image } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GlassView } from "expo-glass-effect";
-import { hasLiquidGlassSupport } from "../../utils/capabilities";
+import { hasLiquidGlassSupport } from "../../../utils/capabilities";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { DatePicker, Host, ContextMenu, Button, Divider } from "@expo/ui/swift-ui";
 import { datePickerStyle } from "@expo/ui/swift-ui/modifiers";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import Animated, { FadeIn, FadeOut, Layout, Easing } from "react-native-reanimated";
-import { getAheadEvents, addAheadEvent, getAheadViewMode, setAheadViewMode, saveImageLocally, type AheadEvent, type ViewMode } from "../../utils/storage";
+import { getAheadEvents, addAheadEvent, getAheadViewMode, setAheadViewMode, saveImageLocally, type AheadEvent, type ViewMode } from "../../../utils/storage";
 import { useUnistyles } from "react-native-unistyles";
 
 // Sort options
@@ -163,7 +163,6 @@ function AddEventModal({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const { theme } = useUnistyles();
   const styles = createStyles(theme);
-  // Replicating colors logic locally for modal elements if needed or using theme directly
   const inputBg = theme.colors.surface;
 
   const handleAdd = () => {
@@ -193,7 +192,6 @@ function AddEventModal({
     }
   };
 
-  // Use PillButton for modal header buttons
   const HeaderButton = ({ onPress, disabled, children }: { onPress: () => void; disabled?: boolean; children: React.ReactNode }) => (
     <PillButton onPress={onPress} disabled={disabled} style={styles.headerGlassButton}>
       {children}
@@ -279,6 +277,7 @@ function AddEventModal({
 export default function AheadScreen() {
   const { theme } = useUnistyles();
   const styles = createStyles(theme);
+  const insets = useSafeAreaInsets();
 
   const [events, setEvents] = useState<AheadEvent[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -329,11 +328,11 @@ export default function AheadScreen() {
     setEvents((prev) => [...prev, newEvent]);
   };
 
-  // Open add modal (calendar button opens date picker modal)
+  // Open add modal
   const openAddModal = () => setShowAddModal(true);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={["top"]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -449,7 +448,7 @@ export default function AheadScreen() {
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddEvent}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -497,8 +496,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   buttonDivider: {
     width: 1,
     height: 20,
-    // backgroundColor handled in component via prop? no, handled here via theme.colors.cardBorder in component or style?
-    // The component used style override for color. Let's make it theme aware in component.
     marginHorizontal: 8,
   },
   scrollView: {
@@ -554,11 +551,9 @@ const createStyles = (theme: any) => StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
-  // List view styles
   listContainer: {
     flexDirection: "column",
   },
-  // Grid view styles
   gridContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -609,7 +604,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
-  // Empty state
   emptyState: {
     flex: 1,
     alignItems: "center",
@@ -627,7 +621,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginTop: 8,
     opacity: 0.3,
   },
-  // Modal styles
   modalContainer: {
     flex: 1,
   },

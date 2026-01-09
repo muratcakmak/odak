@@ -9,6 +9,7 @@ import { Stack } from "expo-router/stack";
 import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
 import { hasLiquidGlassSupport } from "../utils/capabilities";
 import { syncAllEventsToWidget } from "../utils/storage";
 import { useUnistyles, UnistylesRuntime } from "react-native-unistyles";
@@ -43,11 +44,12 @@ export default function RootLayout() {
   const useGlass = hasLiquidGlassSupport();
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
-      <ThemeProvider
-        value={isDark ? DarkTheme : DefaultTheme}
-      >
-        <StatusBar style={isDark ? "light" : "dark"} />
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
+        <ThemeProvider
+          value={isDark ? DarkTheme : DefaultTheme}
+        >
+          <StatusBar style={isDark ? "light" : "dark"} />
 
         <Stack>
           <Stack.Screen
@@ -109,7 +111,8 @@ export default function RootLayout() {
             }}
           />
         </Stack>
-      </ThemeProvider>
-    </GestureHandlerRootView>
+        </ThemeProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }

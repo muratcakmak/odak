@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { StyleSheet, View, Text, Pressable } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -20,6 +20,7 @@ import Animated, {
 export default function YouScreen() {
   const { theme } = useUnistyles();
   const themeColors = theme.colors;
+  const insets = useSafeAreaInsets();
   const isDark = theme.colors.background === '#000000' || theme.colors.background === '#111111';
 
   // Local accent color logic
@@ -104,7 +105,7 @@ export default function YouScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerSpacer} />
@@ -143,7 +144,7 @@ export default function YouScreen() {
           </>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
