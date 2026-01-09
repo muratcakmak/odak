@@ -240,7 +240,7 @@ export default function SinceScreen() {
 
   // Navigate to event detail
   const handleShowEvent = (id: string) => {
-    router.push(`/event/${id}`);
+    router.push({ pathname: "/event/[id]", params: { id } });
   };
 
   // Open add modal
@@ -332,7 +332,7 @@ export default function SinceScreen() {
               exiting={FadeOut.duration(150).easing(Easing.in(Easing.quad))}
               style={viewMode === "grid" ? styles.gridCardWrapper : styles.listCardWrapper}
             >
-              <Link href={`/event/${event.id}`} style={styles.cardLink}>
+              <Link href={{ pathname: "/event/[id]", params: { id: event.id } }} style={styles.cardLink}>
                 <Link.Trigger style={styles.cardTrigger}>
                   <TimeCard
                     title={event.title}
@@ -447,11 +447,11 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   datePickerContainer: {
     overflow: "visible",
-    minHeight: 400,
+    minHeight: 480,
   },
   datePickerHost: {
     width: "100%",
-    height: 400,
+    height: 480,
   },
   dateButton: {
     padding: 16,

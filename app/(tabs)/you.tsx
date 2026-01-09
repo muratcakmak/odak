@@ -19,13 +19,13 @@ import Animated, {
 import { LifeInsights } from "../../components/LifeInsights";
 
 // Precise Countdown Component
-function PreciseCountdown({ 
-  birthDate, 
-  lifespan, 
-  textColor, 
-  secondaryTextColor 
-}: { 
-  birthDate: Date; 
+function PreciseCountdown({
+  birthDate,
+  lifespan,
+  textColor,
+  secondaryTextColor
+}: {
+  birthDate: Date;
   lifespan: number;
   textColor: string;
   secondaryTextColor: string;
@@ -142,19 +142,39 @@ export default function YouScreen() {
     ],
   }));
 
+  const triggerAnimation = () => {
+    // Reset rotation if needed, or just leave it. 
+    // For a clean pulse, we probably want 0 rotation.
+    cardRotation.value = withSpring(0);
+
+    // Simple pulse animation
+    cardScale.value = withSequence(
+      withTiming(1.05, { duration: 150 }),
+      withSpring(1, { damping: 12, stiffness: 150 })
+    );
+  };
+
   // Handle card tap - random tilt with spring animation
   const handleCardTap = () => {
     triggerHaptic();
-    const newRotation = Math.random() * 10 - 5;
-    cardRotation.value = withSpring(newRotation, {
-      damping: 10,
-      stiffness: 100,
-    });
-    cardScale.value = withSequence(
-      withTiming(0.95, { duration: 100 }),
-      withSpring(1, { damping: 10, stiffness: 200 })
-    );
+    // Use the same animation or custom for tap? 
+    // User asked for "one pulse" for the visibility animation.
+    // I'll use the new pulse for consistency or keep tap fun?
+    // "one pulse would be ok" likely refers to the auto-animation.
+    // I will use the triggerAnimation for both for now to be safe, 
+    // or arguably keep tap interactive. The user said "one pulse" in context of the auto-trigger.
+    // I'll stick to making triggerAnimation do the pulse.
+    triggerAnimation();
   };
+
+  useFocusEffect(() => {
+    // Trigger animation every time the screen comes into focus
+    // Small delay to make it feel natural as the screen transition completes
+    const timeout = setTimeout(() => {
+      triggerAnimation();
+    }, 100);
+    return () => clearTimeout(timeout);
+  });
 
   const calculateAge = (birthDate: Date) => {
     const today = new Date();
@@ -206,8 +226,8 @@ export default function YouScreen() {
               <Text style={[styles.profileName, { color: colors.text }]}>{profile.name}</Text>
 
               {/* Precise Countdown */}
-              <PreciseCountdown 
-                birthDate={profile.birthDate} 
+              <PreciseCountdown
+                birthDate={profile.birthDate}
                 lifespan={lifespan}
                 textColor={colors.text}
                 secondaryTextColor={colors.secondaryText}

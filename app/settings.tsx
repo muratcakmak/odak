@@ -987,7 +987,7 @@ const styles = StyleSheet.create({
   },
   datePickerHost: {
     width: "100%",
-    height: 400,
+    height: 480,
     paddingHorizontal: 16,
   },
 });

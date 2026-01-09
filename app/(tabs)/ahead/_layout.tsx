@@ -23,6 +23,15 @@ export default function AheadLayout() {
       }}
     >
       <Stack.Screen name="index" />
+      <Stack.Screen
+        name="event/[id]"
+        options={{
+          headerShown: false,
+          presentation: "card",
+          contentStyle: { backgroundColor: "#000000" },
+          tabBarStyle: { display: "none" },
+        }}
+      />
     </Stack>
   );
 }

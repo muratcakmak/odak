@@ -112,24 +112,22 @@ function AddEventModal({
         </View>
 
         {/* Form */}
-        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-          {/* Photo Picker */}
-          <View style={styles.inputSection}>
-            <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>Event Photo</Text>
-            <Pressable onPress={pickImage} style={[styles.photoPicker, { backgroundColor: inputBg }]}>
-              {selectedImage ? (
-                <Image source={{ uri: selectedImage }} style={styles.selectedPhoto} />
-              ) : (
-                <View style={styles.photoPlaceholder}>
-                  <Ionicons name="image-outline" size={32} color={theme.colors.textSecondary} />
-                  <Text style={[styles.photoPlaceholderText, { color: theme.colors.textSecondary }]}>
-                    Tap to select photo
-                  </Text>
-                </View>
-              )}
-            </Pressable>
-          </View>
+        {/* Photo Picker - Full Width Cover */}
+        <Pressable onPress={pickImage} style={[styles.photoPicker, { backgroundColor: inputBg }]}>
+          {selectedImage ? (
+            <Image source={{ uri: selectedImage }} style={styles.selectedPhoto} />
+          ) : (
+            <View style={styles.photoPlaceholder}>
+              <Ionicons name="image-outline" size={32} color={theme.colors.textSecondary} />
+              <Text style={[styles.photoPlaceholderText, { color: theme.colors.textSecondary }]}>
+                Add Cover Photo
+              </Text>
+            </View>
+          )}
+        </Pressable>
 
+        {/* Form Content */}
+        <View style={styles.formContent}>
           {/* Title Input */}
           <View style={styles.inputSection}>
             <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>Event Title</Text>
@@ -165,7 +163,7 @@ function AddEventModal({
               </Pressable>
             )}
           </View>
-        </ScrollView>
+        </View>
       </View>
     </Modal>
   );
@@ -246,7 +244,7 @@ export default function AheadScreen() {
 
   // Navigate to event detail
   const handleShowEvent = (id: string) => {
-    router.push(`/event/${id}`);
+    router.push({ pathname: "/event/[id]", params: { id } });
   };
 
   // Open add modal
@@ -336,7 +334,7 @@ export default function AheadScreen() {
             exiting={FadeOut.duration(150).easing(Easing.in(Easing.quad))}
             style={viewMode === "grid" ? styles.gridCardWrapper : styles.listCardWrapper}
           >
-            <Link href={`/event/${event.id}`} style={styles.cardLink}>
+            <Link href={{ pathname: "/event/[id]", params: { id: event.id } }} style={styles.cardLink}>
               <Link.Trigger style={styles.cardTrigger}>
                 <TimeCard
                   title={event.title}
@@ -411,11 +409,15 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontWeight: "600",
   },
   modalContent: {
-    padding: 20,
+    padding: 0, // Removed padding
+  },
+  formContent: {
+    padding: 20, // New content wrapper
   },
   photoPicker: {
-    height: 140,
-    borderRadius: 12,
+    height: 220, // Increased height
+    width: "100%", // Full width
+    borderRadius: 0, // No radius
     overflow: "hidden",
   },
   selectedPhoto: {
@@ -448,11 +450,11 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   datePickerContainer: {
     overflow: "visible",
-    minHeight: 400,
+    minHeight: 480,
   },
   datePickerHost: {
     width: "100%",
-    height: 400,
+    height: 480,
   },
   dateButton: {
     padding: 16,
