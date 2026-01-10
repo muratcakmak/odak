@@ -34,23 +34,21 @@ function PreciseCountdown({
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
-    let animationFrame: number;
-
     const update = () => {
       const now = new Date();
       const endOfLife = new Date(birthDate);
       endOfLife.setFullYear(birthDate.getFullYear() + lifespan);
 
       const diffMs = endOfLife.getTime() - now.getTime();
-      // Convert to years with high precision (approximate year length)
       const yearsLeft = diffMs / (1000 * 60 * 60 * 24 * 365.25);
 
-      setTimeLeft(yearsLeft.toFixed(9));
-      animationFrame = requestAnimationFrame(update);
+      setTimeLeft(yearsLeft.toFixed(2));
     };
 
     update();
-    return () => cancelAnimationFrame(animationFrame);
+    // Update once per second - sufficient for 2 decimal precision
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
   }, [birthDate, lifespan]);
 
   return (

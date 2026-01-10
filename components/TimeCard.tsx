@@ -84,13 +84,13 @@ export function TimeCard({
 const createStyles = (theme: any) => StyleSheet.create({
     cardList: {
         width: "100%",
-        height: 180, // Fatter list items
+        aspectRatio: 16 / 7.5, // Match medium widget proportions
         borderRadius: theme.borderRadius.xl,
         overflow: "hidden",
     },
     cardGrid: {
         width: "100%",
-        height: 130, // Smaller for grid
+        aspectRatio: 1, // Square like small widget
         borderRadius: theme.borderRadius.lg,
         overflow: "hidden",
     },
