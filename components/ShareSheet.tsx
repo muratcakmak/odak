@@ -2,7 +2,9 @@ import { useState } from "react";
 import { StyleSheet, View, Text, Pressable, Switch, Modal } from "react-native";
 import { GlassView } from "expo-glass-effect";
 import { useUnistyles } from "react-native-unistyles";
+
 import { hasLiquidGlassSupport } from "../utils/capabilities";
+import { useAccentColor } from "../utils/storage";
 
 interface ShareSheetProps {
   visible: boolean;
@@ -61,14 +63,14 @@ const miniGridStyles = StyleSheet.create({
 });
 
 // Picker button component
-function PickerButton({ label, value }: { label: string; value: string }) {
+function PickerButton({ label, value, accentColor }: { label: string; value: string; accentColor: string }) {
   const { theme: appTheme } = useUnistyles();
   const styles = createStyles(appTheme);
 
   return (
     <View style={styles.pickerContainer}>
       <View style={styles.pickerButton}>
-        <Text style={styles.pickerValue}>{value}</Text>
+        <Text style={[styles.pickerValue, { color: accentColor }]}>{value}</Text>
         <Text style={styles.pickerChevron}>⌃</Text>
       </View>
       <Text style={styles.pickerLabel}>{label}</Text>
@@ -81,10 +83,12 @@ function ToggleRow({
   label,
   value,
   onValueChange,
+  accentColor,
 }: {
   label: string;
   value: boolean;
   onValueChange: (value: boolean) => void;
+  accentColor: string;
 }) {
   const { theme } = useUnistyles();
   const styles = createStyles(theme);
@@ -95,7 +99,7 @@ function ToggleRow({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: theme.colors.controlTrackOff, true: theme.colors.controlTrackOn }}
+        trackColor={{ false: theme.colors.controlTrackOff, true: accentColor }}
         thumbColor={theme.colors.onImage.primary}
         ios_backgroundColor={theme.colors.controlTrackOff}
       />
@@ -122,6 +126,8 @@ export function ShareSheet({
   const { theme: appTheme } = useUnistyles();
   const styles = createStyles(appTheme);
   const shareUi = appTheme.colors.share.ui;
+  const accentColorName = useAccentColor();
+  const accentColor = appTheme.colors.accent[accentColorName].primary;
 
   const handleShare = () => {
     // TODO: Implement actual share functionality
@@ -158,6 +164,7 @@ export function ShareSheet({
                 passedColor={appTheme.colors.systemGray4}
                 remainingColor={appTheme.colors.onImage.primary}
                 shareUi={shareUi}
+                accentColor={accentColor}
               />
             </GlassView>
           ) : (
@@ -180,6 +187,7 @@ export function ShareSheet({
                 passedColor={appTheme.colors.systemGray4}
                 remainingColor={appTheme.colors.onImage.primary}
                 shareUi={shareUi}
+                accentColor={accentColor}
               />
             </View>
           )}
@@ -207,6 +215,7 @@ function SheetContent({
   shareUi,
   passedColor,
   remainingColor,
+  accentColor,
 }: {
   year: number;
   daysLeft: number;
@@ -232,6 +241,7 @@ function SheetContent({
     textPrimary: string;
     textSecondary: string;
   };
+  accentColor: string;
 }) {
   const { theme: appTheme } = useUnistyles();
   const styles = createStyles(appTheme);
@@ -260,21 +270,21 @@ function SheetContent({
 
       {/* Pickers Row */}
       <View style={styles.pickersRow}>
-        <PickerButton label="" value="Dark" />
-        <PickerButton label="" value="White" />
-        <PickerButton label="" value="Dots" />
+        <PickerButton label="" value="Dark" accentColor={accentColor} />
+        <PickerButton label="" value="White" accentColor={accentColor} />
+        <PickerButton label="" value="Dots" accentColor={accentColor} />
       </View>
 
       {/* Toggles */}
       <View style={styles.togglesContainer}>
-        <ToggleRow label="Title" value={showTitle} onValueChange={setShowTitle} />
-        <ToggleRow label="Time left" value={showTimeLeft} onValueChange={setShowTimeLeft} />
-        <ToggleRow label="Left app" value={showLeftApp} onValueChange={setShowLeftApp} />
+        <ToggleRow label="Title" value={showTitle} onValueChange={setShowTitle} accentColor={accentColor} />
+        <ToggleRow label="Time left" value={showTimeLeft} onValueChange={setShowTimeLeft} accentColor={accentColor} />
+        <ToggleRow label="Left app" value={showLeftApp} onValueChange={setShowLeftApp} accentColor={accentColor} />
       </View>
 
       {/* Share Button */}
-      <Pressable style={[styles.shareButton, { backgroundColor: shareUi.actionButton }]} onPress={onShare}>
-        <Text style={[styles.shareButtonText, { color: shareUi.textPrimary }]}>Share</Text>
+      <Pressable style={[styles.shareButton, { backgroundColor: accentColor }]} onPress={onShare}>
+        <Text style={[styles.shareButtonText, { color: shareUi.overlay }]}>Share</Text>
       </Pressable>
     </>
   );

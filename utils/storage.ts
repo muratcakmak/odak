@@ -480,8 +480,8 @@ const SHARE_SHOW_APP_KEY = "share_show_app";
 export function getSharePreferences() {
   return {
     theme: storage.getString(SHARE_THEME_KEY) || "Dark",
-    color: storage.getString(SHARE_COLOR_KEY) || "Red",
-    shape: storage.getString(SHARE_SHAPE_KEY) || "Stars",
+    color: storage.getString(SHARE_COLOR_KEY) || "Accent",
+    shape: storage.getString(SHARE_SHAPE_KEY) || "Dots",
     showTitle: storage.getBoolean(SHARE_SHOW_TITLE_KEY) ?? true,
     showTimeLeft: storage.getBoolean(SHARE_SHOW_TIME_LEFT_KEY) ?? true,
     showApp: storage.getBoolean(SHARE_SHOW_APP_KEY) ?? true,
