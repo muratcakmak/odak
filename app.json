@@ -1,22 +1,22 @@
 {
   "expo": {
-    "name": "Reko",
-    "slug": "reko",
+    "name": "Rekoll",
+    "slug": "rekoll",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "reko",
+    "scheme": "rekoll",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.omc345.reko",
+      "bundleIdentifier": "com.omc345.rekoll",
       "icon": "./assets/icon-light.png",
       "darkIcon": "./assets/icon-dark.png",
       "tintedIcon": "./assets/icon.png",
       "entitlements": {
         "com.apple.security.application-groups": [
-          "group.com.omc345.reko"
+          "group.com.omc345.rekoll"
         ]
       },
       "infoPlist": {
@@ -29,7 +29,7 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.omc345.reko"
+      "package": "com.omc345.rekoll"
     },
     "web": {
       "bundler": "metro",
@@ -56,7 +56,7 @@
       [
         "./plugins/withNativeTheme",
         {
-          "appGroupId": "group.com.omc345.reko"
+          "appGroupId": "group.com.omc345.rekoll"
         }
       ]
     ],
@@ -71,11 +71,11 @@
             "ios": {
               "appExtensions": [
                 {
-                  "bundleIdentifier": "com.omc345.reko.widget",
-                  "targetName": "RekoWidget",
+                  "bundleIdentifier": "com.omc345.rekoll.widget",
+                  "targetName": "RekollWidget",
                   "entitlements": {
                     "com.apple.security.application-groups": [
-                      "group.com.omc345.reko"
+                      "group.com.omc345.rekoll"
                     ]
                   }
                 }

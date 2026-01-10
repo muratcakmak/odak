@@ -336,16 +336,13 @@ export default function SinceScreen() {
                 <Link.Trigger style={styles.cardTrigger}>
                   <TimeCard
                     title={event.title}
-                    daysValue={daysSince + " days"} // Or just number? Screenshot showed "In 26 days". For since: "206 days"?
-                    // User screenshot was Ahead. Since usually says "51 days".
-                    // Let's stick to daysValue="50 days" for consistency with "In 26 days"
+                    daysValue={daysSince + " days"}
                     daysLabel="since"
                     subtitle={formatDate(event.dateObj)}
                     image={event.image}
                     compact={viewMode === "grid"}
                   />
                 </Link.Trigger>
-                <Link.Preview />
                 <Link.Menu>
                   <Link.MenuAction title="Show" icon="eye" onPress={() => handleShowEvent(event.id)} />
                   <Link.MenuAction
@@ -374,6 +371,7 @@ export default function SinceScreen() {
 const createStyles = (theme: any) => StyleSheet.create({
   gridCardWrapper: {
     width: "47%",
+    aspectRatio: 1,
     marginBottom: theme.spacing.md,
   },
   listCardWrapper: {

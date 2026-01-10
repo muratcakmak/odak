@@ -373,6 +373,7 @@ export default function AheadScreen() {
 const createStyles = (theme: any) => StyleSheet.create({
   gridCardWrapper: {
     width: "47%",
+    aspectRatio: 1,
     marginBottom: theme.spacing.md,
   },
   listCardWrapper: {

@@ -11,7 +11,7 @@ if (Platform.OS === "ios") {
   }
 }
 
-export const APP_GROUP_ID = "group.com.omc345.reko";
+export const APP_GROUP_ID = "group.com.omc345.rekoll";
 
 /**
  * Set an item in the App Group UserDefaults for widget access

@@ -7,7 +7,7 @@ const { withAppDelegate, withInfoPlist } = require("@expo/config-plugins");
  * Reads the stored background_mode from App Group UserDefaults and sets
  * the window's overrideUserInterfaceStyle accordingly.
  */
-function withNativeTheme(config, { appGroupId = "group.com.omc345.reko" } = {}) {
+function withNativeTheme(config, { appGroupId = "group.com.omc345.rekoll" } = {}) {
   // Modify AppDelegate to set theme before React renders
   config = withAppDelegate(config, (config) => {
     const contents = config.modResults.contents;

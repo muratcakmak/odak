@@ -630,7 +630,7 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="star"
             iconBg="#FFCC00"
-            label="Rate & review Reko"
+            label="Rate & review Rekoll"
             showChevron
             textColor={colors.text}
             secondaryTextColor={colors.secondaryText}

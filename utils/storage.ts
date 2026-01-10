@@ -364,6 +364,24 @@ export function setBackgroundMode(mode: BackgroundMode): void {
   NativeTheme.setNativeThemeMode(mode);
 }
 
+export function useBackgroundMode(): BackgroundMode {
+  const [mode, setMode] = useState<BackgroundMode>(getBackgroundMode());
+
+  useEffect(() => {
+    const listener = storage.addOnValueChangedListener((key) => {
+      if (key === BACKGROUND_MODE_KEY) {
+        setMode(getBackgroundMode());
+      }
+    });
+
+    return () => {
+      listener.remove();
+    };
+  }, []);
+
+  return mode;
+}
+
 // Accent Color Preference
 export type AccentColor = "white" | "blue" | "green" | "orange" | "yellow" | "pink" | "red" | "mint" | "purple" | "brown";
 

@@ -56,7 +56,7 @@ struct RekoEventData: Codable, Identifiable, Hashable {
 // MARK: - Storage Helper
 
 struct RekoStorage {
-    static let appGroupId = "group.com.omc345.reko"
+    static let appGroupId = "group.com.omc345.rekoll"
 
     static func loadAheadEvents() -> [RekoEventData] {
         guard let userDefaults = UserDefaults(suiteName: appGroupId),
@@ -510,7 +510,7 @@ struct WidgetLargeView: View {
                     Image(systemName: "calendar.badge.plus")
                         .font(.system(size: 48))
                         .foregroundStyle(.secondary)
-                    Text("Add an event in Reko")
+                    Text("Add an event in Rekoll")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -537,7 +537,7 @@ struct WidgetLargeView: View {
 
 // MARK: - Entry View
 
-struct RekoWidgetEntryView: View {
+struct RekollWidgetEntryView: View {
     var entry: RekoEventEntry
     @Environment(\.widgetFamily) var family
 
@@ -558,7 +558,7 @@ struct RekoAheadWidget: Widget {
 
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: SelectAheadEventIntent.self, provider: AheadEventProvider()) { entry in
-            RekoWidgetEntryView(entry: entry)
+            RekollWidgetEntryView(entry: entry)
                 .widgetURL(entry.event != nil ? URL(string: "reko://event/\(entry.event!.id)") : URL(string: "reko://"))
         }
         .configurationDisplayName("Countdown")
@@ -574,7 +574,7 @@ struct RekoSinceWidget: Widget {
 
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: SelectSinceEventIntent.self, provider: SinceEventProvider()) { entry in
-            RekoWidgetEntryView(entry: entry)
+            RekollWidgetEntryView(entry: entry)
                 .widgetURL(entry.event != nil ? URL(string: "reko://event/\(entry.event!.id)") : URL(string: "reko://"))
         }
         .configurationDisplayName("Milestone")
@@ -1026,7 +1026,7 @@ struct RekoMonthWidget: Widget {
 // MARK: - Widget Bundle
 
 @main
-struct RekoWidgetBundle: WidgetBundle {
+struct RekollWidgetBundle: WidgetBundle {
     var body: some Widget {
         RekoAheadWidget()
         RekoSinceWidget()
