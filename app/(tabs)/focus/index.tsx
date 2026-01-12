@@ -96,6 +96,7 @@ function PresetSelector({
             return (
               <SwiftUIButton
                 key={preset.id}
+                label={String(preset.durationMinutes)}
                 onPress={() => onSelect(preset.id)}
                 modifiers={[
                   frame({ width: 56, height: 56 }),
@@ -107,17 +108,10 @@ function PresetSelector({
                     },
                     shape: 'circle',
                   }),
+                  font({ size: 18, weight: 'semibold' }),
+                  foregroundStyle(theme.isDark ? '#FFFFFF' : '#000000'),
                 ]}
-              >
-                <SwiftUIText
-                  modifiers={[
-                    font({ size: 18, weight: 'semibold' }),
-                    foregroundStyle(isSelected ? '#FFFFFF' : theme.colors.textPrimary),
-                  ]}
-                >
-                  {String(preset.durationMinutes)}
-                </SwiftUIText>
-              </SwiftUIButton>
+              />
             );
           })}
         </HStack>
