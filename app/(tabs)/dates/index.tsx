@@ -516,10 +516,6 @@ export default function DatesScreen() {
         {/* Right side - Add button */}
         <Stack.Header.Right>
           <Stack.Header.Button
-            icon="calendar.badge.plus"
-            onPress={openAddModal}
-          />
-          <Stack.Header.Button
             icon="plus"
             onPress={openAddModal}
           />

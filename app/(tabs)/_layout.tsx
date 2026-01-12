@@ -29,18 +29,18 @@ export default function TabLayout() {
           drawable="ic_grid"
         />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="bank">
-        <NativeTabs.Trigger.Label>Stats</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf="chart.bar.fill"
-          drawable="ic_chart"
-        />
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="dates">
         <NativeTabs.Trigger.Label>Dates</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf="calendar"
           drawable="ic_calendar"
+        />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="bank">
+        <NativeTabs.Trigger.Label>Stats</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf="chart.bar.fill"
+          drawable="ic_chart"
         />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="you">
