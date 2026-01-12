@@ -12,6 +12,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GlassView } from "expo-glass-effect";
 import { hasLiquidGlassSupport } from "../utils/capabilities";
+import Animated, {
+  useSharedValue,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  interpolate,
+  Extrapolate,
+} from "react-native-reanimated";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { DatePicker, Host } from "@expo/ui/swift-ui";
 import { datePickerStyle, tint } from "@expo/ui/swift-ui/modifiers";
@@ -273,6 +280,57 @@ export function EventDetailScreen({ eventType }: EventDetailScreenProps = {}) {
     ...theme.effects.shadow.cardGlow,
   };
 
+  // Animated scroll value
+  const scrollY = useSharedValue(0);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      height: interpolate(
+        scrollY.value,
+        [-350, 0],
+        [700, 350],
+        Extrapolate.CLAMP
+      ),
+      transform: [
+        {
+          translateY: interpolate(
+            scrollY.value,
+            [-350, 0, 350],
+            [-175, 0, 0], // Parallax effect on scroll up
+            Extrapolate.CLAMP
+          ),
+        },
+      ],
+    };
+  });
+
+  const textAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(
+        scrollY.value,
+        [0, 250],
+        [1, 0],
+        Extrapolate.CLAMP
+      ),
+      transform: [
+        {
+          translateY: interpolate(
+            scrollY.value,
+            [-350, 0, 350],
+            [0, 0, 200], // Parallax effect
+            Extrapolate.CLAMP
+          ),
+        },
+      ],
+    };
+  });
+
   // Load event data
   useEffect(() => {
     if (!id) {
@@ -393,108 +451,120 @@ export function EventDetailScreen({ eventType }: EventDetailScreenProps = {}) {
     event.image ||
     "https://images.unsplash.com/photo-1448375240586-882707db888b?w=800";
 
+
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView
+      {/* Background Image Layer (Absolute) */}
+      <Animated.View style={[styles.heroBackgroundContainer, headerAnimatedStyle]}>
+        <ImageBackground
+          source={{ uri: image }}
+          style={styles.heroBackground}
+          imageStyle={styles.heroImage}
+        >
+          <View style={styles.heroOverlay} />
+        </ImageBackground>
+      </Animated.View>
+
+      {/* Close Button (Fixed z-index) */}
+      <View style={[styles.closeButtonContainer, { paddingTop: insets.top + 8 }]}>
+        <AdaptivePillButton
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/dates");
+            }
+          }}
+          style={styles.closeButton}
+          fallbackBackgroundColor={theme.colors.overlay.medium}
+        >
+          <Ionicons name="chevron-back" size={24} color={theme.colors.onImage.primary} />
+        </AdaptivePillButton>
+      </View>
+
+      <Animated.ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
       >
-        {/* Hero Section with Background Image */}
-        <ImageBackground
-          source={{ uri: image }}
-          style={styles.heroSection}
-          imageStyle={styles.heroImage}
-        >
-          <View style={styles.heroOverlay}>
-            {/* Close Button */}
-            <View style={[styles.closeButtonContainer, { paddingTop: insets.top + 8 }]}>
-              <AdaptivePillButton
-                onPress={() => {
-                  if (router.canGoBack()) {
-                    router.back();
-                  } else {
-                    router.replace("/dates");
-                  }
-                }}
-                style={styles.closeButton}
-                fallbackBackgroundColor={theme.colors.overlay.medium}
-              >
-                <Ionicons name="chevron-back" size={24} color={theme.colors.onImage.primary} />
-              </AdaptivePillButton>
-            </View>
-            <View style={styles.heroContent}>
-              {/* Main Countdown */}
-              <Text style={styles.mainCountdown}>
-                {getMainTimeUnit(countdown, isAhead)}
-              </Text>
+        {/* Transparent Header Spacer with embedded content */}
+        <View style={styles.heroSpacer}>
+          <Animated.View style={[styles.heroContent, textAnimatedStyle]}>
+            {/* Main Countdown */}
+            <Text style={styles.mainCountdown}>
+              {getMainTimeUnit(countdown, isAhead)}
+            </Text>
 
-              {/* Title and Date */}
-              <Text style={styles.eventTitle}>{title}</Text>
-              <Text style={styles.eventSubtitle}>
-                {isAhead ? "Ends on" : "Started"} {formatDate(targetDate)}
-              </Text>
+            {/* Title and Date */}
+            <Text style={styles.eventTitle}>{title}</Text>
+            <Text style={styles.eventSubtitle}>
+              {isAhead ? "Ends on" : "Started"} {formatDate(targetDate)}
+            </Text>
 
-              {/* Countdown Units */}
-              <View style={styles.countdownUnits}>
-                <View style={styles.countdownUnit}>
-                  <Text style={styles.countdownValue}>{countdown.weeks}</Text>
-                  <Text style={styles.countdownLabel}>weeks</Text>
-                </View>
-                <View style={styles.countdownUnit}>
-                  <Text style={styles.countdownValue}>{countdown.days}</Text>
-                  <Text style={styles.countdownLabel}>days</Text>
-                </View>
-                <View style={styles.countdownUnit}>
-                  <Text style={styles.countdownValue}>{countdown.hours}</Text>
-                  <Text style={styles.countdownLabel}>hours</Text>
-                </View>
-                <View style={styles.countdownUnit}>
-                  <Text style={styles.countdownValue}>{countdown.minutes}</Text>
-                  <Text style={styles.countdownLabel}>minutes</Text>
-                </View>
-                <View style={styles.countdownUnit}>
-                  <Text style={styles.countdownValue}>{countdown.seconds}</Text>
-                  <Text style={styles.countdownLabel}>seconds</Text>
-                </View>
+            {/* Countdown Units */}
+            <View style={styles.countdownUnits}>
+              <View style={styles.countdownUnit}>
+                <Text style={styles.countdownValue}>{countdown.weeks}</Text>
+                <Text style={styles.countdownLabel}>weeks</Text>
+              </View>
+              <View style={styles.countdownUnit}>
+                <Text style={styles.countdownValue}>{countdown.days}</Text>
+                <Text style={styles.countdownLabel}>days</Text>
+              </View>
+              <View style={styles.countdownUnit}>
+                <Text style={styles.countdownValue}>{countdown.hours}</Text>
+                <Text style={styles.countdownLabel}>hours</Text>
+              </View>
+              <View style={styles.countdownUnit}>
+                <Text style={styles.countdownValue}>{countdown.minutes}</Text>
+                <Text style={styles.countdownLabel}>minutes</Text>
+              </View>
+              <View style={styles.countdownUnit}>
+                <Text style={styles.countdownValue}>{countdown.seconds}</Text>
+                <Text style={styles.countdownLabel}>seconds</Text>
               </View>
             </View>
-          </View>
-        </ImageBackground>
+          </Animated.View>
+        </View>
 
         {/* Progress Section - Only for ahead events */}
-        {isAhead && (
-          <View style={[styles.section, cardStyle]}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressText}>
-                {countdown.percentDone}% done
-              </Text>
-              <Text style={styles.progressText}>
-                {countdown.percentLeft}% left
-              </Text>
+        {
+          isAhead && (
+            <View style={[styles.section, cardStyle]}>
+              <View style={styles.progressHeader}>
+                <Text style={styles.progressText}>
+                  {countdown.percentDone}% done
+                </Text>
+                <Text style={styles.progressText}>
+                  {countdown.percentLeft}% left
+                </Text>
+              </View>
+              <View style={styles.progressBar}>
+                <View
+                  style={[
+                    styles.progressDone,
+                    {
+                      width: `${countdown.percentDone}%`,
+                      backgroundColor: progressDone,
+                    },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.progressLeft,
+                    {
+                      width: `${countdown.percentLeft}%`,
+                      backgroundColor: progressLeft,
+                    },
+                  ]}
+                />
+              </View>
             </View>
-            <View style={styles.progressBar}>
-              <View
-                style={[
-                  styles.progressDone,
-                  {
-                    width: `${countdown.percentDone}%`,
-                    backgroundColor: progressDone,
-                  },
-                ]}
-              />
-              <View
-                style={[
-                  styles.progressLeft,
-                  {
-                    width: `${countdown.percentLeft}%`,
-                    backgroundColor: progressLeft,
-                  },
-                ]}
-              />
-            </View>
-          </View>
-        )}
+          )
+        }
 
         {/* Date Details Section */}
         <View style={[styles.section, cardStyle]}>
@@ -546,8 +616,8 @@ export function EventDetailScreen({ eventType }: EventDetailScreenProps = {}) {
             <Ionicons name="share-outline" size={20} color={theme.colors.onImage.primary} />
           </HeaderPillButton> */}
         </View>
-      </ScrollView>
-    </View>
+      </Animated.ScrollView >
+    </View >
   );
 }
 
@@ -598,7 +668,24 @@ const createStyles = (theme: any) => StyleSheet.create({
     justifyContent: "center",
   },
 
-  // Hero Section
+  // Hero Background (Absolute)
+  heroBackgroundContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 350,
+    zIndex: 0,
+  },
+  heroBackground: {
+    width: "100%",
+    height: "100%",
+  },
+  // Spacer for ScrollView
+  heroSpacer: {
+    height: 350,
+    justifyContent: "flex-end",
+  },
   heroSection: {
     height: 350,
   },

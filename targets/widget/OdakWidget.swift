@@ -220,14 +220,6 @@ struct AheadEventProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> OdakEventEntry { .placeholder(isCountdown: true) }
 
     func snapshot(for configuration: SelectAheadEventIntent, in context: Context) async -> OdakEventEntry {
-        // In preview mode, return placeholder if no event configured
-        if context.isPreview {
-            let events = OdakStorage.loadAheadEvents()
-            if let firstEvent = events.first {
-                return makeEntry(for: firstEvent, on: Date())
-            }
-            return .placeholder(isCountdown: true)
-        }
         return getEntry(for: configuration)
     }
 
@@ -275,14 +267,6 @@ struct SinceEventProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> OdakEventEntry { .placeholder(isCountdown: false) }
 
     func snapshot(for configuration: SelectSinceEventIntent, in context: Context) async -> OdakEventEntry {
-        // In preview mode, return placeholder if no event configured
-        if context.isPreview {
-            let events = OdakStorage.loadSinceEvents()
-            if let firstEvent = events.first {
-                return makeEntry(for: firstEvent, on: Date())
-            }
-            return .placeholder(isCountdown: false)
-        }
         return getEntry(for: configuration)
     }
 
@@ -367,6 +351,7 @@ struct WidgetSmallView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .containerBackground(for: .widget) {
             if let bgImage = entry.backgroundImage {

@@ -23,9 +23,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useUnistyles } from 'react-native-unistyles';
 import * as Haptics from 'expo-haptics';
-import { Host, HStack, Button as SwiftUIButton, Text as SwiftUIText } from '@expo/ui/swift-ui';
-import { glassEffect, frame, font, foregroundStyle, buttonStyle, tint } from '@expo/ui/swift-ui/modifiers';
-import { hasLiquidGlassSupport } from '../../../utils/capabilities';
+
 
 // Domain
 import {
@@ -73,53 +71,7 @@ function PresetSelector({
   accentColor,
 }: PresetSelectorProps) {
   const { theme } = useUnistyles();
-  const isGlassAvailable = hasLiquidGlassSupport();
 
-  // iOS 26+: Use native SwiftUI Button with Liquid Glass
-  if (Platform.OS === 'ios' && isGlassAvailable) {
-    // Convert hex accent color to rgba with transparency for glass tint
-    const hexToRgba = (hex: string, alpha: number): string => {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    };
-    const glassTint = hexToRgba(accentColor, 0.6);
-
-    return (
-      <Host style={styles.presetSelector} matchContents>
-        <HStack spacing={12} alignment="center">
-          {presets.map((preset) => {
-            const isSelected = preset.id === selectedPresetId;
-            // Selected: accent tinted glass + white text
-            // Non-selected: regular glass + primary text
-            return (
-              <SwiftUIButton
-                key={preset.id}
-                label={String(preset.durationMinutes)}
-                onPress={() => onSelect(preset.id)}
-                modifiers={[
-                  frame({ width: 56, height: 56 }),
-                  glassEffect({
-                    glass: {
-                      variant: 'regular',
-                      interactive: true,
-                      tint: isSelected ? glassTint : undefined,
-                    },
-                    shape: 'circle',
-                  }),
-                  font({ size: 18, weight: 'semibold' }),
-                  foregroundStyle(theme.isDark ? '#FFFFFF' : '#000000'),
-                ]}
-              />
-            );
-          })}
-        </HStack>
-      </Host>
-    );
-  }
-
-  // Fallback: React Native buttons for older iOS or Android
   return (
     <View style={styles.presetSelector}>
       {presets.map((preset) => {

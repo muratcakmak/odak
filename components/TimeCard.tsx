@@ -46,29 +46,30 @@ export function TimeCard({
         </View>
     );
 
-    const cardInnerStyle = [
+    const finalStyle = [
         containerStyle,
-        !image && { backgroundColor: cardBackgroundColor || theme.colors.card }
+        !image && { backgroundColor: cardBackgroundColor || theme.colors.card },
+        style // Allow parent overrides to merge correctly
     ];
 
-    const InnerComponent = (
-        <View style={cardInnerStyle}>
-            {image ? (
-                <ImageBackground
-                    source={{ uri: image }}
-                    style={styles.imageBackground}
-                    imageStyle={styles.imageStyle}
-                >
-                    <View style={styles.darkGradientOverlay} />
-                    {content}
-                </ImageBackground>
-            ) : (
-                content
-            )}
+    if (image) {
+        return (
+            <ImageBackground
+                source={{ uri: image }}
+                style={finalStyle}
+                imageStyle={styles.imageStyle}
+            >
+                <View style={styles.darkGradientOverlay} />
+                {content}
+            </ImageBackground>
+        );
+    }
+
+    return (
+        <View style={finalStyle}>
+            {content}
         </View>
     );
-
-    return <View style={style}>{InnerComponent}</View>;
 }
 
 const createStyles = (theme: any) => StyleSheet.create({

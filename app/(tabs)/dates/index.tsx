@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { StyleSheet, View, Text, ScrollView, Pressable, Modal, TextInput, Platform, Image, Alert } from "react-native";
+import { StyleSheet, View, Text, ScrollView, Pressable, Modal, TextInput, Platform, Image, Alert, Keyboard, TouchableWithoutFeedback, KeyboardAvoidingView, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { hasLiquidGlassSupport } from "../../../utils/capabilities";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -145,18 +145,21 @@ function AddEventModal({
   // Date picker range based on mode
   const dateRange = mode === "ahead"
     ? {
-        start: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        end: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000) // 10 years from now
-      }
+      start: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      end: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000) // 10 years from now
+    }
     : {
-        start: new Date(Date.now() - 50 * 365 * 24 * 60 * 60 * 1000), // 50 years ago
-        end: new Date()
-      };
+      start: new Date(Date.now() - 50 * 365 * 24 * 60 * 60 * 1000), // 50 years ago
+      end: new Date()
+    };
 
   const modalTitle = mode === "ahead" ? "New Event" : "New Milestone";
   const titleLabel = mode === "ahead" ? "Event Title" : "Milestone Title";
   const titlePlaceholder = mode === "ahead" ? "Enter event title..." : "Enter milestone title...";
   const dateLabel = mode === "ahead" ? "Event Date" : "Start Date";
+
+  const { height: screenHeight } = useWindowDimensions();
+  const datePickerHeight = screenHeight * 0.45; // 45% of screen height
 
   return (
     <Modal
@@ -165,71 +168,85 @@ function AddEventModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-        {/* Header */}
-        <View style={styles.modalHeader}>
-          <HeaderButton onPress={onClose}>
-            <Text style={[styles.modalHeaderButton, { color: theme.colors.systemBlue }]}>Cancel</Text>
-          </HeaderButton>
-          <Text style={[styles.modalTitle, { color: theme.colors.textPrimary }]}>{modalTitle}</Text>
-          <HeaderButton onPress={handleAdd} disabled={!title.trim()}>
-            <Text style={[styles.modalHeaderButton, { color: title.trim() ? theme.colors.systemBlue : theme.colors.textSecondary }]}>
-              Add
-            </Text>
-          </HeaderButton>
-        </View>
-
-        {/* Form */}
-        {/* Photo Picker - Full Width Cover */}
-        <Pressable onPress={pickImage} style={[styles.photoPicker, { backgroundColor: inputBg }]}>
-          {selectedImage ? (
-            <Image source={{ uri: selectedImage }} style={styles.selectedPhoto} />
-          ) : (
-            <View style={styles.photoPlaceholder}>
-              <Ionicons name="image-outline" size={32} color={theme.colors.textSecondary} />
-              <Text style={[styles.photoPlaceholderText, { color: theme.colors.textSecondary }]}>
-                Add Cover Photo
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <HeaderButton onPress={onClose}>
+              <Text style={[styles.modalHeaderButton, { color: theme.colors.systemBlue }]}>Cancel</Text>
+            </HeaderButton>
+            <Text style={[styles.modalTitle, { color: theme.colors.textPrimary }]}>{modalTitle}</Text>
+            <HeaderButton onPress={handleAdd} disabled={!title.trim()}>
+              <Text style={[styles.modalHeaderButton, { color: title.trim() ? theme.colors.systemBlue : theme.colors.textSecondary }]}>
+                Add
               </Text>
-            </View>
-          )}
-        </Pressable>
-
-        {/* Form Content */}
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.formContent}>
-          {/* Title Input */}
-          <View style={styles.inputSection}>
-            <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>{titleLabel}</Text>
-            <TextInput
-              style={[styles.textInput, { backgroundColor: inputBg, color: theme.colors.textPrimary }]}
-              placeholder={titlePlaceholder}
-              placeholderTextColor={theme.colors.textSecondary}
-              value={title}
-              onChangeText={setTitle}
-            />
+            </HeaderButton>
           </View>
 
-          {/* Date Picker */}
-          <View style={styles.inputSection}>
-            <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>{dateLabel}</Text>
-            {Platform.OS === "ios" ? (
-              <View style={styles.datePickerContainer}>
-                <Host style={styles.datePickerHost}>
-                  <DatePicker
-                    selection={selectedDate}
-                    onDateChange={setSelectedDate}
-                    range={dateRange}
-                    modifiers={[datePickerStyle("graphical"), tint(accentColor)]}
-                  />
-                </Host>
-              </View>
-            ) : (
-              <Pressable style={[styles.dateButton, { backgroundColor: inputBg }]}>
-                <Text style={{ color: theme.colors.textPrimary }}>{selectedDate.toLocaleDateString()}</Text>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ flex: 1 }}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 20 : 0}
+          >
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={styles.formContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Photo Picker - Full Width Cover */}
+              {/* Moved inside ScrollView to allow scrolling away when keyboard is up */}
+              <Pressable onPress={pickImage} style={[styles.photoPicker, { backgroundColor: inputBg }]}>
+                {selectedImage ? (
+                  <Image source={{ uri: selectedImage }} style={styles.selectedPhoto} />
+                ) : (
+                  <View style={styles.photoPlaceholder}>
+                    <Ionicons name="image-outline" size={32} color={theme.colors.textSecondary} />
+                    <Text style={[styles.photoPlaceholderText, { color: theme.colors.textSecondary }]}>
+                      Add Cover Photo
+                    </Text>
+                  </View>
+                )}
               </Pressable>
-            )}
-          </View>
-        </ScrollView>
-      </View>
+
+              <View style={styles.formControlsContainer}>
+                {/* Title Input */}
+                <View style={styles.inputSection}>
+                  <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>{titleLabel}</Text>
+                  <TextInput
+                    style={[styles.textInput, { backgroundColor: inputBg, color: theme.colors.textPrimary }]}
+                    placeholder={titlePlaceholder}
+                    placeholderTextColor={theme.colors.textSecondary}
+                    value={title}
+                    onChangeText={setTitle}
+                  />
+                </View>
+
+                {/* Date Picker */}
+                <View style={styles.inputSection}>
+                  <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>{dateLabel}</Text>
+                  {Platform.OS === "ios" ? (
+                    <View style={[styles.datePickerContainer, { height: datePickerHeight }]}>
+                      <Host style={[styles.datePickerHost, { height: datePickerHeight }]}>
+                        <DatePicker
+                          selection={selectedDate}
+                          onDateChange={setSelectedDate}
+                          range={dateRange}
+                          modifiers={[datePickerStyle("graphical"), tint(accentColor)]}
+                        />
+                      </Host>
+                    </View>
+                  ) : (
+                    <Pressable style={[styles.dateButton, { backgroundColor: inputBg }]}>
+                      <Text style={{ color: theme.colors.textPrimary }}>{selectedDate.toLocaleDateString()}</Text>
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
@@ -472,9 +489,18 @@ export default function DatesScreen() {
               exiting={FadeOut.duration(150).easing(Easing.in(Easing.quad))}
               style={viewMode === "grid" ? styles.gridCardWrapper : styles.listCardWrapper}
             >
-              <Link href={{ pathname: "/event/[id]", params: { id: event.id } }} style={styles.cardLink}>
-                <Link.Trigger>
-                  <View style={styles.cardTrigger}>
+              <Link href={{ pathname: "/event/[id]", params: { id: event.id } }} style={styles.cardLink} asChild>
+                <Link.Trigger
+                  style={{
+                    borderRadius: viewMode === "grid" ? theme.borderRadius.lg : theme.borderRadius.xl,
+                    overflow: "hidden",
+                  }}
+                >
+                  <Pressable
+                    onPress={() => router.push({ pathname: "/event/[id]", params: { id: event.id } })}
+                    onLongPress={() => null}
+                    delayLongPress={250}
+                  >
                     <TimeCard
                       title={event.title}
                       daysValue={daysValue}
@@ -483,7 +509,7 @@ export default function DatesScreen() {
                       image={event.image}
                       compact={viewMode === "grid"}
                     />
-                  </View>
+                  </Pressable>
                 </Link.Trigger>
                 <Link.Menu>
                   <Link.MenuAction title="Show" icon="eye" onPress={() => handleShowEvent(event.id)} />
@@ -553,6 +579,9 @@ const createStyles = (theme: any) => StyleSheet.create({
     padding: 0,
   },
   formContent: {
+    flexGrow: 1,
+  },
+  formControlsContainer: {
     padding: 20,
   },
   photoPicker: {

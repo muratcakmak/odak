@@ -30,8 +30,7 @@ import Svg, { Circle, Rect, Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { useUnistyles } from 'react-native-unistyles';
 import { Ionicons } from '@expo/vector-icons';
-import { GlassView } from 'expo-glass-effect';
-import { hasLiquidGlassSupport } from '../../utils/capabilities';
+
 
 const BUTTON_SIZE = 72;
 const RING_SIZE = 88;
@@ -79,8 +78,6 @@ interface FocusButtonProps {
 }
 
 function FocusButton({ mode, iconColor, buttonBgColor, accentColor }: FocusButtonProps) {
-  const isGlassAvailable = hasLiquidGlassSupport();
-
   const icon =
     mode === 'idle' ? (
       <Ionicons name="play" size={28} color={iconColor} style={styles.playIcon} />
@@ -90,16 +87,6 @@ function FocusButton({ mode, iconColor, buttonBgColor, accentColor }: FocusButto
       <LockIcon size={28} color={iconColor} />
     );
 
-  // iOS 26+: Use Liquid Glass for ALL modes
-  if (isGlassAvailable) {
-    return (
-      <GlassView style={styles.button} isInteractive>
-        {icon}
-      </GlassView>
-    );
-  }
-
-  // Fallback: Solid color button
   return (
     <View style={[styles.button, { backgroundColor: buttonBgColor }]}>
       {icon}
@@ -140,8 +127,8 @@ export const SwipeToFocus = memo(function SwipeToFocus({
   const defaultLabel = mode === 'idle'
     ? 'Hold to start focus session'
     : mode === 'break'
-    ? 'Skip break'
-    : 'Hold to end focus session';
+      ? 'Skip break'
+      : 'Hold to end focus session';
 
   // Track VoiceOver state
   useEffect(() => {
@@ -298,23 +285,23 @@ export const SwipeToFocus = memo(function SwipeToFocus({
   const activeColor = accentColor || theme.colors.systemOrange;
 
   const buttonBgColor = mode === 'idle'
-    ? activeColor
+    ? (theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)')
     : mode === 'break'
-    ? 'rgba(255,255,255,0.2)' // White translucent for break (on accent bg)
-    : (theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)');
+      ? 'rgba(255,255,255,0.2)' // White translucent for break (on accent bg)
+      : (theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)');
 
   const ringColor = mode === 'idle'
     ? activeColor
     : mode === 'break'
-    ? 'rgba(255,255,255,0.3)' // Subtle white ring for break
-    : theme.colors.systemRed;
+      ? 'rgba(255,255,255,0.3)' // Subtle white ring for break
+      : theme.colors.systemRed;
 
   // Icon colors: accent for play (call-to-action), muted for focusing, white for break
   const iconColor = mode === 'idle'
     ? activeColor // Accent colored play icon on glass
     : mode === 'break'
-    ? '#FFFFFF' // White icon for break (on accent background)
-    : (theme.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)');
+      ? '#FFFFFF' // White icon for break (on accent background)
+      : (theme.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)');
 
   return (
     <View style={styles.container}>
@@ -371,8 +358,8 @@ export const SwipeToFocus = memo(function SwipeToFocus({
         accessibilityHint={mode === 'idle'
           ? "Double tap to start a focus session immediately"
           : mode === 'break'
-          ? "Double tap to skip break and return to idle"
-          : "Double tap to end focus session immediately"
+            ? "Double tap to skip break and return to idle"
+            : "Double tap to end focus session immediately"
         }
       />
     </View>

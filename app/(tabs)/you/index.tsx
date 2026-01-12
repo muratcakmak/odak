@@ -436,17 +436,20 @@ const createStyles = (theme: any) => StyleSheet.create({
   streakCard: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 32,
-    paddingHorizontal: 24,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
     borderRadius: 24,
     marginBottom: 16,
+    aspectRatio: 1,
+    width: "50%",
+    alignSelf: "center",
     ...theme.effects.shadow.card,
   },
   streakIcon: {
     marginBottom: 8,
   },
   streakValue: {
-    fontSize: 56,
+    fontSize: 42,
     fontWeight: "800",
     color: theme.colors.onImage.primary,
     fontVariant: ["tabular-nums"],
