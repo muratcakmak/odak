@@ -383,7 +383,7 @@ export function useBackgroundMode(): BackgroundMode {
 }
 
 // Accent Color Preference
-export type AccentColor = "white" | "blue" | "green" | "orange" | "yellow" | "pink" | "red" | "mint" | "purple" | "brown";
+export type AccentColor = "blue" | "green" | "orange" | "yellow" | "pink" | "red" | "mint" | "purple" | "brown";
 
 const ACCENT_COLOR_KEY = "accent_color";
 

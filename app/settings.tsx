@@ -200,11 +200,6 @@ export default function SettingsScreen() {
                 <ContextMenu activationMethod="singlePress">
                   <ContextMenu.Items>
                     <Button
-                      label="White"
-                      systemImage={accentColorState === "white" ? "checkmark" : undefined}
-                      onPress={() => handleAccentColorChange("white")}
-                    />
-                    <Button
                       label="Blue"
                       systemImage={accentColorState === "blue" ? "checkmark" : undefined}
                       onPress={() => handleAccentColorChange("blue")}

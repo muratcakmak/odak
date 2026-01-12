@@ -1,14 +1,17 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useUnistyles } from "react-native-unistyles";
-import { useAccentColor } from "../../utils/storage";
+import { useAccentColor, useBackgroundMode } from "../../utils/storage";
 import { hasLiquidGlassSupport } from "../../utils/capabilities";
 
 
 export default function TabLayout() {
   const { rt, theme } = useUnistyles();
   const accentColorName = useAccentColor();
-  const accentColor = theme.colors.accent[accentColorName].primary;
+  const backgroundMode = useBackgroundMode();
+  const accent = theme.colors.accent[accentColorName];
   const isDark = rt.themeName === "dark";
+  // Use secondary color for dark mode for better visibility
+  const accentColor = isDark ? accent.secondary : accent.primary;
 
   // On iOS 26+ with Liquid Glass, the system handles blur automatically
   // On iOS 18, we need explicit blur effect
@@ -18,6 +21,8 @@ export default function TabLayout() {
 
   return (
     <NativeTabs
+      // Key forces re-render when theme, accent, or background mode changes
+      key={`tabs-${isDark ? 'dark' : 'light'}-${accentColorName}-${backgroundMode}`}
       tintColor={accentColor}
       blurEffect={blurEffect}
       disableTransparentOnScrollEdge={true}
