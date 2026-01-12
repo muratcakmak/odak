@@ -177,8 +177,8 @@ const Dot = memo(function Dot({
     return isActive || isCharged
       ? (accentColor || theme.colors.systemOrange)
       : theme.isDark
-      ? 'rgba(255, 255, 255, 0.15)'
-      : 'rgba(0, 0, 0, 0.1)';
+        ? 'rgba(255, 255, 255, 0.15)'
+        : 'rgba(0, 0, 0, 0.1)';
   }, [isBreak, isActive, isCharged, accentColor, theme]);
 
   return (
