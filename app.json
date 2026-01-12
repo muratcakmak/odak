@@ -58,7 +58,8 @@
         {
           "appGroupId": "group.com.omc345.odak"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
