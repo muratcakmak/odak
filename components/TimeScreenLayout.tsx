@@ -30,6 +30,9 @@ export interface TimeScreenLayoutProps {
 
     // Header visibility - set to false when using native transparent header
     showHeader?: boolean;
+
+    // Sticky content rendered below header but above scrollable content
+    stickyHeader?: React.ReactNode;
 }
 
 
@@ -44,6 +47,7 @@ export function TimeScreenLayout({
     emptyStateSubtext,
     viewMode,
     showHeader = true,
+    stickyHeader,
 }: TimeScreenLayoutProps) {
     const { theme } = useUnistyles();
     const styles = createStyles(theme);
@@ -73,6 +77,8 @@ export function TimeScreenLayout({
                 contentInsetAdjustmentBehavior={showHeader ? undefined : "automatic"}
                 showsVerticalScrollIndicator={false}
             >
+                {/* Sticky Header - rendered at top of scroll content */}
+                {stickyHeader}
                 {isEmpty ? (
                     <View style={styles.emptyState}>
                         <Ionicons name={emptyStateIcon as any} size={48} color={theme.colors.textPrimary} style={{ opacity: 0.3 }} />

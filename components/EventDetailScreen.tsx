@@ -327,7 +327,7 @@ export function EventDetailScreen() {
               if (router.canGoBack()) {
                 router.back();
               } else {
-                router.replace("/ahead");
+                router.replace("/dates");
               }
             }}
             style={styles.notFoundBackButton}
@@ -384,7 +384,7 @@ export function EventDetailScreen() {
                   if (router.canGoBack()) {
                     router.back();
                   } else {
-                    router.replace("/ahead");
+                    router.replace("/dates");
                   }
                 }}
                 style={styles.closeButton}

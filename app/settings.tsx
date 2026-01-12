@@ -33,7 +33,10 @@ import {
   useLifeSymbol,
   getLifespan,
   setLifespan,
+  getFocusSettings,
+  saveFocusSettings,
 } from "../utils/storage";
+import type { FocusSettings } from "../domain/types";
 import { useUnistyles, UnistylesRuntime } from "react-native-unistyles";
 
 // Plus badge component
@@ -151,6 +154,7 @@ export default function SettingsScreen() {
   const [showLifespanInput, setShowLifespanInput] = useState(false);
   const [tempLifespan, setTempLifespan] = useState("75");
   const [backgroundMode, setBackgroundModeState] = useState<BackgroundMode>("device");
+  const [focusSettings, setFocusSettingsState] = useState<FocusSettings>(getFocusSettings);
 
   // Load profile and preferences from MMKV on mount
   useEffect(() => {
@@ -176,6 +180,16 @@ export default function SettingsScreen() {
   const handleLifeUnitChange = (unit: LifeUnit) => {
     setLifeUnitState(unit);
     setLifeUnit(unit);
+  };
+
+  // Focus settings handlers
+  const updateFocusSetting = <K extends keyof FocusSettings>(
+    key: K,
+    value: FocusSettings[K]
+  ) => {
+    const updated = { ...focusSettings, [key]: value };
+    setFocusSettingsState(updated);
+    saveFocusSettings(updated);
   };
 
   const formatLifeUnit = (unit: LifeUnit): string => {
@@ -551,24 +565,113 @@ export default function SettingsScreen() {
               </View>
             )}
           </View>
-          {/* <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
+        </View>
+
+        {/* Focus Section */}
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Focus</Text>
+        <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
           <SettingsRow
-            icon="eye-off"
-            iconBg={colors.systemRed}
-            label="Hide You section"
+            icon="eye-outline"
+            iconBg={colors.systemBlue}
+            label="Show time remaining"
+            subtitle="Display minutes during focus"
             showSwitch
-            switchValue={hideYouSection}
-            onSwitchChange={setHideYouSection}
+            switchValue={focusSettings.showMinutesRemaining}
+            onSwitchChange={(value) => updateFocusSetting("showMinutesRemaining", value)}
             textColor={colors.textPrimary}
             secondaryTextColor={colors.textSecondary}
-          /> */}
-          {/* <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
-          <Text style={[styles.cardFooter, { color: colors.textSecondary }]}>
-            The theme and background selected will be used to display the app
-            symbols. Plus members can change the dots to other symbols as
-            squares, stars, hearts and more.
-          </Text> */}
+          />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
+          <SettingsRow
+            icon="play-outline"
+            iconBg={colors.systemOrange}
+            label="Auto-start break"
+            subtitle="Begin break after focus ends"
+            showSwitch
+            switchValue={focusSettings.autoBreakEnabled}
+            onSwitchChange={(value) => updateFocusSetting("autoBreakEnabled", value)}
+            textColor={colors.textPrimary}
+            secondaryTextColor={colors.textSecondary}
+          />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
+          <SettingsRow
+            icon="volume-high-outline"
+            iconBg={colors.systemPurple}
+            label="Sounds"
+            subtitle="Audio feedback"
+            showSwitch
+            switchValue={focusSettings.soundEnabled}
+            onSwitchChange={(value) => updateFocusSetting("soundEnabled", value)}
+            textColor={colors.textPrimary}
+            secondaryTextColor={colors.textSecondary}
+          />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
+          <SettingsRow
+            icon="phone-portrait-outline"
+            iconBg={colors.systemGreen}
+            label="Vibration"
+            subtitle="Haptic feedback"
+            showSwitch
+            switchValue={focusSettings.vibrationEnabled}
+            onSwitchChange={(value) => updateFocusSetting("vibrationEnabled", value)}
+            textColor={colors.textPrimary}
+            secondaryTextColor={colors.textSecondary}
+          />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
+          {/* Break Duration Row with Context Menu */}
+          <View style={styles.settingsRow}>
+            <View style={[styles.settingsIcon, { backgroundColor: colors.systemOrange }]}>
+              <Ionicons name="hourglass-outline" size={16} color={colors.onImage.primary} />
+            </View>
+            <View style={styles.settingsLabelContainer}>
+              <Text style={[styles.settingsLabel, { color: colors.textPrimary }]}>Break duration</Text>
+            </View>
+            {Platform.OS === "ios" ? (
+              <Host style={{ height: 24 }}>
+                <ContextMenu activationMethod="singlePress">
+                  <ContextMenu.Items>
+                    <Button
+                      label="3 minutes"
+                      systemImage={focusSettings.breakDurationMinutes === 3 ? "checkmark" : undefined}
+                      onPress={() => updateFocusSetting("breakDurationMinutes", 3)}
+                    />
+                    <Button
+                      label="5 minutes"
+                      systemImage={focusSettings.breakDurationMinutes === 5 ? "checkmark" : undefined}
+                      onPress={() => updateFocusSetting("breakDurationMinutes", 5)}
+                    />
+                    <Button
+                      label="10 minutes"
+                      systemImage={focusSettings.breakDurationMinutes === 10 ? "checkmark" : undefined}
+                      onPress={() => updateFocusSetting("breakDurationMinutes", 10)}
+                    />
+                    <Button
+                      label="15 minutes"
+                      systemImage={focusSettings.breakDurationMinutes === 15 ? "checkmark" : undefined}
+                      onPress={() => updateFocusSetting("breakDurationMinutes", 15)}
+                    />
+                  </ContextMenu.Items>
+                  <ContextMenu.Trigger>
+                    <View style={styles.settingsRight}>
+                      <Text style={[styles.settingsValue, { color: colors.textSecondary }]}>
+                        {focusSettings.breakDurationMinutes} min
+                      </Text>
+                      <Ionicons name="chevron-expand" size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+                    </View>
+                  </ContextMenu.Trigger>
+                </ContextMenu>
+              </Host>
+            ) : (
+              <View style={styles.settingsRight}>
+                <Text style={[styles.settingsValue, { color: colors.textSecondary }]}>
+                  {focusSettings.breakDurationMinutes} min
+                </Text>
+                <Ionicons name="chevron-expand" size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+              </View>
+            )}
+          </View>
         </View>
+
         {/* TODO: Enable notifications after beta testing */}
         {/* Notifications Section */}
         {/* <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Notifications</Text>

@@ -2,7 +2,7 @@ import { Stack } from "expo-router";
 import { hasLiquidGlassSupport } from "../../../utils/capabilities";
 import { useUnistyles } from "react-native-unistyles";
 
-export default function AheadLayout() {
+export default function DatesLayout() {
   const isGlassAvailable = hasLiquidGlassSupport();
   const { rt, theme } = useUnistyles();
 

@@ -1,95 +1,150 @@
 /**
- * Bank Screen
+ * Stats Screen
  *
- * Displays completed focus sessions grouped by day.
- * Sessions are stored locally and persist across app restarts.
+ * Focus analytics and patterns visualization.
+ * Shows today's stats, 7-day/30-day/90-day charts, and session dot heatmap.
+ *
+ * Philosophy: "Time as texture" - dots represent focus, not just numbers.
  */
 
-import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import React, { useMemo, useCallback, useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SectionList,
+  ScrollView,
   RefreshControl,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUnistyles } from 'react-native-unistyles';
+import { useNavigation, router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
 import { getFocusHistory, storage } from '../../../utils/storage';
-import { getPreset } from '../../../domain';
+import { hasLiquidGlassSupport } from '../../../utils/capabilities';
 import type { FocusSession } from '../../../domain/types';
 
-// Group sessions by day
-function groupSessionsByDay(sessions: FocusSession[]): { title: string; data: FocusSession[] }[] {
-  const today = new Date().toDateString();
-  const yesterday = new Date(Date.now() - 86400000).toDateString();
-
-  const groups: Record<string, FocusSession[]> = {};
-
-  // Deduplicate sessions by ID (keep first occurrence)
-  const seen = new Set<string>();
-  const deduplicated = sessions.filter((session) => {
-    if (seen.has(session.id)) return false;
-    seen.add(session.id);
-    return true;
-  });
-
-  // Sort sessions by startedAt descending (most recent first)
-  const sorted = [...deduplicated].sort(
-    (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
+// Date utilities (no external deps)
+function isToday(date: Date): boolean {
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
   );
-
-  for (const session of sorted) {
-    const date = new Date(session.startedAt).toDateString();
-    const key = date === today ? 'Today' : date === yesterday ? 'Yesterday' : formatDateHeader(date);
-
-    if (!groups[key]) {
-      groups[key] = [];
-    }
-    groups[key].push(session);
-  }
-
-  // Convert to section list format, maintaining order (Today first)
-  const orderedKeys = Object.keys(groups).sort((a, b) => {
-    if (a === 'Today') return -1;
-    if (b === 'Today') return 1;
-    if (a === 'Yesterday') return -1;
-    if (b === 'Yesterday') return 1;
-    return 0; // Keep other dates in their current order
-  });
-
-  return orderedKeys.map((title) => ({
-    title,
-    data: groups[title],
-  }));
 }
 
-// Format date for section header (e.g., "Mon, Jan 15")
-function formatDateHeader(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
+function isSameDay(date1: Date, date2: Date): boolean {
+  return (
+    date1.getDate() === date2.getDate() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getFullYear() === date2.getFullYear()
+  );
 }
 
-// Format time for session (e.g., "2:30 PM")
-function formatTime(isoString: string): string {
-  const date = new Date(isoString);
-  return date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+function subDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setDate(result.getDate() - days);
+  return result;
+}
+
+function formatDayShort(date: Date): string {
+  return date.toLocaleDateString('en-US', { weekday: 'short' });
+}
+
+// Types
+interface DayStats {
+  date: Date;
+  day: string;
+  sessions: number;
+  minutes: number;
+}
+
+interface WeekStats {
+  weekStart: Date;
+  label: string;
+  sessions: number;
+  minutes: number;
+}
+
+interface MonthStats {
+  monthStart: Date;
+  label: string;
+  sessions: number;
+  minutes: number;
+}
+
+// Get start of week (Sunday)
+function startOfWeek(date: Date): Date {
+  const result = new Date(date);
+  const day = result.getDay();
+  result.setDate(result.getDate() - day);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+// Get start of month
+function startOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+// Check if date is within range (inclusive)
+function isWithinDays(date: Date, daysAgo: number): boolean {
+  const now = new Date();
+  const cutoff = subDays(now, daysAgo);
+  cutoff.setHours(0, 0, 0, 0);
+  return date >= cutoff;
+}
+
+// Format week label (e.g., "Jan 5")
+function formatWeekLabel(date: Date): string {
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// Format month label (e.g., "Jan")
+function formatMonthLabel(date: Date): string {
+  return date.toLocaleDateString('en-US', { month: 'short' });
 }
 
 export default function BankScreen() {
   const insets = useSafeAreaInsets();
-  const { theme } = useUnistyles();
+  const { theme, rt } = useUnistyles();
+  const navigation = useNavigation();
 
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Header button color (match liquid glass handling)
+  const isLiquidGlass = hasLiquidGlassSupport();
+  const headerIconColor =
+    isLiquidGlass && rt.themeName === 'light'
+      ? '#000000'
+      : theme.colors.textPrimary;
+
+  // Set up header right button for History
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => router.push('/bank/history')}
+          style={({ pressed }) => ({
+            opacity: pressed ? 0.5 : 1,
+            paddingHorizontal: 8,
+          })}
+          accessibilityLabel="View session history"
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name="list-outline"
+            size={22}
+            color={headerIconColor}
+          />
+        </Pressable>
+      ),
+    });
+  }, [navigation, headerIconColor]);
 
   // Load sessions on mount and when storage changes
   useEffect(() => {
@@ -97,8 +152,6 @@ export default function BankScreen() {
 
     const listener = storage.addOnValueChangedListener((key) => {
       if (key === 'focus_history') {
-        // Defer state update to avoid "Cannot update while rendering" error
-        // This happens because addFocusSession triggers during Focus reducer
         queueMicrotask(() => {
           setSessions(getFocusHistory());
         });
@@ -108,9 +161,6 @@ export default function BankScreen() {
     return () => listener.remove();
   }, []);
 
-  // Group sessions by day
-  const sections = useMemo(() => groupSessionsByDay(sessions), [sessions]);
-
   // Pull to refresh
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -118,93 +168,147 @@ export default function BankScreen() {
     setRefreshing(false);
   }, []);
 
-  // Render session item
-  const renderItem = useCallback(
-    ({ item }: { item: FocusSession }) => {
-      const preset = getPreset(item.presetId);
+  // Today's stats
+  const todayStats = useMemo(() => {
+    const todaySessions = sessions.filter(
+      (s) => isToday(new Date(s.startedAt)) && s.wasCompleted
+    );
+    return {
+      count: todaySessions.length,
+      minutes: todaySessions.reduce((acc, s) => acc + s.totalMinutes, 0),
+    };
+  }, [sessions]);
 
-      return (
-        <View
-          style={[
-            styles.sessionCard,
-            {
-              backgroundColor: theme.isDark
-                ? 'rgba(255,255,255,0.05)'
-                : 'rgba(0,0,0,0.03)',
-            },
-          ]}
-        >
-          <View style={styles.sessionInfo}>
-            <Text style={[styles.presetName, { color: theme.colors.textPrimary }]}>
-              {preset.name}
-            </Text>
-            <Text style={[styles.sessionMeta, { color: theme.colors.textTertiary }]}>
-              {item.totalMinutes} min • {formatTime(item.startedAt)}
-            </Text>
-          </View>
+  // 7-day data
+  const weekData = useMemo(() => {
+    const days: DayStats[] = [];
+    const now = new Date();
 
-          <View style={styles.sessionStatus}>
-            {item.wasCompleted ? (
-              <View style={[styles.statusBadge, { backgroundColor: theme.colors.systemGreen }]}>
-                <Text style={styles.statusText}>✓</Text>
-              </View>
-            ) : (
-              <View
-                style={[
-                  styles.statusBadge,
-                  { backgroundColor: theme.colors.systemOrange },
-                ]}
-              >
-                <Text style={styles.statusText}>–</Text>
-              </View>
-            )}
-          </View>
-        </View>
+    for (let i = 6; i >= 0; i--) {
+      const date = subDays(now, i);
+      const daySessions = sessions.filter((s) => {
+        const sessionDate = new Date(s.startedAt);
+        return isSameDay(sessionDate, date) && s.wasCompleted;
+      });
+
+      days.push({
+        date,
+        day: formatDayShort(date),
+        sessions: daySessions.length,
+        minutes: daySessions.reduce((acc, s) => acc + s.totalMinutes, 0),
+      });
+    }
+
+    return days;
+  }, [sessions]);
+
+  const maxMinutes = Math.max(...weekData.map((d) => d.minutes), 1);
+  const weekTotal = weekData.reduce((acc, d) => acc + d.minutes, 0);
+  const weekSessions = weekData.reduce((acc, d) => acc + d.sessions, 0);
+
+  // 30-day data (grouped by week - 4 weeks)
+  const monthData = useMemo(() => {
+    const weeks: WeekStats[] = [];
+    const now = new Date();
+
+    for (let i = 3; i >= 0; i--) {
+      const weekStart = startOfWeek(subDays(now, i * 7));
+      const weekEnd = subDays(weekStart, -7);
+
+      const weekSessions = sessions.filter((s) => {
+        const sessionDate = new Date(s.startedAt);
+        return (
+          sessionDate >= weekStart &&
+          sessionDate < weekEnd &&
+          s.wasCompleted &&
+          isWithinDays(sessionDate, 30)
+        );
+      });
+
+      weeks.push({
+        weekStart,
+        label: formatWeekLabel(weekStart),
+        sessions: weekSessions.length,
+        minutes: weekSessions.reduce((acc, s) => acc + s.totalMinutes, 0),
+      });
+    }
+
+    return weeks;
+  }, [sessions]);
+
+  const maxMonthMinutes = Math.max(...monthData.map((w) => w.minutes), 1);
+  const monthTotal = monthData.reduce((acc, w) => acc + w.minutes, 0);
+  const monthSessions = monthData.reduce((acc, w) => acc + w.sessions, 0);
+
+  // 90-day data (grouped by month - 3 months)
+  const quarterData = useMemo(() => {
+    const months: MonthStats[] = [];
+    const now = new Date();
+
+    for (let i = 2; i >= 0; i--) {
+      const monthStart = startOfMonth(
+        new Date(now.getFullYear(), now.getMonth() - i, 1)
       );
-    },
-    [theme]
-  );
+      const monthEnd = startOfMonth(
+        new Date(now.getFullYear(), now.getMonth() - i + 1, 1)
+      );
 
-  // Render section header
-  const renderSectionHeader = useCallback(
-    ({ section }: { section: { title: string } }) => (
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
-          {section.title}
-        </Text>
-      </View>
-    ),
-    [theme]
-  );
+      const monthSessions = sessions.filter((s) => {
+        const sessionDate = new Date(s.startedAt);
+        return (
+          sessionDate >= monthStart &&
+          sessionDate < monthEnd &&
+          s.wasCompleted
+        );
+      });
 
-  // Empty state
-  const renderEmpty = useCallback(
-    () => (
-      <View style={styles.emptyState}>
-        <Text style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}>
-          No sessions yet
-        </Text>
-        <Text style={[styles.emptySubtitle, { color: theme.colors.textTertiary }]}>
-          Complete a focus session to see it here
-        </Text>
-      </View>
-    ),
-    [theme]
-  );
+      months.push({
+        monthStart,
+        label: formatMonthLabel(monthStart),
+        sessions: monthSessions.length,
+        minutes: monthSessions.reduce((acc, s) => acc + s.totalMinutes, 0),
+      });
+    }
+
+    return months;
+  }, [sessions]);
+
+  const maxQuarterMinutes = Math.max(...quarterData.map((m) => m.minutes), 1);
+  const quarterTotal = quarterData.reduce((acc, m) => acc + m.minutes, 0);
+  const quarterSessions = quarterData.reduce((acc, m) => acc + m.sessions, 0);
+
+  // Check if current period for highlighting
+  const isCurrentWeek = (weekStart: Date): boolean => {
+    const now = new Date();
+    const currentWeekStart = startOfWeek(now);
+    return weekStart.getTime() === currentWeekStart.getTime();
+  };
+
+  const isCurrentMonth = (monthStart: Date): boolean => {
+    const now = new Date();
+    return (
+      monthStart.getMonth() === now.getMonth() &&
+      monthStart.getFullYear() === now.getFullYear()
+    );
+  };
+
+  // Colors
+  const cardBg = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  const barEmpty = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const barFilled = theme.colors.systemOrange;
+  const barFilledFaded = theme.isDark
+    ? 'rgba(255,149,0,0.6)'
+    : 'rgba(255,149,0,0.5)';
+  const dotColor = theme.colors.systemOrange;
 
   // Tab bar height estimate
   const tabBarHeight = 90;
 
   return (
-    <SectionList
+    <ScrollView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
-      sections={sections}
-      keyExtractor={(item, index) => `${item.id}_${index}`}
-      renderItem={renderItem}
-      renderSectionHeader={renderSectionHeader}
-      ListEmptyComponent={renderEmpty}
       contentContainerStyle={[
-        styles.listContent,
+        styles.content,
         { paddingBottom: tabBarHeight + insets.bottom },
       ]}
       refreshControl={
@@ -214,10 +318,260 @@ export default function BankScreen() {
           tintColor={theme.colors.textTertiary}
         />
       }
-      stickySectionHeadersEnabled={false}
       showsVerticalScrollIndicator={false}
       contentInsetAdjustmentBehavior="automatic"
-    />
+    >
+      {/* Today Card */}
+      <Animated.View
+        entering={FadeInDown.delay(0).duration(400)}
+        style={[styles.card, { backgroundColor: cardBg }]}
+      >
+        <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]}>
+          Today
+        </Text>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: theme.colors.textPrimary }]}>
+              {todayStats.count}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textTertiary }]}>
+              sessions
+            </Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: theme.colors.systemOrange }]}>
+              {todayStats.minutes}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.colors.textTertiary }]}>
+              minutes
+            </Text>
+          </View>
+        </View>
+      </Animated.View>
+
+      {/* Week Chart */}
+      <Animated.View
+        entering={FadeInDown.delay(100).duration(400)}
+        style={[styles.card, { backgroundColor: cardBg }]}
+      >
+        <View style={styles.cardHeader}>
+          <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]}>
+            Last 7 days
+          </Text>
+          <Text style={[styles.weekSummary, { color: theme.colors.textPrimary }]}>
+            {weekTotal} min · {weekSessions} sessions
+          </Text>
+        </View>
+
+        {/* Bar chart */}
+        <View style={styles.chartContainer}>
+          {weekData.map((day, index) => {
+            const heightPercent =
+              day.minutes > 0
+                ? Math.max((day.minutes / maxMinutes) * 100, 8)
+                : 8;
+            const isActiveToday = isToday(day.date);
+            const barColor =
+              day.minutes > 0
+                ? isActiveToday
+                  ? barFilled
+                  : barFilledFaded
+                : barEmpty;
+
+            return (
+              <Animated.View
+                key={day.day + index}
+                entering={FadeIn.delay(index * 50).duration(300)}
+                style={styles.barColumn}
+              >
+                <View style={styles.barWrapper}>
+                  <View
+                    style={[
+                      styles.bar,
+                      {
+                        height: `${heightPercent}%`,
+                        backgroundColor: barColor,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.dayLabel,
+                    {
+                      color: isActiveToday
+                        ? theme.colors.textPrimary
+                        : theme.colors.textTertiary,
+                      fontWeight: isActiveToday ? '600' : '400',
+                    },
+                  ]}
+                >
+                  {day.day}
+                </Text>
+              </Animated.View>
+            );
+          })}
+        </View>
+      </Animated.View>
+
+      {/* 30-Day Chart (Weekly) */}
+      <Animated.View
+        entering={FadeInDown.delay(200).duration(400)}
+        style={[styles.card, { backgroundColor: cardBg }]}
+      >
+        <View style={styles.cardHeader}>
+          <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]}>
+            Last 30 days
+          </Text>
+          <Text style={[styles.weekSummary, { color: theme.colors.textPrimary }]}>
+            {monthTotal} min · {monthSessions} sessions
+          </Text>
+        </View>
+
+        {/* Weekly bar chart */}
+        <View style={styles.chartContainer}>
+          {monthData.map((week, index) => {
+            const heightPercent =
+              week.minutes > 0
+                ? Math.max((week.minutes / maxMonthMinutes) * 100, 8)
+                : 8;
+            const isCurrent = isCurrentWeek(week.weekStart);
+            const barColor =
+              week.minutes > 0
+                ? isCurrent
+                  ? barFilled
+                  : barFilledFaded
+                : barEmpty;
+
+            return (
+              <Animated.View
+                key={week.label + index}
+                entering={FadeIn.delay(index * 50).duration(300)}
+                style={styles.barColumn}
+              >
+                <View style={styles.barWrapper}>
+                  <View
+                    style={[
+                      styles.bar,
+                      {
+                        height: `${heightPercent}%`,
+                        backgroundColor: barColor,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.dayLabel,
+                    {
+                      color: isCurrent
+                        ? theme.colors.textPrimary
+                        : theme.colors.textTertiary,
+                      fontWeight: isCurrent ? '600' : '400',
+                    },
+                  ]}
+                >
+                  {week.label}
+                </Text>
+              </Animated.View>
+            );
+          })}
+        </View>
+      </Animated.View>
+
+      {/* 90-Day Chart (Monthly) */}
+      <Animated.View
+        entering={FadeInDown.delay(300).duration(400)}
+        style={[styles.card, { backgroundColor: cardBg }]}
+      >
+        <View style={styles.cardHeader}>
+          <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]}>
+            Last 90 days
+          </Text>
+          <Text style={[styles.weekSummary, { color: theme.colors.textPrimary }]}>
+            {quarterTotal} min · {quarterSessions} sessions
+          </Text>
+        </View>
+
+        {/* Monthly bar chart */}
+        <View style={styles.chartContainer}>
+          {quarterData.map((month, index) => {
+            const heightPercent =
+              month.minutes > 0
+                ? Math.max((month.minutes / maxQuarterMinutes) * 100, 8)
+                : 8;
+            const isCurrent = isCurrentMonth(month.monthStart);
+            const barColor =
+              month.minutes > 0
+                ? isCurrent
+                  ? barFilled
+                  : barFilledFaded
+                : barEmpty;
+
+            return (
+              <Animated.View
+                key={month.label + index}
+                entering={FadeIn.delay(index * 50).duration(300)}
+                style={styles.barColumn}
+              >
+                <View style={styles.barWrapper}>
+                  <View
+                    style={[
+                      styles.bar,
+                      {
+                        height: `${heightPercent}%`,
+                        backgroundColor: barColor,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.dayLabel,
+                    {
+                      color: isCurrent
+                        ? theme.colors.textPrimary
+                        : theme.colors.textTertiary,
+                      fontWeight: isCurrent ? '600' : '400',
+                    },
+                  ]}
+                >
+                  {month.label}
+                </Text>
+              </Animated.View>
+            );
+          })}
+        </View>
+      </Animated.View>
+
+      {/* Dot Heatmap */}
+      <Animated.View
+        entering={FadeInDown.delay(400).duration(400)}
+        style={[styles.card, { backgroundColor: cardBg }]}
+      >
+        <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]}>
+          Session dots
+        </Text>
+
+        {weekSessions > 0 ? (
+          <View style={styles.dotsContainer}>
+            {weekData.flatMap((day, dayIndex) =>
+              Array.from({ length: day.sessions }).map((_, i) => (
+                <Animated.View
+                  key={`${day.day}-${dayIndex}-${i}`}
+                  entering={FadeIn.delay((dayIndex * 4 + i) * 30).duration(200)}
+                  style={[styles.dot, { backgroundColor: dotColor }]}
+                />
+              ))
+            )}
+          </View>
+        ) : (
+          <Text style={[styles.emptyText, { color: theme.colors.textTertiary }]}>
+            Complete sessions to see dots here
+          </Text>
+        )}
+      </Animated.View>
+    </ScrollView>
   );
 }
 
@@ -225,64 +579,86 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  listContent: {
-    paddingHorizontal: 16,
+  content: {
+    padding: 16,
+    gap: 16,
   },
-  sectionHeader: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+  card: {
+    padding: 20,
+    borderRadius: 16,
   },
-  sectionTitle: {
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  cardLabel: {
     fontSize: 13,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    marginBottom: 16,
   },
-  sessionCard: {
+  statsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    gap: 32,
   },
-  sessionInfo: {
+  statItem: {
     flex: 1,
   },
-  presetName: {
-    fontSize: 17,
+  statValue: {
+    fontSize: 40,
     fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
-  sessionMeta: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  sessionStatus: {},
-  statusBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusText: {
-    color: '#FFFFFF',
+  statLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    marginTop: 4,
   },
-  emptyState: {
+  weekSummary: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  chartContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: 120,
+    gap: 8,
+  },
+  barColumn: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
+    gap: 8,
   },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 8,
+  barWrapper: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
   },
-  emptySubtitle: {
-    fontSize: 15,
-    textAlign: 'center',
+  bar: {
+    width: 24,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
+    minHeight: 8,
+  },
+  dayLabel: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  dot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  emptyText: {
+    fontSize: 14,
   },
 });

@@ -30,24 +30,17 @@ export default function TabLayout() {
         />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="bank">
-        <NativeTabs.Trigger.Label>Bank</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Stats</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          sf="wallet.pass"
-          drawable="ic_wallet"
+          sf="chart.bar.fill"
+          drawable="ic_chart"
         />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="ahead">
-        <NativeTabs.Trigger.Label>Ahead</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="dates">
+        <NativeTabs.Trigger.Label>Dates</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          sf="macwindow"
-          drawable="ic_window"
-        />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="since">
-        <NativeTabs.Trigger.Label>Since</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf="circle.grid.2x2.fill"
-          drawable="ic_grid"
+          sf="calendar"
+          drawable="ic_calendar"
         />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="you">

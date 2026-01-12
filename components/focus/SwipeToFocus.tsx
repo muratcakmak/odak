@@ -48,6 +48,8 @@ interface SwipeToFocusProps {
   onComplete: () => void;
   /** Disable interaction */
   disabled?: boolean;
+  /** Enable haptic feedback (default: true) */
+  vibrationEnabled?: boolean;
   /** Accessibility label for VoiceOver */
   accessibilityLabel?: string;
 }
@@ -56,6 +58,7 @@ export const SwipeToFocus = memo(function SwipeToFocus({
   mode,
   onComplete,
   disabled = false,
+  vibrationEnabled = true,
   accessibilityLabel,
 }: SwipeToFocusProps) {
   const { theme } = useUnistyles();
@@ -116,9 +119,9 @@ export const SwipeToFocus = memo(function SwipeToFocus({
     };
   }, []);
 
-  // Haptic feedback
+  // Haptic feedback (respects vibrationEnabled setting)
   const triggerHaptic = useCallback((type: 'light' | 'medium' | 'success' | 'warning') => {
-    if (Platform.OS !== 'ios') return;
+    if (Platform.OS !== 'ios' || !vibrationEnabled) return;
 
     switch (type) {
       case 'light':
@@ -134,7 +137,7 @@ export const SwipeToFocus = memo(function SwipeToFocus({
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         break;
     }
-  }, []);
+  }, [vibrationEnabled]);
 
   // Handle hold completion
   const handleComplete = useCallback(() => {

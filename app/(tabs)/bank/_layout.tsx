@@ -29,7 +29,14 @@ export default function BankLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: "Bank",
+          title: "Stats",
+        }}
+      />
+      <Stack.Screen
+        name="history"
+        options={{
+          title: "History",
+          headerLargeTitle: false,
         }}
       />
     </Stack>

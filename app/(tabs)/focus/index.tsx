@@ -127,10 +127,10 @@ export default function FocusScreen() {
   const handlePresetSelect = useCallback((presetId: PresetId) => {
     dispatch({ type: 'SELECT_PRESET', presetId });
     saveSelectedPreset(presetId);
-    if (Platform.OS === 'ios') {
+    if (Platform.OS === 'ios' && settings.vibrationEnabled) {
       Haptics.selectionAsync();
     }
-  }, []);
+  }, [settings.vibrationEnabled]);
 
   const handleSwipeComplete = useCallback(() => {
     // Directly start focusing when swipe is completed
@@ -209,15 +209,27 @@ export default function FocusScreen() {
       {/* Fixed Header - Always present to prevent layout shift */}
       <View style={styles.header}>
         {isActive ? (
-          /* Timer display during focus/break - shows mm:ss */
-          <Animated.View
-            entering={FadeIn.duration(200)}
-            style={styles.timerHeader}
-          >
-            <Text style={[styles.timerText, { color: textColor }]}>
-              {formatTime(displayState.remainingSeconds)}
-            </Text>
-          </Animated.View>
+          /* Timer display during focus/break - shows mm:ss only if enabled in settings */
+          settings.showMinutesRemaining ? (
+            <Animated.View
+              entering={FadeIn.duration(200)}
+              style={styles.timerHeader}
+            >
+              <Text style={[styles.timerText, { color: textColor }]}>
+                {formatTime(displayState.remainingSeconds)}
+              </Text>
+            </Animated.View>
+          ) : (
+            /* Show preset name when timer is hidden (philosophy: time as texture, not numbers) */
+            <Animated.View
+              entering={FadeIn.duration(200)}
+              style={styles.timerHeader}
+            >
+              <Text style={[styles.presetLabel, { color: textColor }]}>
+                {isBreak ? 'Break' : selectedPreset.name}
+              </Text>
+            </Animated.View>
+          )
         ) : (
           /* Preset selector (idle/holding) */
           <View style={styles.presetSelector}>
@@ -280,6 +292,7 @@ export default function FocusScreen() {
               <SwipeToFocus
                 mode="break"
                 onComplete={handleSkipBreak}
+                vibrationEnabled={settings.vibrationEnabled}
                 accessibilityLabel="Skip break"
               />
             </View>
@@ -305,6 +318,7 @@ export default function FocusScreen() {
               mode={isIdle ? 'idle' : 'focusing'}
               onComplete={isIdle ? handleSwipeComplete : handleBreakSeal}
               disabled={isEndedEarly}
+              vibrationEnabled={settings.vibrationEnabled}
               accessibilityLabel={isIdle
                 ? `Hold to start ${selectedPreset.durationMinutes} minute focus session`
                 : 'Hold to end focus session'
@@ -369,6 +383,11 @@ const styles = StyleSheet.create({
     fontWeight: '200',
     fontVariant: ['tabular-nums'],
     letterSpacing: -1,
+  },
+  presetLabel: {
+    fontSize: 24,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   content: {
     flex: 1,
