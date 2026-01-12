@@ -78,12 +78,21 @@
                       "group.com.omc345.rekoll"
                     ]
                   }
+                },
+                {
+                  "bundleIdentifier": "com.omc345.rekoll.widget",
+                  "targetName": "RekollWidget",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.omc345.rekoll"
+                    ]
+                  }
                 }
               ]
             }
           }
         },
-        "projectId": "30ff4d50-8cf6-4175-9e64-80ec132510c7"
+        "projectId": "c666e8dd-0b6f-4fe5-aa11-dbfa38cf614e"
       }
     },
     "owner": "oguzhancakmak"
