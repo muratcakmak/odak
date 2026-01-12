@@ -27,8 +27,16 @@ function groupSessionsByDay(sessions: FocusSession[]): { title: string; data: Fo
 
   const groups: Record<string, FocusSession[]> = {};
 
+  // Deduplicate sessions by ID (keep first occurrence)
+  const seen = new Set<string>();
+  const deduplicated = sessions.filter((session) => {
+    if (seen.has(session.id)) return false;
+    seen.add(session.id);
+    return true;
+  });
+
   // Sort sessions by startedAt descending (most recent first)
-  const sorted = [...sessions].sort(
+  const sorted = [...deduplicated].sort(
     (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
   );
 
@@ -89,7 +97,11 @@ export default function BankScreen() {
 
     const listener = storage.addOnValueChangedListener((key) => {
       if (key === 'focus_history') {
-        setSessions(getFocusHistory());
+        // Defer state update to avoid "Cannot update while rendering" error
+        // This happens because addFocusSession triggers during Focus reducer
+        queueMicrotask(() => {
+          setSessions(getFocusHistory());
+        });
       }
     });
 
@@ -184,54 +196,34 @@ export default function BankScreen() {
   const tabBarHeight = 90;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Bank</Text>
-        <Text style={[styles.subtitle, { color: theme.colors.textTertiary }]}>
-          {sessions.length} {sessions.length === 1 ? 'session' : 'sessions'}
-        </Text>
-      </View>
-
-      <SectionList
-        sections={sections}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        renderSectionHeader={renderSectionHeader}
-        ListEmptyComponent={renderEmpty}
-        contentContainerStyle={[
-          styles.listContent,
-          { paddingBottom: tabBarHeight + insets.bottom },
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={theme.colors.textTertiary}
-          />
-        }
-        stickySectionHeadersEnabled={false}
-        showsVerticalScrollIndicator={false}
-      />
-    </View>
+    <SectionList
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      sections={sections}
+      keyExtractor={(item, index) => `${item.id}_${index}`}
+      renderItem={renderItem}
+      renderSectionHeader={renderSectionHeader}
+      ListEmptyComponent={renderEmpty}
+      contentContainerStyle={[
+        styles.listContent,
+        { paddingBottom: tabBarHeight + insets.bottom },
+      ]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={theme.colors.textTertiary}
+        />
+      }
+      stickySectionHeadersEnabled={false}
+      showsVerticalScrollIndicator={false}
+      contentInsetAdjustmentBehavior="automatic"
+    />
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 15,
-    marginTop: 4,
   },
   listContent: {
     paddingHorizontal: 16,
