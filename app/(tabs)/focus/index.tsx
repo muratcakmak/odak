@@ -142,8 +142,8 @@ function PresetSelector({
                 backgroundColor: isSelected
                   ? accentColor
                   : theme.isDark
-                  ? 'rgba(255,255,255,0.1)'
-                  : 'rgba(0,0,0,0.05)',
+                    ? 'rgba(255,255,255,0.1)'
+                    : 'rgba(0,0,0,0.05)',
               },
             ]}
           >
@@ -293,7 +293,7 @@ export default function FocusScreen() {
   const formatTime = (totalSeconds: number): string => {
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   // Background color for break mode
