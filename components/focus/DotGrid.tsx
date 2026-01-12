@@ -41,7 +41,7 @@ interface DotGridProps {
   activeDots: number;
   /** Progress within the current minute (0-1), 0 = just started minute, 1 = about to lose this dot */
   currentDotProgress?: number;
-  /** Break mode: white dots on transparent (for orange bg) */
+  /** Break mode: white dots on transparent (for accent bg) */
   isBreak?: boolean;
   /** Charging mode: animate dots filling up during hold-to-start */
   isCharging?: boolean;
@@ -51,6 +51,8 @@ interface DotGridProps {
   style?: ViewStyle;
   /** Maximum dot size in pixels */
   maxDotSize?: number;
+  /** Accent color for active dots */
+  accentColor?: string;
 }
 
 const DOT_GAP = 12;
@@ -68,6 +70,7 @@ const Dot = memo(function Dot({
   isCharging,
   isBreak,
   dotSize,
+  accentColor,
 }: {
   index: number;
   isActive: boolean;
@@ -77,6 +80,7 @@ const Dot = memo(function Dot({
   isCharging: boolean;
   isBreak: boolean;
   dotSize: number;
+  accentColor?: string;
 }) {
   const { theme } = useUnistyles();
 
@@ -135,16 +139,16 @@ const Dot = memo(function Dot({
 
   const dotColor = useMemo(() => {
     if (isBreak) {
-      // White dots for break mode (shown on orange background)
+      // White dots for break mode (shown on accent background)
       return isActive ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
     }
-    // Orange dots for focus mode
+    // Accent color dots for focus mode
     return isActive || isCharged
-      ? theme.colors.systemOrange
+      ? (accentColor || theme.colors.systemOrange)
       : theme.isDark
       ? 'rgba(255, 255, 255, 0.15)'
       : 'rgba(0, 0, 0, 0.1)';
-  }, [isBreak, isActive, isCharged, theme]);
+  }, [isBreak, isActive, isCharged, accentColor, theme]);
 
   return (
     <Animated.View
@@ -172,6 +176,7 @@ export const DotGrid = memo(function DotGrid({
   chargeProgress = 0,
   style,
   maxDotSize = DEFAULT_DOT_SIZE,
+  accentColor,
 }: DotGridProps) {
   const { width: windowWidth } = useWindowDimensions();
   const totalDots = rows * cols;
@@ -221,6 +226,7 @@ export const DotGrid = memo(function DotGrid({
                 isCharging={isCharging}
                 isBreak={isBreak}
                 dotSize={dotSize}
+                accentColor={accentColor}
               />
             );
           })}

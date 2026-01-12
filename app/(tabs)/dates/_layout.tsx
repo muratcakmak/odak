@@ -13,6 +13,10 @@ export default function DatesLayout() {
         headerStyle: {
           backgroundColor: theme.colors.transparent,
         },
+        // Neutral tint color for header icons (black on liquid glass light mode)
+        headerTintColor: isGlassAvailable && rt.themeName === "light"
+          ? "#000000"
+          : theme.colors.textPrimary,
         // When liquid glass is available, let the system handle blur natively
         // Otherwise, use systemMaterial blur for older iOS
         headerBlurEffect: isGlassAvailable ? undefined : rt.themeName === "dark"

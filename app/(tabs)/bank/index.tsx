@@ -22,7 +22,7 @@ import { useNavigation, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
-import { getFocusHistory, storage } from '../../../utils/storage';
+import { getFocusHistory, storage, useAccentColor } from '../../../utils/storage';
 import { hasLiquidGlassSupport } from '../../../utils/capabilities';
 import type { FocusSession } from '../../../domain/types';
 
@@ -112,6 +112,11 @@ export default function BankScreen() {
   const insets = useSafeAreaInsets();
   const { theme, rt } = useUnistyles();
   const navigation = useNavigation();
+
+  // Accent color from user settings
+  const accentColorName = useAccentColor();
+  const accent = theme.colors.accent[accentColorName];
+  const accentColor = theme.isDark ? accent.secondary : accent.primary;
 
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -295,11 +300,11 @@ export default function BankScreen() {
   // Colors
   const cardBg = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
   const barEmpty = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
-  const barFilled = theme.colors.systemOrange;
+  const barFilled = accentColor;
   const barFilledFaded = theme.isDark
     ? 'rgba(255,149,0,0.6)'
     : 'rgba(255,149,0,0.5)';
-  const dotColor = theme.colors.systemOrange;
+  const dotColor = accentColor;
 
   // Tab bar height estimate
   const tabBarHeight = 90;
@@ -339,7 +344,7 @@ export default function BankScreen() {
             </Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: theme.colors.systemOrange }]}>
+            <Text style={[styles.statValue, { color: accentColor }]}>
               {todayStats.minutes}
             </Text>
             <Text style={[styles.statLabel, { color: theme.colors.textTertiary }]}>

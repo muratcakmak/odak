@@ -52,6 +52,8 @@ interface SwipeToFocusProps {
   vibrationEnabled?: boolean;
   /** Accessibility label for VoiceOver */
   accessibilityLabel?: string;
+  /** Accent color for the button and ring */
+  accentColor?: string;
 }
 
 export const SwipeToFocus = memo(function SwipeToFocus({
@@ -60,6 +62,7 @@ export const SwipeToFocus = memo(function SwipeToFocus({
   disabled = false,
   vibrationEnabled = true,
   accessibilityLabel,
+  accentColor,
 }: SwipeToFocusProps) {
   const { theme } = useUnistyles();
   const isVoiceOverRef = useRef(false);
@@ -225,15 +228,17 @@ export const SwipeToFocus = memo(function SwipeToFocus({
     onComplete();
   }, [mode, onComplete, triggerHaptic]);
 
-  // Colors based on mode
+  // Colors based on mode (use accentColor if provided, fallback to systemOrange)
+  const activeColor = accentColor || theme.colors.systemOrange;
+
   const buttonBgColor = mode === 'idle'
-    ? theme.colors.systemOrange
+    ? activeColor
     : mode === 'break'
-    ? 'rgba(255,255,255,0.2)' // White translucent for break (on orange bg)
+    ? 'rgba(255,255,255,0.2)' // White translucent for break (on accent bg)
     : (theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)');
 
   const ringColor = mode === 'idle'
-    ? theme.colors.systemOrange
+    ? activeColor
     : mode === 'break'
     ? 'rgba(255,255,255,0.3)' // Subtle white ring for break
     : theme.colors.systemRed;

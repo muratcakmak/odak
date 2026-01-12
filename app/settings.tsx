@@ -5,51 +5,25 @@ import {
   Text,
   Pressable,
   ScrollView,
-  Modal,
-  TextInput,
   Platform,
   Switch,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { DatePicker, Host, ContextMenu, Button } from "@expo/ui/swift-ui";
-import { datePickerStyle, tint } from "@expo/ui/swift-ui/modifiers";
-import { router } from "expo-router";
+import { Host, ContextMenu, Button } from "@expo/ui/swift-ui";
 import {
-  getUserProfile,
-  saveUserProfile,
-  getLifeUnit,
-  setLifeUnit,
   getBackgroundMode,
   setBackgroundMode,
   setAccentColor,
-  type UserProfile,
-  type LifeUnit,
   type BackgroundMode,
   type AccentColor,
   useAccentColor,
-  getLifeSymbol,
-  setLifeSymbol,
-  type LifeSymbol,
-  useLifeSymbol,
-  getLifespan,
-  setLifespan,
   getFocusSettings,
   saveFocusSettings,
+  getDailyGoal,
+  setDailyGoal,
 } from "../utils/storage";
 import type { FocusSettings } from "../domain/types";
 import { useUnistyles, UnistylesRuntime } from "react-native-unistyles";
-
-// Plus badge component
-function PlusBadge() {
-  const { theme } = useUnistyles();
-  const styles = createStyles(theme);
-
-  return (
-    <View style={styles.plusBadge}>
-      <Text style={styles.plusBadgeText}>Plus</Text>
-    </View>
-  );
-}
 
 // Settings row component
 function SettingsRow({
@@ -133,54 +107,29 @@ function SettingsRow({
   );
 }
 
+// Plus badge component
+function PlusBadge() {
+  const { theme } = useUnistyles();
+  const styles = createStyles(theme);
+
+  return (
+    <View style={styles.plusBadge}>
+      <Text style={styles.plusBadgeText}>Plus</Text>
+    </View>
+  );
+}
+
 export default function SettingsScreen() {
-  const [profile, setProfile] = useState<{
-    name: string;
-    birthDate: Date | null;
-  }>({ name: "", birthDate: null });
-  const [showNameInput, setShowNameInput] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [tempName, setTempName] = useState("");
-  const [tempDate, setTempDate] = useState(() => {
-    const date = new Date();
-    date.setFullYear(date.getFullYear() - 25);
-    return date;
-  });
-  const [hideYouSection, setHideYouSection] = useState(false);
   const accentColorState = useAccentColor();
-  const lifeSymbolState = useLifeSymbol();
-  const [lifespan, setLifespanState] = useState<number>(75);
-  const [lifeUnit, setLifeUnitState] = useState<LifeUnit>("years");
-  const [showLifespanInput, setShowLifespanInput] = useState(false);
-  const [tempLifespan, setTempLifespan] = useState("75");
   const [backgroundMode, setBackgroundModeState] = useState<BackgroundMode>("device");
   const [focusSettings, setFocusSettingsState] = useState<FocusSettings>(getFocusSettings);
+  const [dailyGoalValue, setDailyGoalValue] = useState<number>(4);
 
-  // Load profile and preferences from MMKV on mount
+  // Load preferences from MMKV on mount
   useEffect(() => {
-    const storedProfile = getUserProfile();
-    if (storedProfile) {
-      setProfile({
-        name: storedProfile.name,
-        birthDate: storedProfile.birthDate
-          ? new Date(storedProfile.birthDate)
-          : null,
-      });
-      setTempName(storedProfile.name);
-      if (storedProfile.birthDate) {
-        setTempDate(new Date(storedProfile.birthDate));
-      }
-    }
-    setLifeUnitState(getLifeUnit());
     setBackgroundModeState(getBackgroundMode());
-    setLifespanState(getLifespan());
-    setTempLifespan(String(getLifespan()));
+    setDailyGoalValue(getDailyGoal());
   }, []);
-
-  const handleLifeUnitChange = (unit: LifeUnit) => {
-    setLifeUnitState(unit);
-    setLifeUnit(unit);
-  };
 
   // Focus settings handlers
   const updateFocusSetting = <K extends keyof FocusSettings>(
@@ -190,13 +139,6 @@ export default function SettingsScreen() {
     const updated = { ...focusSettings, [key]: value };
     setFocusSettingsState(updated);
     saveFocusSettings(updated);
-  };
-
-  const formatLifeUnit = (unit: LifeUnit): string => {
-    switch (unit) {
-      case "years": return "Years";
-      case "months": return "Months";
-    }
   };
 
   const handleBackgroundModeChange = (mode: BackgroundMode) => {
@@ -227,43 +169,9 @@ export default function SettingsScreen() {
     return color.charAt(0).toUpperCase() + color.slice(1);
   };
 
-  const handleLifeSymbolChange = (symbol: LifeSymbol) => {
-    setLifeSymbol(symbol);
-  };
-
-  const formatLifeSymbol = (symbol: LifeSymbol): string => {
-    return symbol.charAt(0).toUpperCase() + symbol.slice(1);
-  };
-
-  const handleSaveName = () => {
-    if (tempName.trim()) {
-      const newProfile = { ...profile, name: tempName.trim() };
-      setProfile(newProfile);
-      saveUserProfile({
-        name: newProfile.name,
-        birthDate: newProfile.birthDate?.toISOString() || "",
-      });
-      setShowNameInput(false);
-    }
-  };
-
-  const handleSaveDate = () => {
-    const newProfile = { ...profile, birthDate: tempDate };
-    setProfile(newProfile);
-    saveUserProfile({
-      name: newProfile.name,
-      birthDate: tempDate.toISOString(),
-    });
-    setShowDatePicker(false);
-  };
-
-  const handleSaveLifespan = () => {
-    const years = parseInt(tempLifespan, 10);
-    if (!isNaN(years) && years > 0 && years <= 120) {
-      setLifespanState(years);
-      setLifespan(years);
-      setShowLifespanInput(false);
-    }
+  const handleDailyGoalChange = (goal: number) => {
+    setDailyGoalValue(goal);
+    setDailyGoal(goal);
   };
 
   const { theme } = useUnistyles();
@@ -276,101 +184,6 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-
-        {/* Life Profile Section */}
-        <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-          <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
-          </Text>
-        </View>
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Life profile</Text>
-        <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
-          <SettingsRow
-            icon="person"
-            iconBg={colors.systemBlue}
-            label="Your name"
-            value={profile.name || ""}
-            onPress={() => {
-              setTempName(profile.name || "");
-              setShowNameInput(true);
-            }}
-            textColor={colors.textPrimary}
-            secondaryTextColor={colors.textSecondary}
-          />
-          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
-          <SettingsRow
-            icon="gift"
-            iconBg={colors.systemPurple}
-            label="Your birthday"
-            value={
-              profile.birthDate
-                ? profile.birthDate.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })
-                : "Not set"
-            }
-            onPress={() => setShowDatePicker(true)}
-            textColor={colors.textPrimary}
-            secondaryTextColor={colors.textSecondary}
-            rightIcon="chevron-expand"
-          />
-          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
-          {/* Life Unit Row with Context Menu */}
-          <View style={styles.settingsRow}>
-            <View style={[styles.settingsIcon, { backgroundColor: colors.systemGreen }]}>
-              <Ionicons name="body" size={16} color={colors.onImage.primary} />
-            </View>
-            <View style={styles.settingsLabelContainer}>
-              <Text style={[styles.settingsLabel, { color: colors.textPrimary }]}>See your life in...</Text>
-            </View>
-            {Platform.OS === "ios" ? (
-              <Host style={{ height: 24 }}>
-                <ContextMenu activationMethod="singlePress">
-                  <ContextMenu.Items>
-                    <Button
-                      label="Years"
-                      systemImage={lifeUnit === "years" ? "checkmark" : undefined}
-                      onPress={() => handleLifeUnitChange("years")}
-                    />
-                    <Button
-                      label="Months"
-                      systemImage={lifeUnit === "months" ? "checkmark" : undefined}
-                      onPress={() => handleLifeUnitChange("months")}
-                    />
-                  </ContextMenu.Items>
-                  <ContextMenu.Trigger>
-                    <View style={styles.settingsRight}>
-                      <Text style={[styles.settingsValue, { color: colors.textSecondary }]}>{formatLifeUnit(lifeUnit)}</Text>
-                      <Ionicons name="chevron-expand" size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
-                    </View>
-                  </ContextMenu.Trigger>
-                </ContextMenu>
-              </Host>
-            ) : (
-              <View style={styles.settingsRight}>
-                <Text style={[styles.settingsValue, { color: colors.textSecondary }]}>{formatLifeUnit(lifeUnit)}</Text>
-                <Ionicons name="chevron-expand" size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
-              </View>
-            )}
-          </View>
-          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
-          <SettingsRow
-            icon="sparkles"
-            iconBg={colors.systemRed}
-            label="What's your lifespan?"
-            value={`${lifespan} years`}
-            onPress={() => setShowLifespanInput(true)}
-            textColor={colors.textPrimary}
-            secondaryTextColor={colors.textSecondary}
-          />
-          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
-          <Text style={[styles.cardFooter, { color: colors.textSecondary }]}>
-            The name and birthday is used for the Life view, which is based on a
-            default life expectancy of {lifespan} years.
-          </Text>
-        </View>
-
         {/* Appearance Section */}
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Appearance</Text>
         <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
@@ -496,63 +309,38 @@ export default function SettingsScreen() {
               </View>
             )}
           </View>
-          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
-          {/* Symbols Row with Context Menu */}
+        </View>
+
+        {/* Focus Section */}
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Focus</Text>
+        <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
+          {/* Daily Goal Row with Context Menu */}
           <View style={styles.settingsRow}>
-            <View style={[styles.settingsIcon, { backgroundColor: colors.systemOrange }]}>
-              <Ionicons name="apps" size={16} color={colors.onImage.primary} />
+            <View style={[styles.settingsIcon, { backgroundColor: colors.systemRed }]}>
+              <Ionicons name="flag" size={16} color={colors.onImage.primary} />
             </View>
             <View style={styles.settingsLabelContainer}>
-              <Text style={[styles.settingsLabel, { color: colors.textPrimary }]}>Symbols</Text>
+              <Text style={[styles.settingsLabel, { color: colors.textPrimary }]}>Daily goal</Text>
+              <Text style={[styles.settingsSubtitle, { color: colors.textSecondary }]}>Sessions per day</Text>
             </View>
             {Platform.OS === "ios" ? (
               <Host style={{ height: 24 }}>
                 <ContextMenu activationMethod="singlePress">
                   <ContextMenu.Items>
-                    <Button
-                      label="Hash"
-                      systemImage={lifeSymbolState === "hash" ? "checkmark" : undefined}
-                      onPress={() => handleLifeSymbolChange("hash")}
-                    />
-                    <Button
-                      label="X"
-                      systemImage={lifeSymbolState === "x" ? "checkmark" : undefined}
-                      onPress={() => handleLifeSymbolChange("x")}
-                    />
-                    <Button
-                      label="Hearts"
-                      systemImage={lifeSymbolState === "hearts" ? "checkmark" : undefined}
-                      onPress={() => handleLifeSymbolChange("hearts")}
-                    />
-                    <Button
-                      label="Hexagons"
-                      systemImage={lifeSymbolState === "hexagons" ? "checkmark" : undefined}
-                      onPress={() => handleLifeSymbolChange("hexagons")}
-                    />
-                    <Button
-                      label="Diamonds"
-                      systemImage={lifeSymbolState === "diamonds" ? "checkmark" : undefined}
-                      onPress={() => handleLifeSymbolChange("diamonds")}
-                    />
-                    <Button
-                      label="Stars"
-                      systemImage={lifeSymbolState === "stars" ? "checkmark" : undefined}
-                      onPress={() => handleLifeSymbolChange("stars")}
-                    />
-                    <Button
-                      label="Squares"
-                      systemImage={lifeSymbolState === "squares" ? "checkmark" : undefined}
-                      onPress={() => handleLifeSymbolChange("squares")}
-                    />
-                    <Button
-                      label="Dots"
-                      systemImage={lifeSymbolState === "dots" ? "checkmark" : undefined}
-                      onPress={() => handleLifeSymbolChange("dots")}
-                    />
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                      <Button
+                        key={num}
+                        label={`${num} session${num > 1 ? "s" : ""}`}
+                        systemImage={dailyGoalValue === num ? "checkmark" : undefined}
+                        onPress={() => handleDailyGoalChange(num)}
+                      />
+                    ))}
                   </ContextMenu.Items>
                   <ContextMenu.Trigger>
                     <View style={styles.settingsRight}>
-                      <Text style={[styles.settingsValue, { color: colors.textSecondary }]}>{formatLifeSymbol(lifeSymbolState)}</Text>
+                      <Text style={[styles.settingsValue, { color: colors.textSecondary }]}>
+                        {dailyGoalValue} session{dailyGoalValue > 1 ? "s" : ""}
+                      </Text>
                       <Ionicons name="chevron-expand" size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
                     </View>
                   </ContextMenu.Trigger>
@@ -560,16 +348,14 @@ export default function SettingsScreen() {
               </Host>
             ) : (
               <View style={styles.settingsRight}>
-                <Text style={[styles.settingsValue, { color: colors.textSecondary }]}>{formatLifeSymbol(lifeSymbolState)}</Text>
+                <Text style={[styles.settingsValue, { color: colors.textSecondary }]}>
+                  {dailyGoalValue} session{dailyGoalValue > 1 ? "s" : ""}
+                </Text>
                 <Ionicons name="chevron-expand" size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
               </View>
             )}
           </View>
-        </View>
-
-        {/* Focus Section */}
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Focus</Text>
-        <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
           <SettingsRow
             icon="eye-outline"
             iconBg={colors.systemBlue}
@@ -672,196 +458,9 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* TODO: Enable notifications after beta testing */}
-        {/* Notifications Section */}
-        {/* <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Notifications</Text>
-        <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
-          <SettingsRow
-            icon="notifications"
-            iconBg={colors.systemBrown}
-            label="Enable notifications (beta)"
-            showPlus
-            textColor={colors.textPrimary}
-            secondaryTextColor={colors.textSecondary}
-          />
-          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
-          <Text style={[styles.cardFooter, { color: colors.textSecondary }]}>
-            Daily notifications are sent at 9:00 AM. Frequent notifications are
-            sent at 10% intervals, and occasional notifications at 25%
-            intervals. This feature is still in beta and might crash or not be
-            accurate.
-          </Text>
-        </View> */}
-
-        {/* TODO: Enable Reko section after beta testing */}
-        {/* About Reko Section */}
-        {/* <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>About Reko</Text>
-        <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
-          <SettingsRow
-            icon="gift"
-            iconBg={colors.priority.high}
-            label="Give Reko+ for free"
-            showChevron
-            textColor={colors.textPrimary}
-            secondaryTextColor={colors.textSecondary}
-          />
-          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
-          <SettingsRow
-            icon="sparkles"
-            iconBg={colors.systemPurple}
-            label="Discover the app"
-            showChevron
-            textColor={colors.textPrimary}
-            secondaryTextColor={colors.textSecondary}
-          />
-          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
-          <SettingsRow
-            icon="cube"
-            iconBg={colors.systemBlue}
-            label="What's new?!"
-            showChevron
-            textColor={colors.textPrimary}
-            secondaryTextColor={colors.textSecondary}
-          />
-          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
-          <SettingsRow
-            icon="layers"
-            iconBg={colors.priority.high}
-            label="How to add widgets"
-            showChevron
-            textColor={colors.textPrimary}
-            secondaryTextColor={colors.textSecondary}
-          />
-          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
-          <SettingsRow
-            icon="star"
-            iconBg={colors.systemYellow}
-            label="Rate & review Rekoll"
-            showChevron
-            textColor={colors.textPrimary}
-            secondaryTextColor={colors.textSecondary}
-          />
-          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
-          <SettingsRow
-            icon="paper-plane"
-            iconBg={colors.systemBlue}
-            label="Contact developer"
-            subtitle="Ask for support, get help, or send feedback"
-            textColor={colors.textPrimary}
-            secondaryTextColor={colors.textSecondary}
-            showChevron
-          />
-        </View> */}
-
         {/* Version Footer */}
         <Text style={[styles.versionText, { color: colors.textSecondary }]}>v2026.01.09 · © omc345</Text>
       </ScrollView>
-
-      {/* Name Input Modal */}
-      <Modal visible={showNameInput} animationType="fade" transparent>
-        <Pressable
-          style={styles.overlayBackground}
-          onPress={() => setShowNameInput(false)}
-        >
-          <Pressable
-            style={[styles.inputModal, { backgroundColor: colors.card }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={[styles.inputModalTitle, { color: colors.textPrimary }]}>Your Name</Text>
-            <TextInput
-              style={[styles.inputModalInput, { backgroundColor: colors.inputBg, color: colors.textPrimary }]}
-              value={tempName}
-              onChangeText={setTempName}
-              placeholder="Enter your name"
-              placeholderTextColor={colors.textSecondary}
-              autoFocus
-            />
-            <View style={styles.inputModalButtons}>
-              <Pressable
-                style={styles.inputModalButton}
-                onPress={() => setShowNameInput(false)}
-              >
-                <Text style={{ color: colors.systemBlue, fontSize: 17 }}>Cancel</Text>
-              </Pressable>
-              <Pressable style={styles.inputModalButton} onPress={handleSaveName}>
-                <Text
-                  style={{ color: colors.systemBlue, fontSize: 17, fontWeight: "600" }}
-                >
-                  Save
-                </Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Lifespan Input Modal */}
-      <Modal visible={showLifespanInput} animationType="fade" transparent>
-        <Pressable
-          style={styles.overlayBackground}
-          onPress={() => setShowLifespanInput(false)}
-        >
-          <Pressable
-            style={[styles.inputModal, { backgroundColor: colors.card }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={[styles.inputModalTitle, { color: colors.textPrimary }]}>Lifespan Target</Text>
-            <TextInput
-              style={[styles.inputModalInput, { backgroundColor: colors.inputBg, color: colors.textPrimary }]}
-              value={tempLifespan}
-              onChangeText={setTempLifespan}
-              placeholder="Enter years (e.g. 80)"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="number-pad"
-              autoFocus
-            />
-            <View style={styles.inputModalButtons}>
-              <Pressable
-                style={styles.inputModalButton}
-                onPress={() => setShowLifespanInput(false)}
-              >
-                <Text style={{ color: colors.systemBlue, fontSize: 17 }}>Cancel</Text>
-              </Pressable>
-              <Pressable style={styles.inputModalButton} onPress={handleSaveLifespan}>
-                <Text
-                  style={{ color: colors.systemBlue, fontSize: 17, fontWeight: "600" }}
-                >
-                  Save
-                </Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Date Picker Modal */}
-      <Modal
-        visible={showDatePicker}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={[styles.datePickerModal, { backgroundColor: colors.card }]}>
-          <View style={styles.datePickerHeader}>
-            <Text style={[styles.datePickerTitle, { color: colors.textPrimary }]}>When were you born?</Text>
-            <Pressable style={[styles.doneButton, { backgroundColor: colors.inputBg }]} onPress={handleSaveDate}>
-              <Text style={[styles.doneButtonText, { color: colors.textPrimary }]}>Done</Text>
-            </Pressable>
-          </View>
-          {Platform.OS === "ios" && (
-            <Host style={styles.datePickerHost}>
-              <DatePicker
-                selection={tempDate}
-                onDateChange={setTempDate}
-                range={{
-                  start: new Date(1900, 0, 1),
-                  end: new Date()
-                }}
-                modifiers={[datePickerStyle("graphical"), tint(colors.systemBlue)]}
-              />
-            </Host>
-          )}
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -873,72 +472,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 40,
-  },
-  // Premium banner
-  premiumBanner: {
-    backgroundColor: theme.colors.systemOrange,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    flexDirection: "row",
-    overflow: "hidden",
-  },
-  premiumBannerContent: {
-    flex: 1,
-  },
-  premiumTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: theme.colors.onImage.primary,
-    marginBottom: 4,
-  },
-  premiumSubtitle: {
-    fontSize: 14,
-    color: theme.colors.onImage.secondary,
-    lineHeight: 20,
-  },
-  premiumIcon: {
-    position: "absolute",
-    right: 16,
-    top: "50%",
-    marginTop: -20,
-  },
-  // Other app banner
-  otherAppBanner: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    flexDirection: "row",
-    overflow: "hidden",
-    backgroundColor: theme.colors.priority.high,
-  },
-  otherAppContent: {
-    flex: 1,
-  },
-  otherAppLabel: {
-    fontSize: 13,
-    color: theme.colors.onImage.muted,
-    marginBottom: 4,
-  },
-  otherAppTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: theme.colors.onImage.primary,
-    marginBottom: 4,
-  },
-  otherAppSubtitle: {
-    fontSize: 13,
-    color: theme.colors.onImage.muted,
-    lineHeight: 18,
-  },
-  otherAppIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: theme.colors.onImage.ultraFaint,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "center",
   },
   // Section title
   sectionTitle: {
@@ -995,13 +528,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     backgroundColor: theme.colors.divider,
     marginLeft: 56,
   },
-  cardFooter: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    lineHeight: 18,
-    padding: 16,
-    paddingTop: 12,
-  },
   // Plus badge
   plusBadge: {
     backgroundColor: theme.colors.systemOrange,
@@ -1021,78 +547,5 @@ const createStyles = (theme: any) => StyleSheet.create({
     textAlign: "center",
     fontStyle: "italic",
     marginTop: 8,
-  },
-  // Input modal
-  overlayBackground: {
-    flex: 1,
-    backgroundColor: theme.colors.overlay.medium,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 40,
-  },
-  inputModal: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 14,
-    padding: 20,
-    width: "100%",
-    maxWidth: 300,
-  },
-  inputModalTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    textAlign: "center",
-    marginBottom: 16,
-    color: theme.colors.textPrimary,
-  },
-  inputModalInput: {
-    backgroundColor: theme.colors.inputBg,
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 17,
-    marginBottom: 16,
-    color: theme.colors.textPrimary,
-  },
-  inputModalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  inputModalButton: {
-    padding: 12,
-  },
-  // Date picker modal
-  datePickerModal: {
-    flex: 1,
-    backgroundColor: theme.colors.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  datePickerHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 20,
-  },
-  datePickerTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: theme.colors.textPrimary,
-  },
-  doneButton: {
-    backgroundColor: theme.colors.inputBg,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  doneButtonText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: theme.colors.textPrimary,
-  },
-  datePickerHost: {
-    width: "100%",
-    height: 480,
-    paddingHorizontal: 16,
   },
 });

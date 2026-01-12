@@ -668,3 +668,243 @@ export function importFocusData(jsonString: string): { success: boolean; error?:
   }
 }
 
+// ============================================================================
+// FOCUS PROFILE (Streak, Achievements, Daily Goal)
+// ============================================================================
+
+export interface Achievement {
+  id: string;
+  unlockedAt: string; // ISO timestamp
+}
+
+export interface FocusProfile {
+  version: 1;
+  dailyGoal: number;           // Target sessions per day (default: 4)
+  bestStreak: number;          // Record streak days
+  achievements: Achievement[]; // Unlocked badges
+}
+
+// Achievement definitions (icons are SF Symbol names)
+export const ACHIEVEMENTS = {
+  week_warrior: { id: "week_warrior", name: "Week Warrior", description: "7-day streak", icon: "flame.fill", criteria: "streak_7" },
+  month_master: { id: "month_master", name: "Month Master", description: "30-day streak", icon: "trophy.fill", criteria: "streak_30" },
+  century_club: { id: "century_club", name: "Century Club", description: "100 sessions", icon: "star.fill", criteria: "sessions_100" },
+  focus_pro: { id: "focus_pro", name: "Focus Pro", description: "10 hours total", icon: "scope", criteria: "hours_10" },
+  deep_diver: { id: "deep_diver", name: "Deep Diver", description: "50 hours total", icon: "diamond.fill", criteria: "hours_50" },
+  consistency_king: { id: "consistency_king", name: "Consistency King", description: "4 weeks at goal", icon: "sparkles", criteria: "goal_weeks_4" },
+} as const;
+
+const FOCUS_PROFILE_KEY = "focus_profile";
+
+function createDefaultFocusProfile(): FocusProfile {
+  return {
+    version: 1,
+    dailyGoal: 4,
+    bestStreak: 0,
+    achievements: [],
+  };
+}
+
+export function getFocusProfile(): FocusProfile {
+  const data = storage.getString(FOCUS_PROFILE_KEY);
+  if (!data) return createDefaultFocusProfile();
+  try {
+    const stored = JSON.parse(data);
+    return { ...createDefaultFocusProfile(), ...stored };
+  } catch {
+    return createDefaultFocusProfile();
+  }
+}
+
+export function saveFocusProfile(profile: FocusProfile): void {
+  storage.set(FOCUS_PROFILE_KEY, JSON.stringify(profile));
+}
+
+export function getDailyGoal(): number {
+  return getFocusProfile().dailyGoal;
+}
+
+export function setDailyGoal(goal: number): void {
+  const profile = getFocusProfile();
+  profile.dailyGoal = Math.max(1, Math.min(10, goal)); // Clamp between 1-10
+  saveFocusProfile(profile);
+}
+
+// Streak Calculation
+function getDateKey(date: Date): string {
+  return date.toISOString().split("T")[0]; // YYYY-MM-DD
+}
+
+export function getCurrentStreak(sessions: FocusSession[]): number {
+  if (sessions.length === 0) return 0;
+
+  // Filter completed sessions only
+  const completedSessions = sessions.filter(s => s.wasCompleted);
+  if (completedSessions.length === 0) return 0;
+
+  // Group sessions by date
+  const sessionDates = new Set<string>();
+  for (const session of completedSessions) {
+    sessionDates.add(getDateKey(new Date(session.startedAt)));
+  }
+
+  // Check consecutive days backward from today
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let streak = 0;
+  let checkDate = new Date(today);
+
+  // First check today
+  if (sessionDates.has(getDateKey(checkDate))) {
+    streak = 1;
+    checkDate.setDate(checkDate.getDate() - 1);
+  } else {
+    // Check if yesterday has a session (streak not broken yet today)
+    checkDate.setDate(checkDate.getDate() - 1);
+    if (!sessionDates.has(getDateKey(checkDate))) {
+      return 0; // No session today or yesterday = no streak
+    }
+    streak = 1;
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+
+  // Count consecutive days backward
+  while (sessionDates.has(getDateKey(checkDate))) {
+    streak++;
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+
+  return streak;
+}
+
+// Update best streak if current is higher
+export function updateBestStreak(currentStreak: number): void {
+  const profile = getFocusProfile();
+  if (currentStreak > profile.bestStreak) {
+    profile.bestStreak = currentStreak;
+    saveFocusProfile(profile);
+  }
+}
+
+// Get today's completed sessions count
+export function getTodaySessionsCount(sessions: FocusSession[]): number {
+  const todayKey = getDateKey(new Date());
+  return sessions.filter(s =>
+    s.wasCompleted && getDateKey(new Date(s.startedAt)) === todayKey
+  ).length;
+}
+
+// Get total stats from all sessions
+export function getTotalStats(sessions: FocusSession[]): {
+  totalMinutes: number;
+  totalSessions: number;
+  completedSessions: number;
+} {
+  const completedSessions = sessions.filter(s => s.wasCompleted);
+  const totalMinutes = completedSessions.reduce((sum, s) => sum + s.totalMinutes, 0);
+
+  return {
+    totalMinutes,
+    totalSessions: sessions.length,
+    completedSessions: completedSessions.length,
+  };
+}
+
+// Check and unlock achievements
+export function checkAchievements(sessions: FocusSession[]): Achievement[] {
+  const profile = getFocusProfile();
+  const existingIds = new Set(profile.achievements.map(a => a.id));
+  const newAchievements: Achievement[] = [];
+
+  const stats = getTotalStats(sessions);
+  const currentStreak = getCurrentStreak(sessions);
+  const totalHours = stats.totalMinutes / 60;
+
+  // Check each achievement
+  if (!existingIds.has("week_warrior") && currentStreak >= 7) {
+    newAchievements.push({ id: "week_warrior", unlockedAt: new Date().toISOString() });
+  }
+
+  if (!existingIds.has("month_master") && currentStreak >= 30) {
+    newAchievements.push({ id: "month_master", unlockedAt: new Date().toISOString() });
+  }
+
+  if (!existingIds.has("century_club") && stats.completedSessions >= 100) {
+    newAchievements.push({ id: "century_club", unlockedAt: new Date().toISOString() });
+  }
+
+  if (!existingIds.has("focus_pro") && totalHours >= 10) {
+    newAchievements.push({ id: "focus_pro", unlockedAt: new Date().toISOString() });
+  }
+
+  if (!existingIds.has("deep_diver") && totalHours >= 50) {
+    newAchievements.push({ id: "deep_diver", unlockedAt: new Date().toISOString() });
+  }
+
+  // Consistency King: Check if daily goal met for past 28 days
+  if (!existingIds.has("consistency_king")) {
+    const dailyGoal = profile.dailyGoal;
+    const weeksWithGoalMet = checkConsecutiveGoalWeeks(sessions, dailyGoal, 4);
+    if (weeksWithGoalMet) {
+      newAchievements.push({ id: "consistency_king", unlockedAt: new Date().toISOString() });
+    }
+  }
+
+  // Save new achievements
+  if (newAchievements.length > 0) {
+    profile.achievements.push(...newAchievements);
+    saveFocusProfile(profile);
+  }
+
+  return newAchievements;
+}
+
+// Helper: Check if daily goal was met for X consecutive weeks
+function checkConsecutiveGoalWeeks(sessions: FocusSession[], dailyGoal: number, weeks: number): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Check each day for the past (weeks * 7) days
+  for (let dayOffset = 0; dayOffset < weeks * 7; dayOffset++) {
+    const checkDate = new Date(today);
+    checkDate.setDate(checkDate.getDate() - dayOffset);
+    const dateKey = getDateKey(checkDate);
+
+    const sessionsOnDay = sessions.filter(s =>
+      s.wasCompleted && getDateKey(new Date(s.startedAt)) === dateKey
+    ).length;
+
+    if (sessionsOnDay < dailyGoal) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Get unlocked achievement IDs
+export function getUnlockedAchievementIds(): Set<string> {
+  const profile = getFocusProfile();
+  return new Set(profile.achievements.map(a => a.id));
+}
+
+// Reactive hook for focus profile
+export function useFocusProfile(): FocusProfile {
+  const [profile, setProfile] = useState<FocusProfile>(getFocusProfile());
+
+  useEffect(() => {
+    const listener = storage.addOnValueChangedListener((key) => {
+      if (key === FOCUS_PROFILE_KEY) {
+        setProfile(getFocusProfile());
+      }
+    });
+
+    return () => {
+      listener.remove();
+    };
+  }, []);
+
+  return profile;
+}
+

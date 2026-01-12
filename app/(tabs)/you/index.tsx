@@ -1,10 +1,22 @@
-import { useState, useRef, useEffect } from "react";
-import { StyleSheet, View, Text, Pressable, ScrollView, Platform } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { useState, useCallback } from "react";
+import { StyleSheet, View, Text, Pressable, ScrollView, Platform, useWindowDimensions } from "react-native";
 import { SymbolView } from "expo-symbols";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, Stack } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { getUserProfile, useAccentColor, getLifespan } from "../../../utils/storage";
+import {
+  useAccentColor,
+  getFocusHistory,
+  getFocusProfile,
+  getCurrentStreak,
+  getTodaySessionsCount,
+  getTotalStats,
+  checkAchievements,
+  updateBestStreak,
+  ACHIEVEMENTS,
+  getUnlockedAchievementIds,
+} from "../../../utils/storage";
+import type { FocusSession } from "../../../domain/types";
 import { useUnistyles } from "react-native-unistyles";
 import * as Haptics from "expo-haptics";
 import Animated, {
@@ -14,199 +26,335 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { LifeInsights } from "../../../components/LifeInsights";
 
-// Precise Countdown Component
-function PreciseCountdown({
-  birthDate,
-  lifespan,
-  textColor,
-  secondaryTextColor
-}: {
-  birthDate: Date;
-  lifespan: number;
-  textColor: string;
-  secondaryTextColor: string;
-}) {
-  const { theme } = useUnistyles();
+// ============================================================================
+// STREAK CARD - Hero component showing current streak
+// ============================================================================
+
+interface StreakCardProps {
+  currentStreak: number;
+  bestStreak: number;
+  accentColor: string;
+  theme: any;
+  onTap: () => void;
+  animatedStyle: any;
+}
+
+function StreakCard({ currentStreak, bestStreak, accentColor, theme, onTap, animatedStyle }: StreakCardProps) {
   const styles = createStyles(theme);
-  const [timeLeft, setTimeLeft] = useState("");
 
-  useEffect(() => {
-    const update = () => {
-      const now = new Date();
-      const endOfLife = new Date(birthDate);
-      endOfLife.setFullYear(birthDate.getFullYear() + lifespan);
-
-      const diffMs = endOfLife.getTime() - now.getTime();
-      const yearsLeft = diffMs / (1000 * 60 * 60 * 24 * 365.25);
-
-      setTimeLeft(yearsLeft.toFixed(2));
-    };
-
-    update();
-    // Update once per second - sufficient for 2 decimal precision
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, [birthDate, lifespan]);
+  // SF Symbol intensity based on streak length
+  const getStreakSymbol = (): string => {
+    if (currentStreak >= 30) return "flame.circle.fill";
+    if (currentStreak >= 14) return "flame.fill";
+    return "flame";
+  };
 
   return (
-    <View style={styles.countdownContainer}>
-      {Platform.OS === "ios" ? (
-        <SymbolView
-          name="laurel.leading"
-          size={40}
-          tintColor={secondaryTextColor}
-          style={styles.laurelIcon}
-        />
-      ) : (
-        <Ionicons name="leaf-outline" size={24} color={secondaryTextColor} style={styles.laurelIcon} />
-      )}
-      <View style={styles.countdownContent}>
-        <Text style={[styles.countdownValue, { color: textColor }]}>{timeLeft}</Text>
-        <Text style={[styles.countdownLabel, { color: secondaryTextColor }]}>years left</Text>
+    <Pressable onPress={onTap}>
+      <Animated.View style={[styles.streakCard, { backgroundColor: accentColor }, animatedStyle]}>
+        {Platform.OS === "ios" ? (
+          <SymbolView
+            name={getStreakSymbol()}
+            size={36}
+            tintColor={theme.colors.onImage.primary}
+            style={styles.streakIcon}
+          />
+        ) : (
+          <Ionicons name="flame" size={36} color={theme.colors.onImage.primary} style={styles.streakIcon} />
+        )}
+        <Text style={styles.streakValue}>{currentStreak}</Text>
+        <Text style={styles.streakLabel}>day streak</Text>
+        {bestStreak > currentStreak && (
+          <Text style={styles.streakBest}>Best: {bestStreak} days</Text>
+        )}
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+// ============================================================================
+// STATS CARDS - Total time and sessions
+// ============================================================================
+
+interface StatsCardsProps {
+  totalMinutes: number;
+  completedSessions: number;
+  totalSessions: number;
+  theme: any;
+}
+
+function StatsCards({ totalMinutes, completedSessions, totalSessions, theme }: StatsCardsProps) {
+  const styles = createStyles(theme);
+
+  const formatTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0) {
+      return { primary: `${hours}h ${mins}m`, secondary: `${minutes} min total` };
+    }
+    return { primary: `${minutes}`, secondary: "minutes" };
+  };
+
+  const time = formatTime(totalMinutes);
+  const completionRate = totalSessions > 0
+    ? Math.round((completedSessions / totalSessions) * 100)
+    : 0;
+
+  return (
+    <View style={styles.statsRow}>
+      <View style={[styles.statCard, { backgroundColor: theme.colors.surface }]}>
+        {Platform.OS === "ios" ? (
+          <SymbolView
+            name="clock"
+            size={24}
+            tintColor={theme.colors.textSecondary}
+            style={styles.statIcon}
+          />
+        ) : (
+          <Ionicons name="time-outline" size={24} color={theme.colors.textSecondary} style={styles.statIcon} />
+        )}
+        <Text style={[styles.statValue, { color: theme.colors.textPrimary }]}>{time.primary}</Text>
+        <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{time.secondary}</Text>
       </View>
-      {Platform.OS === "ios" ? (
-        <SymbolView
-          name="laurel.trailing"
-          size={40}
-          tintColor={secondaryTextColor}
-          style={styles.laurelIcon}
-        />
-      ) : (
-        <Ionicons name="leaf-outline" size={24} color={secondaryTextColor} style={[styles.laurelIcon, { transform: [{ scaleX: -1 }] }]} />
-      )}
+
+      <View style={[styles.statCard, { backgroundColor: theme.colors.surface }]}>
+        {Platform.OS === "ios" ? (
+          <SymbolView
+            name="checkmark.circle"
+            size={24}
+            tintColor={theme.colors.textSecondary}
+            style={styles.statIcon}
+          />
+        ) : (
+          <Ionicons name="checkmark-circle-outline" size={24} color={theme.colors.textSecondary} style={styles.statIcon} />
+        )}
+        <Text style={[styles.statValue, { color: theme.colors.textPrimary }]}>{completedSessions}</Text>
+        <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>sessions ({completionRate}%)</Text>
+      </View>
     </View>
   );
 }
+
+// ============================================================================
+// DAILY GOAL PROGRESS - Dot progress indicator
+// ============================================================================
+
+interface DailyGoalProgressProps {
+  todaySessions: number;
+  dailyGoal: number;
+  accentColor: string;
+  theme: any;
+}
+
+function DailyGoalProgress({ todaySessions, dailyGoal, accentColor, theme }: DailyGoalProgressProps) {
+  const styles = createStyles(theme);
+  const isComplete = todaySessions >= dailyGoal;
+
+  return (
+    <View style={[styles.goalContainer, { backgroundColor: theme.colors.surface }]}>
+      <View style={styles.goalHeader}>
+        <Text style={[styles.goalTitle, { color: theme.colors.textSecondary }]}>DAILY GOAL</Text>
+        {isComplete && (
+          Platform.OS === "ios" ? (
+            <SymbolView name="checkmark.circle.fill" size={18} tintColor={accentColor} />
+          ) : (
+            <Ionicons name="checkmark-circle" size={18} color={accentColor} />
+          )
+        )}
+      </View>
+
+      <View style={styles.goalDots}>
+        {Array.from({ length: dailyGoal }).map((_, i) => (
+          <View
+            key={i}
+            style={[
+              styles.goalDot,
+              {
+                backgroundColor: i < todaySessions ? accentColor : theme.colors.borderSecondary,
+              },
+            ]}
+          />
+        ))}
+      </View>
+
+      <Text style={[styles.goalText, { color: theme.colors.textSecondary }]}>
+        {todaySessions}/{dailyGoal} sessions today
+      </Text>
+    </View>
+  );
+}
+
+// ============================================================================
+// ACHIEVEMENT GRID - Badge collection with SF Symbols
+// ============================================================================
+
+interface AchievementGridProps {
+  unlockedIds: Set<string>;
+  accentColor: string;
+  theme: any;
+}
+
+function AchievementGrid({ unlockedIds, accentColor, theme }: AchievementGridProps) {
+  const styles = createStyles(theme);
+  const { width: screenWidth } = useWindowDimensions();
+
+  // Calculate badge width: (screen - padding*2 - gap*2) / 3
+  const horizontalPadding = 20;
+  const gap = 8;
+  const badgeWidth = (screenWidth - horizontalPadding * 2 - gap * 2) / 3;
+
+  const achievements = Object.values(ACHIEVEMENTS);
+
+  return (
+    <View style={styles.achievementsContainer}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>ACHIEVEMENTS</Text>
+
+      <View style={styles.achievementsGrid}>
+        {achievements.map((achievement) => {
+          const isUnlocked = unlockedIds.has(achievement.id);
+          const iconColor = isUnlocked ? accentColor : theme.colors.textSecondary;
+
+          return (
+            <View
+              key={achievement.id}
+              style={[
+                styles.achievementBadge,
+                {
+                  width: badgeWidth,
+                  backgroundColor: theme.colors.surface,
+                  opacity: isUnlocked ? 1 : 0.4,
+                },
+              ]}
+            >
+              {Platform.OS === "ios" ? (
+                <SymbolView
+                  name={achievement.icon as any}
+                  size={28}
+                  tintColor={iconColor}
+                  style={styles.achievementIcon}
+                />
+              ) : (
+                <Ionicons
+                  name={getIoniconForAchievement(achievement.id)}
+                  size={28}
+                  color={iconColor}
+                  style={styles.achievementIcon}
+                />
+              )}
+              <Text
+                style={[
+                  styles.achievementName,
+                  { color: isUnlocked ? theme.colors.textPrimary : theme.colors.textSecondary },
+                ]}
+                numberOfLines={1}
+              >
+                {achievement.name}
+              </Text>
+              <Text
+                style={[styles.achievementDesc, { color: theme.colors.textSecondary }]}
+                numberOfLines={1}
+              >
+                {achievement.description}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+// Android fallback icons for achievements
+function getIoniconForAchievement(id: string): any {
+  const map: Record<string, string> = {
+    week_warrior: "flame",
+    month_master: "trophy",
+    century_club: "star",
+    focus_pro: "locate",
+    deep_diver: "diamond",
+    consistency_king: "sparkles",
+  };
+  return map[id] || "ribbon";
+}
+
+// ============================================================================
+// MAIN SCREEN
+// ============================================================================
 
 export default function YouScreen() {
   const { theme } = useUnistyles();
   const styles = createStyles(theme);
   const isDark = theme.isDark;
 
-  // Local accent color logic
+  // Accent color
   const accentColorName = useAccentColor();
   const accent = theme.colors.accent[accentColorName];
   const accentColor = isDark ? accent.secondary : accent.primary;
-  // Initialize state synchronously to prevent CLS (flash of "No Profile")
-  const [profile, setProfile] = useState<{ name: string; birthDate: Date | null }>(() => {
-    const stored = getUserProfile();
-    return stored ? { name: stored.name, birthDate: stored.birthDate ? new Date(stored.birthDate) : null } : { name: "", birthDate: null };
-  });
 
-  // Initialize lifespan synchronously
-  const [lifespan, setLifespanValue] = useState(() => getLifespan());
+  // Focus data state
+  const [sessions, setSessions] = useState<FocusSession[]>([]);
+  const [profile, setProfile] = useState(() => getFocusProfile());
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [todaySessions, setTodaySessions] = useState(0);
+  const [stats, setStats] = useState({ totalMinutes: 0, totalSessions: 0, completedSessions: 0 });
+  const [unlockedIds, setUnlockedIds] = useState<Set<string>>(new Set());
 
-  const lastLoadedProfileRef = useRef<string | null>(null);
-
-  // Haptic feedback helper
-  const triggerHaptic = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
-
-  // Still use FocusEffect to update if changed (e.g. returning from Settings)
-  useFocusEffect(() => {
-    // We fetch again to check for updates
-    const storedProfile = getUserProfile();
-    const storedLifespan = getLifespan();
-
-    // Always sync lifespan if changed
-    setLifespanValue(prev => prev !== storedLifespan ? storedLifespan : prev);
-
-    if (storedProfile) {
-      const profileKey = `${storedProfile.name}-${storedProfile.birthDate || ''}-${storedLifespan}`;
-      if (lastLoadedProfileRef.current !== profileKey) {
-        lastLoadedProfileRef.current = profileKey;
-        // Only set state if actually different to avoid unnecessary re-renders
-        setProfile(prev => {
-          const newDate = storedProfile.birthDate ? new Date(storedProfile.birthDate) : null;
-          if (prev.name === storedProfile.name && prev.birthDate?.getTime() === newDate?.getTime()) {
-            return prev;
-          }
-          return {
-            name: storedProfile.name,
-            birthDate: newDate,
-          };
-        });
-      }
-    } else {
-      lastLoadedProfileRef.current = null;
-      setProfile(prev => prev.name ? { name: "", birthDate: null } : prev);
-    }
-  });
-
-  const hasProfile = profile.name && profile.birthDate;
-
-  // Animated values for profile card
-  const cardRotation = useSharedValue(-5);
+  // Animated values for streak card
   const cardScale = useSharedValue(1);
 
-  // Animated style for profile card
   const cardAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: cardScale.value },
-      { rotate: `${cardRotation.value}deg` },
-    ],
+    transform: [{ scale: cardScale.value }],
   }));
 
-  const triggerAnimation = () => {
-    // Reset rotation if needed, or just leave it. 
-    // For a clean pulse, we probably want 0 rotation.
-    cardRotation.value = withSpring(0);
-
-    // Simple pulse animation
+  const triggerAnimation = useCallback(() => {
     cardScale.value = withSequence(
       withTiming(1.05, { duration: 150 }),
       withSpring(1, { damping: 12, stiffness: 150 })
     );
-  };
+  }, []);
 
-  // Handle card tap - random tilt with spring animation
   const handleCardTap = () => {
-    triggerHaptic();
-    // Use the same animation or custom for tap? 
-    // User asked for "one pulse" for the visibility animation.
-    // I'll use the new pulse for consistency or keep tap fun?
-    // "one pulse would be ok" likely refers to the auto-animation.
-    // I will use the triggerAnimation for both for now to be safe, 
-    // or arguably keep tap interactive. The user said "one pulse" in context of the auto-trigger.
-    // I'll stick to making triggerAnimation do the pulse.
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     triggerAnimation();
   };
 
-  useFocusEffect(() => {
-    // Trigger animation every time the screen comes into focus
-    // Small delay to make it feel natural as the screen transition completes
-    const timeout = setTimeout(() => {
-      triggerAnimation();
-    }, 100);
-    return () => clearTimeout(timeout);
-  });
+  // Load data on focus
+  useFocusEffect(
+    useCallback(() => {
+      const history = getFocusHistory();
+      const focusProfile = getFocusProfile();
 
-  const calculateAge = (birthDate: Date) => {
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
-  };
+      setSessions(history);
+      setProfile(focusProfile);
 
-  const calculateExactAge = (birthDate: Date) => {
-    const today = new Date();
-    const diff = today.getTime() - birthDate.getTime();
-    return diff / (1000 * 60 * 60 * 24 * 365.25);
-  };
+      const streak = getCurrentStreak(history);
+      setCurrentStreak(streak);
+      setTodaySessions(getTodaySessionsCount(history));
+      setStats(getTotalStats(history));
+      setUnlockedIds(getUnlockedAchievementIds());
+
+      // Update best streak if needed
+      updateBestStreak(streak);
+
+      // Check for new achievements
+      checkAchievements(history);
+
+      // Trigger animation
+      const timeout = setTimeout(triggerAnimation, 100);
+      return () => clearTimeout(timeout);
+    }, [triggerAnimation])
+  );
 
   const openSettings = () => {
     router.push("/settings");
   };
 
+  const hasData = sessions.length > 0;
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Native header with liquid glass - settings button only */}
+      {/* Native header with liquid glass */}
       <Stack.Header>
         <Stack.Header.Right>
           <Stack.Header.Button
@@ -224,50 +372,55 @@ export default function YouScreen() {
         contentInsetAdjustmentBehavior="automatic"
         alwaysBounceVertical={true}
       >
-        <View style={styles.profileSection}>
-          {/* Profile Card */}
-          <Pressable onPress={handleCardTap}>
-            <Animated.View style={[styles.profileCard, { backgroundColor: accentColor }, cardAnimatedStyle]}>
-              <Ionicons name="person" size={80} color={theme.colors.onImage.faint} />
-            </Animated.View>
-          </Pressable>
+        {/* Streak Card - Hero */}
+        <StreakCard
+          currentStreak={currentStreak}
+          bestStreak={profile.bestStreak}
+          accentColor={accentColor}
+          theme={theme}
+          onTap={handleCardTap}
+          animatedStyle={cardAnimatedStyle}
+        />
 
-          {hasProfile && profile.birthDate ? (
-            <>
-              <Text style={[styles.profileName, { color: theme.colors.textPrimary }]}>{profile.name}</Text>
+        {/* Stats Cards */}
+        <StatsCards
+          totalMinutes={stats.totalMinutes}
+          completedSessions={stats.completedSessions}
+          totalSessions={stats.totalSessions}
+          theme={theme}
+        />
 
-              {/* Precise Countdown */}
-              <PreciseCountdown
-                birthDate={profile.birthDate}
-                lifespan={lifespan}
-                textColor={theme.colors.textPrimary}
-                secondaryTextColor={theme.colors.textSecondary}
-              />
+        {/* Daily Goal Progress */}
+        <DailyGoalProgress
+          todaySessions={todaySessions}
+          dailyGoal={profile.dailyGoal}
+          accentColor={accentColor}
+          theme={theme}
+        />
 
-              {/* Graphs */}
-              <View style={styles.graphsContainer}>
-                <LifeInsights
-                  ageYears={calculateExactAge(profile.birthDate)}
-                  lifespan={lifespan}
-                  accentColor={accentColor}
-                />
-              </View>
-            </>
-          ) : (
-            <>
-              <Text style={[styles.descriptionText, { color: theme.colors.textSecondary }]}>
-                Set up your profile to unlock personalized insights and visual reflections based on your age and lifespan.
-              </Text>
-              <Pressable style={[styles.setupButton, { backgroundColor: accentColor }]} onPress={openSettings}>
-                <Text style={styles.setupButtonText}>Set up your profile</Text>
-              </Pressable>
-            </>
-          )}
-        </View>
+        {/* Achievements */}
+        <AchievementGrid
+          unlockedIds={unlockedIds}
+          accentColor={accentColor}
+          theme={theme}
+        />
+
+        {/* Empty state hint */}
+        {!hasData && (
+          <View style={styles.emptyHint}>
+            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
+              Complete your first focus session to start tracking your progress!
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
 }
+
+// ============================================================================
+// STYLES
+// ============================================================================
 
 const createStyles = (theme: any) => StyleSheet.create({
   container: {
@@ -276,74 +429,140 @@ const createStyles = (theme: any) => StyleSheet.create({
   scrollContent: {
     paddingBottom: 100,
     paddingHorizontal: 20,
+    paddingTop: 8,
   },
-  profileSection: {
-    alignItems: "center",
-    paddingTop: 20,
-  },
-  profileCard: {
-    width: 140, // Smaller profile card to fit charts
-    height: 140,
-    borderRadius: 35,
+
+  // Streak Card
+  streakCard: {
     alignItems: "center",
     justifyContent: "center",
-    ...theme.effects.shadow.card,
-    marginBottom: 20,
-  },
-  profileName: {
-    fontSize: 24,
-    fontWeight: "700",
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    borderRadius: 24,
     marginBottom: 16,
+    ...theme.effects.shadow.card,
   },
-  profileAge: {
-    fontSize: 17,
-    marginTop: 8,
-    marginBottom: 24,
+  streakIcon: {
+    marginBottom: 8,
   },
-  descriptionText: {
-    fontSize: 16,
-    textAlign: "center",
-    lineHeight: 24,
-    marginTop: 20,
-    marginBottom: 24,
-    paddingHorizontal: 20,
-  },
-  setupButton: {
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 14,
-    width: "100%",
-    alignItems: "center",
-  },
-  setupButtonText: {
+  streakValue: {
+    fontSize: 56,
+    fontWeight: "800",
     color: theme.colors.onImage.primary,
+    fontVariant: ["tabular-nums"],
+  },
+  streakLabel: {
     fontSize: 17,
     fontWeight: "600",
-  },
-  countdownContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    marginBottom: 40,
-  },
-  countdownContent: {
-    alignItems: "center",
-  },
-  countdownValue: {
-    fontSize: 28, // Large ticker
-    fontWeight: "800",
-    fontVariant: ["tabular-nums"], // Monospaced numbers prevent jitter
-  },
-  countdownLabel: {
-    fontSize: 15,
-    fontWeight: "500",
+    color: theme.colors.onImage.secondary,
     marginTop: 4,
   },
-  laurelIcon: {
-    opacity: 0.8,
+  streakBest: {
+    fontSize: 14,
+    color: theme.colors.onImage.faint,
+    marginTop: 12,
   },
-  graphsContainer: {
-    width: "100%",
-  }
+
+  // Stats Cards
+  statsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16,
+  },
+  statCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+  statIcon: {
+    marginBottom: 8,
+    opacity: 0.6,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+  },
+  statLabel: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+
+  // Daily Goal
+  goalContainer: {
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 24,
+  },
+  goalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  goalTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+  },
+  goalDots: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  goalDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  goalText: {
+    fontSize: 14,
+  },
+
+  // Achievements
+  achievementsContainer: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  achievementsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  achievementBadge: {
+    padding: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  achievementIcon: {
+    marginBottom: 8,
+  },
+  achievementName: {
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  achievementDesc: {
+    fontSize: 10,
+    textAlign: "center",
+    marginTop: 2,
+  },
+
+  // Empty state
+  emptyHint: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 15,
+    textAlign: "center",
+    lineHeight: 22,
+  },
 });

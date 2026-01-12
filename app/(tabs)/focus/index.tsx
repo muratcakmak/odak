@@ -46,6 +46,7 @@ import {
   getFocusSettings,
   getSelectedPreset,
   saveSelectedPreset,
+  useAccentColor,
 } from '../../../utils/storage';
 
 // Components
@@ -57,6 +58,11 @@ const TICK_INTERVAL = 1000; // 1 second
 export default function FocusScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useUnistyles();
+
+  // Accent color from user settings
+  const accentColorName = useAccentColor();
+  const accent = theme.colors.accent[accentColorName];
+  const accentColor = theme.isDark ? accent.secondary : accent.primary;
 
   // Settings (loaded once, updated via settings screen)
   const [settings, setSettings] = useState<FocusSettings>(createDefaultSettings);
@@ -190,7 +196,7 @@ export default function FocusScreen() {
 
   // Background color for break mode
   const backgroundColor = isBreak
-    ? theme.colors.systemOrange
+    ? accentColor
     : theme.colors.background;
 
   const textColor = isBreak
@@ -242,7 +248,7 @@ export default function FocusScreen() {
                   {
                     backgroundColor:
                       preset.id === timerState.selectedPresetId
-                        ? theme.colors.systemOrange
+                        ? accentColor
                         : theme.isDark
                         ? 'rgba(255,255,255,0.1)'
                         : 'rgba(0,0,0,0.05)',
@@ -280,6 +286,7 @@ export default function FocusScreen() {
                 activeDots={displayState.litDots}
                 currentDotProgress={currentDotProgress}
                 isBreak
+                accentColor={accentColor}
               />
 
               <Text style={styles.breakText}>
@@ -294,6 +301,7 @@ export default function FocusScreen() {
                 onComplete={handleSkipBreak}
                 vibrationEnabled={settings.vibrationEnabled}
                 accessibilityLabel="Skip break"
+                accentColor={accentColor}
               />
             </View>
           </View>
@@ -307,6 +315,7 @@ export default function FocusScreen() {
               cols={selectedPreset.gridCols}
               activeDots={displayState.litDots}
               currentDotProgress={isFocusing ? currentDotProgress : 0}
+              accentColor={accentColor}
             />
           </View>
         )}
@@ -323,6 +332,7 @@ export default function FocusScreen() {
                 ? `Hold to start ${selectedPreset.durationMinutes} minute focus session`
                 : 'Hold to end focus session'
               }
+              accentColor={accentColor}
             />
           </View>
         )}

@@ -16,7 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUnistyles } from 'react-native-unistyles';
 
-import { getFocusHistory, storage } from '../../../utils/storage';
+import { getFocusHistory, storage, useAccentColor } from '../../../utils/storage';
 import { getPreset } from '../../../domain';
 import type { FocusSession } from '../../../domain/types';
 
@@ -88,6 +88,11 @@ export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useUnistyles();
 
+  // Accent color from user settings
+  const accentColorName = useAccentColor();
+  const accent = theme.colors.accent[accentColorName];
+  const accentColor = theme.isDark ? accent.secondary : accent.primary;
+
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -152,7 +157,7 @@ export default function HistoryScreen() {
               <View
                 style={[
                   styles.statusBadge,
-                  { backgroundColor: theme.colors.systemOrange },
+                  { backgroundColor: accentColor },
                 ]}
               >
                 <Text style={styles.statusText}>–</Text>
