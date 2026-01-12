@@ -202,7 +202,15 @@ struct OdakEventEntry: TimelineEntry {
     let backgroundImage: UIImage?
 
     static func placeholder(isCountdown: Bool) -> OdakEventEntry {
-        OdakEventEntry(date: Date(), event: OdakEventData(id: "placeholder", title: "Event", date: "", startDate: nil, image: nil), daysCount: 42, isCountdown: isCountdown, backgroundImage: nil)
+        let title = isCountdown ? "My Event" : "Milestone"
+        let daysValue = isCountdown ? 42 : 100
+        return OdakEventEntry(
+            date: Date(),
+            event: OdakEventData(id: "placeholder", title: title, date: "2026-03-01", startDate: "2025-01-01", image: nil),
+            daysCount: daysValue,
+            isCountdown: isCountdown,
+            backgroundImage: nil
+        )
     }
 }
 
@@ -212,6 +220,14 @@ struct AheadEventProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> OdakEventEntry { .placeholder(isCountdown: true) }
 
     func snapshot(for configuration: SelectAheadEventIntent, in context: Context) async -> OdakEventEntry {
+        // In preview mode, return placeholder if no event configured
+        if context.isPreview {
+            let events = OdakStorage.loadAheadEvents()
+            if let firstEvent = events.first {
+                return makeEntry(for: firstEvent, on: Date())
+            }
+            return .placeholder(isCountdown: true)
+        }
         return getEntry(for: configuration)
     }
 
@@ -228,18 +244,26 @@ struct AheadEventProvider: AppIntentTimelineProvider {
 
     private func getEntry(for config: SelectAheadEventIntent, on date: Date = Date()) -> OdakEventEntry {
         let events = OdakStorage.loadAheadEvents()
-        let event: OdakEventData? = config.event.flatMap { entity in events.first { $0.id == entity.id } } ?? events.first
 
-        guard let event = event else {
-            return OdakEventEntry(date: date, event: nil, daysCount: 0, isCountdown: true, backgroundImage: nil)
+        // First try to find the configured event
+        if let selectedEntity = config.event,
+           let matchedEvent = events.first(where: { $0.id == selectedEntity.id }) {
+            return makeEntry(for: matchedEvent, on: date)
         }
 
-        // Calculate days - use 0 if date parsing fails
+        // Fallback to first event if available
+        if let firstEvent = events.first {
+            return makeEntry(for: firstEvent, on: date)
+        }
+
+        return OdakEventEntry(date: date, event: nil, daysCount: 0, isCountdown: true, backgroundImage: nil)
+    }
+
+    private func makeEntry(for event: OdakEventData, on date: Date) -> OdakEventEntry {
         var days = 0
         if let targetDate = event.targetDate {
             days = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: date), to: Calendar.current.startOfDay(for: targetDate)).day ?? 0
         }
-
         let backgroundImage = OdakStorage.loadImage(for: event)
         return OdakEventEntry(date: date, event: event, daysCount: max(0, days), isCountdown: true, backgroundImage: backgroundImage)
     }
@@ -251,6 +275,14 @@ struct SinceEventProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> OdakEventEntry { .placeholder(isCountdown: false) }
 
     func snapshot(for configuration: SelectSinceEventIntent, in context: Context) async -> OdakEventEntry {
+        // In preview mode, return placeholder if no event configured
+        if context.isPreview {
+            let events = OdakStorage.loadSinceEvents()
+            if let firstEvent = events.first {
+                return makeEntry(for: firstEvent, on: Date())
+            }
+            return .placeholder(isCountdown: false)
+        }
         return getEntry(for: configuration)
     }
 
@@ -267,18 +299,26 @@ struct SinceEventProvider: AppIntentTimelineProvider {
 
     private func getEntry(for config: SelectSinceEventIntent, on date: Date = Date()) -> OdakEventEntry {
         let events = OdakStorage.loadSinceEvents()
-        let event: OdakEventData? = config.event.flatMap { entity in events.first { $0.id == entity.id } } ?? events.first
 
-        guard let event = event else {
-            return OdakEventEntry(date: date, event: nil, daysCount: 0, isCountdown: false, backgroundImage: nil)
+        // First try to find the configured event
+        if let selectedEntity = config.event,
+           let matchedEvent = events.first(where: { $0.id == selectedEntity.id }) {
+            return makeEntry(for: matchedEvent, on: date)
         }
 
-        // Calculate days - use 0 if date parsing fails
+        // Fallback to first event if available
+        if let firstEvent = events.first {
+            return makeEntry(for: firstEvent, on: date)
+        }
+
+        return OdakEventEntry(date: date, event: nil, daysCount: 0, isCountdown: false, backgroundImage: nil)
+    }
+
+    private func makeEntry(for event: OdakEventData, on date: Date) -> OdakEventEntry {
         var days = 0
         if let targetDate = event.targetDate {
             days = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: targetDate), to: Calendar.current.startOfDay(for: date)).day ?? 0
         }
-
         let backgroundImage = OdakStorage.loadImage(for: event)
         return OdakEventEntry(date: date, event: event, daysCount: max(0, days), isCountdown: false, backgroundImage: backgroundImage)
     }
@@ -559,7 +599,7 @@ struct OdakAheadWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: SelectAheadEventIntent.self, provider: AheadEventProvider()) { entry in
             OdakWidgetEntryView(entry: entry)
-                .widgetURL(entry.event != nil ? URL(string: "odak://event/\(entry.event!.id)") : URL(string: "odak://"))
+                .widgetURL(entry.event != nil ? URL(string: "odak://countdown/\(entry.event!.id)") : URL(string: "odak://dates"))
         }
         .configurationDisplayName("Countdown")
         .description("Track days until your event")
@@ -575,450 +615,10 @@ struct OdakSinceWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: SelectSinceEventIntent.self, provider: SinceEventProvider()) { entry in
             OdakWidgetEntryView(entry: entry)
-                .widgetURL(entry.event != nil ? URL(string: "odak://event/\(entry.event!.id)") : URL(string: "odak://"))
+                .widgetURL(entry.event != nil ? URL(string: "odak://milestone/\(entry.event!.id)") : URL(string: "odak://dates"))
         }
         .configurationDisplayName("Milestone")
         .description("Track days since your event")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
-    }
-}
-
-// MARK: - Year/Month Timeline Entry
-
-struct ProgressEntry: TimelineEntry {
-    let date: Date
-    let daysPassed: Int
-    let daysTotal: Int
-    let daysLeft: Int
-    let label: String // "2026" for year, "January" for month
-
-    var progress: Double {
-        guard daysTotal > 0 else { return 0 }
-        return Double(daysPassed) / Double(daysTotal)
-    }
-}
-
-// MARK: - Year Timeline Provider
-
-struct YearProvider: TimelineProvider {
-    func placeholder(in context: Context) -> ProgressEntry {
-        ProgressEntry(date: Date(), daysPassed: 180, daysTotal: 365, daysLeft: 185, label: "2026")
-    }
-
-    func getSnapshot(in context: Context, completion: @escaping (ProgressEntry) -> Void) {
-        completion(getEntry(for: Date()))
-    }
-
-    func getTimeline(in context: Context, completion: @escaping (Timeline<ProgressEntry>) -> Void) {
-        var entries: [ProgressEntry] = []
-        let now = Date()
-
-        // Update at midnight each day
-        for day in 0..<7 {
-            if let date = Calendar.current.date(byAdding: .day, value: day, to: now) {
-                entries.append(getEntry(for: date))
-            }
-        }
-
-        // Refresh at midnight
-        let tomorrow = Calendar.current.startOfDay(for: Calendar.current.date(byAdding: .day, value: 1, to: now)!)
-        completion(Timeline(entries: entries, policy: .after(tomorrow)))
-    }
-
-    private func getEntry(for date: Date) -> ProgressEntry {
-        let calendar = Calendar.current
-        let year = calendar.component(.year, from: date)
-
-        // Get start and end of year
-        let startOfYear = calendar.date(from: DateComponents(year: year, month: 1, day: 1))!
-        let endOfYear = calendar.date(from: DateComponents(year: year + 1, month: 1, day: 1))!
-
-        let daysTotal = calendar.dateComponents([.day], from: startOfYear, to: endOfYear).day ?? 365
-        let daysPassed = calendar.dateComponents([.day], from: startOfYear, to: date).day ?? 0
-        let daysLeft = max(0, daysTotal - daysPassed)
-
-        return ProgressEntry(
-            date: date,
-            daysPassed: daysPassed,
-            daysTotal: daysTotal,
-            daysLeft: daysLeft,
-            label: "\(year)"
-        )
-    }
-}
-
-// MARK: - Month Timeline Provider
-
-struct MonthProvider: TimelineProvider {
-    func placeholder(in context: Context) -> ProgressEntry {
-        ProgressEntry(date: Date(), daysPassed: 15, daysTotal: 31, daysLeft: 16, label: "January")
-    }
-
-    func getSnapshot(in context: Context, completion: @escaping (ProgressEntry) -> Void) {
-        completion(getEntry(for: Date()))
-    }
-
-    func getTimeline(in context: Context, completion: @escaping (Timeline<ProgressEntry>) -> Void) {
-        var entries: [ProgressEntry] = []
-        let now = Date()
-
-        for day in 0..<7 {
-            if let date = Calendar.current.date(byAdding: .day, value: day, to: now) {
-                entries.append(getEntry(for: date))
-            }
-        }
-
-        let tomorrow = Calendar.current.startOfDay(for: Calendar.current.date(byAdding: .day, value: 1, to: now)!)
-        completion(Timeline(entries: entries, policy: .after(tomorrow)))
-    }
-
-    private func getEntry(for date: Date) -> ProgressEntry {
-        let calendar = Calendar.current
-
-        // Get month name
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM"
-        let monthName = formatter.string(from: date)
-
-        // Get days in month
-        let range = calendar.range(of: .day, in: .month, for: date)!
-        let daysTotal = range.count
-        let daysPassed = calendar.component(.day, from: date)
-        let daysLeft = max(0, daysTotal - daysPassed)
-
-        return ProgressEntry(
-            date: date,
-            daysPassed: daysPassed,
-            daysTotal: daysTotal,
-            daysLeft: daysLeft,
-            label: monthName
-        )
-    }
-}
-
-// MARK: - Dot Grid View
-
-struct DotGridView: View {
-    let daysPassed: Int
-    let daysTotal: Int
-    let columns: Int
-    let dotSize: CGFloat
-    let spacing: CGFloat
-
-    var rows: Int {
-        Int(ceil(Double(daysTotal) / Double(columns)))
-    }
-
-    var body: some View {
-        VStack(spacing: spacing) {
-            ForEach(0..<rows, id: \.self) { row in
-                HStack(spacing: spacing) {
-                    ForEach(0..<columns, id: \.self) { col in
-                        let dayIndex = row * columns + col
-                        if dayIndex < daysTotal {
-                            Circle()
-                                .fill(dayIndex < daysPassed ? Color.white : Color.white.opacity(0.25))
-                                .frame(width: dotSize, height: dotSize)
-                        } else {
-                            Circle()
-                                .fill(Color.clear)
-                                .frame(width: dotSize, height: dotSize)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Year Widget Views
-
-struct YearSmallView: View {
-    let entry: ProgressEntry
-
-    var body: some View {
-        VStack(spacing: 6) {
-            // Dot grid - 19 columns for 365 days, smaller dots to fit
-            DotGridView(daysPassed: entry.daysPassed, daysTotal: entry.daysTotal, columns: 19, dotSize: 3.5, spacing: 1.5)
-
-            VStack(spacing: 2) {
-                Text(entry.label)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.7))
-
-                Text("\(entry.daysLeft) days left")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .containerBackground(Color.black, for: .widget)
-    }
-}
-
-struct YearMediumView: View {
-    let entry: ProgressEntry
-
-    var body: some View {
-        VStack(spacing: 8) {
-            // Wider dot grid for medium - 37 columns
-            DotGridView(daysPassed: entry.daysPassed, daysTotal: entry.daysTotal, columns: 37, dotSize: 6, spacing: 2)
-
-            HStack {
-                Text(entry.label)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.7))
-
-                Spacer()
-
-                Text("\(entry.daysLeft) days left")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .containerBackground(Color.black, for: .widget)
-    }
-}
-
-struct YearLargeView: View {
-    let entry: ProgressEntry
-
-    var body: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Text("YEAR PROGRESS")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white.opacity(0.5))
-
-                Spacer()
-
-                Text("\(Int(entry.progress * 100))%")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-
-            Spacer()
-
-            // Large dot grid - 26 columns for better visibility
-            DotGridView(daysPassed: entry.daysPassed, daysTotal: entry.daysTotal, columns: 26, dotSize: 8, spacing: 3)
-
-            Spacer()
-
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(entry.label)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.white)
-
-                    Text("\(entry.daysPassed) days passed")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.5))
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(entry.daysLeft)")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.white)
-
-                    Text("days left")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.5))
-                }
-            }
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .containerBackground(Color.black, for: .widget)
-    }
-}
-
-// MARK: - Month Widget Views
-
-struct MonthSmallView: View {
-    let entry: ProgressEntry
-
-    var body: some View {
-        VStack(spacing: 6) {
-            // 6x6 grid for month (max 31 days)
-            DotGridView(daysPassed: entry.daysPassed, daysTotal: entry.daysTotal, columns: 6, dotSize: 8, spacing: 4)
-
-            VStack(spacing: 2) {
-                Text(entry.label)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.white.opacity(0.7))
-
-                Text("\(entry.daysLeft) days left")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .containerBackground(Color.black, for: .widget)
-    }
-}
-
-struct MonthMediumView: View {
-    let entry: ProgressEntry
-
-    var body: some View {
-        HStack(spacing: 16) {
-            // 6x6 grid on left
-            DotGridView(daysPassed: entry.daysPassed, daysTotal: entry.daysTotal, columns: 6, dotSize: 10, spacing: 5)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(entry.label)
-                    .font(.title3)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
-
-                Spacer()
-
-                Text("\(entry.daysLeft)")
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-
-                Text("days left")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-
-            Spacer()
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .containerBackground(Color.black, for: .widget)
-    }
-}
-
-struct MonthLargeView: View {
-    let entry: ProgressEntry
-
-    var body: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Text("MONTH PROGRESS")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white.opacity(0.5))
-
-                Spacer()
-
-                Text("\(Int(entry.progress * 100))%")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-
-            Spacer()
-
-            // Larger grid for big widget - 7 columns (like a week)
-            DotGridView(daysPassed: entry.daysPassed, daysTotal: entry.daysTotal, columns: 7, dotSize: 16, spacing: 8)
-
-            Spacer()
-
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(entry.label)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.white)
-
-                    Text("\(entry.daysPassed) days passed")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.5))
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(entry.daysLeft)")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.white)
-
-                    Text("days left")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.5))
-                }
-            }
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .containerBackground(Color.black, for: .widget)
-    }
-}
-
-// MARK: - Year Widget Entry View
-
-struct YearWidgetEntryView: View {
-    var entry: ProgressEntry
-    @Environment(\.widgetFamily) var family
-
-    var body: some View {
-        switch family {
-        case .systemSmall: YearSmallView(entry: entry)
-        case .systemMedium: YearMediumView(entry: entry)
-        case .systemLarge: YearLargeView(entry: entry)
-        default: YearSmallView(entry: entry)
-        }
-    }
-}
-
-// MARK: - Month Widget Entry View
-
-struct MonthWidgetEntryView: View {
-    var entry: ProgressEntry
-    @Environment(\.widgetFamily) var family
-
-    var body: some View {
-        switch family {
-        case .systemSmall: MonthSmallView(entry: entry)
-        case .systemMedium: MonthMediumView(entry: entry)
-        case .systemLarge: MonthLargeView(entry: entry)
-        default: MonthSmallView(entry: entry)
-        }
-    }
-}
-
-// MARK: - Year Widget
-
-struct OdakYearWidget: Widget {
-    let kind = "OdakYearWidget"
-
-    var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: YearProvider()) { entry in
-            YearWidgetEntryView(entry: entry)
-                .widgetURL(URL(string: "odak://year"))
-        }
-        .configurationDisplayName("Year")
-        .description("Shows how many days are left in the current year.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
-    }
-}
-
-// MARK: - Month Widget
-
-struct OdakMonthWidget: Widget {
-    let kind = "OdakMonthWidget"
-
-    var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: MonthProvider()) { entry in
-            MonthWidgetEntryView(entry: entry)
-                .widgetURL(URL(string: "odak://month"))
-        }
-        .configurationDisplayName("Month")
-        .description("Shows how many days are left in the current month.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
@@ -1030,7 +630,5 @@ struct OdakWidgetBundle: WidgetBundle {
     var body: some Widget {
         OdakAheadWidget()
         OdakSinceWidget()
-        OdakYearWidget()
-        OdakMonthWidget()
     }
 }

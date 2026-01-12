@@ -3,8 +3,8 @@ import { StyleSheet, View, Text, ScrollView, Pressable, Modal, TextInput, Platfo
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { hasLiquidGlassSupport } from "../../../utils/capabilities";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { DatePicker, Host } from "@expo/ui/swift-ui";
-import { datePickerStyle, tint } from "@expo/ui/swift-ui/modifiers";
+import { DatePicker, Host, Picker, Text as SwiftUIText } from "@expo/ui/swift-ui";
+import { datePickerStyle, tint, pickerStyle, tag } from "@expo/ui/swift-ui/modifiers";
 import * as ImagePicker from "expo-image-picker";
 import { Link, router, Stack } from "expo-router";
 import Animated, { FadeIn, FadeOut, Layout, Easing } from "react-native-reanimated";
@@ -70,93 +70,6 @@ function getDaysSince(date: Date) {
   const diff = now.getTime() - start.getTime();
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 }
-
-// Segmented Control Component
-function SegmentedControl({
-  values,
-  selectedIndex,
-  onChange,
-}: {
-  values: string[];
-  selectedIndex: number;
-  onChange: (index: number) => void;
-}) {
-  const { theme } = useUnistyles();
-  const accentColorName = useAccentColor();
-  const accentColor = theme.colors.accent[accentColorName].primary;
-  const isLiquidGlass = hasLiquidGlassSupport();
-
-  return (
-    <View style={[
-      segmentStyles.container,
-      {
-        backgroundColor: isLiquidGlass
-          ? "rgba(120, 120, 128, 0.12)"
-          : theme.isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-      }
-    ]}>
-      {values.map((value, index) => {
-        const isSelected = index === selectedIndex;
-        return (
-          <Pressable
-            key={value}
-            style={[
-              segmentStyles.segment,
-              isSelected && [
-                segmentStyles.segmentActive,
-                {
-                  backgroundColor: isLiquidGlass
-                    ? "rgba(255, 255, 255, 0.6)"
-                    : theme.isDark ? "rgba(255,255,255,0.15)" : "#FFFFFF",
-                }
-              ],
-            ]}
-            onPress={() => onChange(index)}
-          >
-            <Text
-              style={[
-                segmentStyles.segmentText,
-                { color: theme.colors.textSecondary },
-                isSelected && { color: theme.colors.textPrimary, fontWeight: "600" },
-              ]}
-            >
-              {value}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-const segmentStyles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    borderRadius: 9,
-    padding: 2,
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  segment: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 7,
-  },
-  segmentActive: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  segmentText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-});
 
 // Add Event Modal
 function AddEventModal({
@@ -455,7 +368,7 @@ export default function DatesScreen() {
   };
 
   // Dynamic labels based on mode
-  const headerTitle = mode === "ahead" ? "Time ahead" : "Time since";
+  const headerTitle = mode === "ahead" ? "Countdown" : "Milestone";
   const sortLabels = mode === "ahead"
     ? { dateAsc: "Soonest First", dateDesc: "Latest First" }
     : { dateAsc: "Longest First", dateDesc: "Recent First" };
@@ -469,8 +382,7 @@ export default function DatesScreen() {
     <View style={{ flex: 1 }}>
       {/* Native header using experimental Stack.Header API */}
       <Stack.Header>
-        <Stack.Header.Title>{headerTitle}</Stack.Header.Title>
-
+        <Stack.Header.Title>{""}</Stack.Header.Title>
         {/* Left side - Filter/Sort menu */}
         <Stack.Header.Left>
           <Stack.Header.Menu icon="line.3.horizontal.decrease.circle">
@@ -531,11 +443,16 @@ export default function DatesScreen() {
         emptyStateSubtext={emptyStateSubtext}
         emptyStateIcon={emptyStateIcon}
         stickyHeader={
-          <SegmentedControl
-            values={["Ahead", "Since"]}
-            selectedIndex={mode === "ahead" ? 0 : 1}
-            onChange={handleModeChange}
-          />
+          <Host style={{ marginHorizontal: 16, marginVertical: 8 }} matchContents>
+            <Picker
+              selection={mode === "ahead" ? 0 : 1}
+              onSelectionChange={(val) => handleModeChange(val as number)}
+              modifiers={[pickerStyle("segmented")]}
+            >
+              <SwiftUIText modifiers={[tag(0)]}>Countdown</SwiftUIText>
+              <SwiftUIText modifiers={[tag(1)]}>Milestone</SwiftUIText>
+            </Picker>
+          </Host>
         }
       >
         {sortedEvents.map((event) => {

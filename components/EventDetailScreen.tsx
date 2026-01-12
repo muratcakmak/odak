@@ -242,7 +242,12 @@ function HeaderPillButton({
   );
 }
 
-export function EventDetailScreen() {
+interface EventDetailScreenProps {
+  /** Optional: specify event type to search only in that list */
+  eventType?: "ahead" | "since";
+}
+
+export function EventDetailScreen({ eventType }: EventDetailScreenProps = {}) {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { theme } = useUnistyles();
@@ -275,7 +280,32 @@ export function EventDetailScreen() {
       return;
     }
 
-    // Check ahead events first, then since events
+    // If eventType is specified, only search in that list
+    if (eventType === "ahead") {
+      const aheadEvents = getAheadEvents();
+      const aheadEvent = aheadEvents.find((e) => e.id === id);
+      if (aheadEvent) {
+        setEventData({ type: "ahead", event: aheadEvent });
+        setNotFound(false);
+      } else {
+        setNotFound(true);
+      }
+      return;
+    }
+
+    if (eventType === "since") {
+      const sinceEvents = getSinceEvents();
+      const sinceEvent = sinceEvents.find((e) => e.id === id);
+      if (sinceEvent) {
+        setEventData({ type: "since", event: sinceEvent });
+        setNotFound(false);
+      } else {
+        setNotFound(true);
+      }
+      return;
+    }
+
+    // No eventType specified - check both lists (legacy behavior)
     const aheadEvents = getAheadEvents();
     const aheadEvent = aheadEvents.find((e) => e.id === id);
 
@@ -295,7 +325,7 @@ export function EventDetailScreen() {
       // Event not found in either list
       setNotFound(true);
     }
-  }, [id]);
+  }, [id, eventType]);
 
   // Update countdown every second
   useEffect(() => {
