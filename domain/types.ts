@@ -81,7 +81,8 @@ export type TimerEvent =
   | { type: 'CANCEL_END_EARLY' }
   | { type: 'TICK' }
   | { type: 'SKIP_BREAK' }
-  | { type: 'SELECT_PRESET'; presetId: PresetId };
+  | { type: 'SELECT_PRESET'; presetId: PresetId }
+  | { type: 'DEBUG_SPEEDUP' }; // Dev only - compress time to 3s
 
 // Constants
 export const HOLD_THRESHOLD_MS = 2500; // 2.5 seconds to commit

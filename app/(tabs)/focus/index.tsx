@@ -261,21 +261,28 @@ export default function FocusScreen() {
         {/* Break mode overlay */}
         {isBreak && (
           <View style={styles.breakOverlay}>
-            <DotGrid
-              rows={1}
-              cols={settings.breakDurationMinutes}
-              activeDots={displayState.litDots}
-              currentDotProgress={currentDotProgress}
-              isBreak
-            />
+            <View style={styles.breakContent}>
+              <DotGrid
+                rows={1}
+                cols={settings.breakDurationMinutes}
+                activeDots={displayState.litDots}
+                currentDotProgress={currentDotProgress}
+                isBreak
+              />
 
-            <Text style={styles.breakText}>
-              Take a break
-            </Text>
+              <Text style={styles.breakText}>
+                Take a break
+              </Text>
+            </View>
 
-            <Pressable onPress={handleSkipBreak} style={styles.skipButton}>
-              <Text style={styles.skipText}>Skip</Text>
-            </Pressable>
+            {/* Unified skip button - same position as play/lock */}
+            <View style={styles.holdButtonContainer}>
+              <SwipeToFocus
+                mode="break"
+                onComplete={handleSkipBreak}
+                accessibilityLabel="Skip break"
+              />
+            </View>
           </View>
         )}
 
@@ -313,6 +320,15 @@ export default function FocusScreen() {
           <Text style={[styles.debugText, { color: subtleTextColor }]}>
             {timerState.phase} • {Math.round(currentDotProgress * 100)}%
           </Text>
+          {/* Speedup button - only during focus/break */}
+          {(isFocusing || isBreak) && (
+            <Pressable
+              onPress={() => dispatch({ type: 'DEBUG_SPEEDUP' })}
+              style={styles.debugSpeedupButton}
+            >
+              <Text style={styles.debugSpeedupText}>⚡</Text>
+            </Pressable>
+          )}
         </View>
       )}
     </View>
@@ -383,6 +399,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  // Break content centered above the button
+  breakContent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 140, // Same as gridContainer - leave space for button
     justifyContent: 'center',
     alignItems: 'center',
     gap: 32,
@@ -391,17 +415,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '600',
     color: '#FFFFFF',
-  },
-  skipButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 24,
-  },
-  skipText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '500',
   },
   debugInfo: {
     position: 'absolute',
@@ -412,5 +425,15 @@ const styles = StyleSheet.create({
   debugText: {
     fontSize: 11,
     fontVariant: ['tabular-nums'],
+  },
+  debugSpeedupButton: {
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(255,149,0,0.3)',
+    borderRadius: 12,
+  },
+  debugSpeedupText: {
+    fontSize: 16,
   },
 });

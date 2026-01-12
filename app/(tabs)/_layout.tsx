@@ -18,7 +18,6 @@ export default function TabLayout() {
 
   return (
     <NativeTabs
-      initialRouteName="focus"
       tintColor={accentColor}
       blurEffect={blurEffect}
       disableTransparentOnScrollEdge={true}
@@ -30,11 +29,11 @@ export default function TabLayout() {
           drawable="ic_grid"
         />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Left</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="bank">
+        <NativeTabs.Trigger.Label>Bank</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          sf="calendar"
-          drawable="ic_calendar_grid"
+          sf="wallet.pass"
+          drawable="ic_wallet"
         />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="ahead">

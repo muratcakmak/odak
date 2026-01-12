@@ -286,6 +286,23 @@ export function timerReducer(
       return { state };
     }
 
+    case 'DEBUG_SPEEDUP': {
+      // Dev only - compress timer to 3 seconds
+      if (state.phase !== 'focusing' && state.phase !== 'break') {
+        return { state };
+      }
+      if (!state.activeTimer) return { state };
+
+      // Set endsAt to 3 seconds from now
+      const newEndsAt = new Date(Date.now() + 3000).toISOString();
+      return {
+        state: {
+          ...state,
+          activeTimer: { ...state.activeTimer, endsAt: newEndsAt },
+        },
+      };
+    }
+
     default:
       return { state };
   }

@@ -39,7 +39,7 @@ const HOLD_DURATION_FOCUS = 2000; // 2s to break seal
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-type ButtonMode = 'idle' | 'focusing';
+type ButtonMode = 'idle' | 'focusing' | 'break';
 
 interface SwipeToFocusProps {
   /** Current mode */
@@ -64,8 +64,11 @@ export const SwipeToFocus = memo(function SwipeToFocus({
   const holdIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const holdDuration = mode === 'idle' ? HOLD_DURATION_IDLE : HOLD_DURATION_FOCUS;
+  const isBreakMode = mode === 'break';
   const defaultLabel = mode === 'idle'
     ? 'Hold to start focus session'
+    : mode === 'break'
+    ? 'Skip break'
     : 'Hold to end focus session';
 
   // Track VoiceOver state
@@ -143,6 +146,13 @@ export const SwipeToFocus = memo(function SwipeToFocus({
   const startHold = useCallback(() => {
     if (disabled || hasTriggered.value) return;
 
+    // Break mode: instant tap, no hold required
+    if (isBreakMode) {
+      hasTriggered.value = true;
+      handleComplete();
+      return;
+    }
+
     holdStartRef.current = Date.now();
     isHolding.value = true;
     triggerHaptic('light');
@@ -162,7 +172,7 @@ export const SwipeToFocus = memo(function SwipeToFocus({
         }
       }
     }, 16); // ~60fps
-  }, [disabled, progress, isHolding, hasTriggered, holdDuration, triggerHaptic, handleComplete]);
+  }, [disabled, progress, isHolding, hasTriggered, holdDuration, triggerHaptic, handleComplete, isBreakMode]);
 
   // End hold tracking
   const endHold = useCallback(() => {
@@ -215,14 +225,20 @@ export const SwipeToFocus = memo(function SwipeToFocus({
   // Colors based on mode
   const buttonBgColor = mode === 'idle'
     ? theme.colors.systemOrange
+    : mode === 'break'
+    ? 'rgba(255,255,255,0.2)' // White translucent for break (on orange bg)
     : (theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)');
 
   const ringColor = mode === 'idle'
     ? theme.colors.systemOrange
+    : mode === 'break'
+    ? 'rgba(255,255,255,0.3)' // Subtle white ring for break
     : theme.colors.systemRed;
 
   const iconColor = mode === 'idle'
     ? '#FFFFFF'
+    : mode === 'break'
+    ? '#FFFFFF' // White icon for break
     : (theme.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)');
 
   return (
@@ -267,6 +283,12 @@ export const SwipeToFocus = memo(function SwipeToFocus({
                 color={iconColor}
                 style={styles.playIcon}
               />
+            ) : mode === 'break' ? (
+              <Ionicons
+                name="play-skip-forward"
+                size={28}
+                color={iconColor}
+              />
             ) : (
               <LockIcon size={28} color={iconColor} />
             )}
@@ -285,6 +307,8 @@ export const SwipeToFocus = memo(function SwipeToFocus({
         accessibilityLabel={accessibilityLabel || defaultLabel}
         accessibilityHint={mode === 'idle'
           ? "Double tap to start a focus session immediately"
+          : mode === 'break'
+          ? "Double tap to skip break and return to idle"
           : "Double tap to end focus session immediately"
         }
       />
