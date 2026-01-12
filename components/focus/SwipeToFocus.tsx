@@ -30,6 +30,8 @@ import Svg, { Circle, Rect, Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { useUnistyles } from 'react-native-unistyles';
 import { Ionicons } from '@expo/vector-icons';
+import { GlassView } from 'expo-glass-effect';
+import { hasLiquidGlassSupport } from '../../utils/capabilities';
 
 const BUTTON_SIZE = 72;
 const RING_SIZE = 88;
@@ -40,6 +42,70 @@ const HOLD_DURATION_FOCUS = 2000; // 2s to break seal
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 type ButtonMode = 'idle' | 'focusing' | 'break';
+
+// Lock icon component (defined first for use in FocusButton)
+function LockIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Lock body */}
+      <Rect
+        x="5"
+        y="11"
+        width="14"
+        height="10"
+        rx="2"
+        stroke={color}
+        strokeWidth="2"
+        fill="none"
+      />
+      {/* Lock shackle */}
+      <Path
+        d="M8 11V7a4 4 0 1 1 8 0v4"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+      />
+    </Svg>
+  );
+}
+
+// Focus button with Liquid Glass support on iOS 26+
+interface FocusButtonProps {
+  mode: ButtonMode;
+  iconColor: string;
+  buttonBgColor: string;
+  accentColor: string;
+}
+
+function FocusButton({ mode, iconColor, buttonBgColor, accentColor }: FocusButtonProps) {
+  const isGlassAvailable = hasLiquidGlassSupport();
+
+  const icon =
+    mode === 'idle' ? (
+      <Ionicons name="play" size={28} color={iconColor} style={styles.playIcon} />
+    ) : mode === 'break' ? (
+      <Ionicons name="play-skip-forward" size={28} color={iconColor} />
+    ) : (
+      <LockIcon size={28} color={iconColor} />
+    );
+
+  // iOS 26+: Use Liquid Glass for ALL modes
+  if (isGlassAvailable) {
+    return (
+      <GlassView style={styles.button} isInteractive>
+        {icon}
+      </GlassView>
+    );
+  }
+
+  // Fallback: Solid color button
+  return (
+    <View style={[styles.button, { backgroundColor: buttonBgColor }]}>
+      {icon}
+    </View>
+  );
+}
 
 interface SwipeToFocusProps {
   /** Current mode */
@@ -243,18 +309,27 @@ export const SwipeToFocus = memo(function SwipeToFocus({
     ? 'rgba(255,255,255,0.3)' // Subtle white ring for break
     : theme.colors.systemRed;
 
+  // Icon colors: accent for play (call-to-action), muted for focusing, white for break
   const iconColor = mode === 'idle'
-    ? '#FFFFFF'
+    ? activeColor // Accent colored play icon on glass
     : mode === 'break'
-    ? '#FFFFFF' // White icon for break
+    ? '#FFFFFF' // White icon for break (on accent background)
     : (theme.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)');
 
   return (
     <View style={styles.container}>
       <GestureDetector gesture={gesture}>
         <Animated.View style={[styles.wrapper, buttonStyle]}>
-          {/* Progress ring */}
-          <View style={styles.ringContainer}>
+          {/* Center button - render first (behind) */}
+          <FocusButton
+            mode={mode}
+            iconColor={iconColor}
+            buttonBgColor={buttonBgColor}
+            accentColor={activeColor}
+          />
+
+          {/* Progress ring - render second (on top of glass button) */}
+          <View style={styles.ringContainer} pointerEvents="none">
             <Svg width={RING_SIZE} height={RING_SIZE} style={styles.svg}>
               {/* Background ring */}
               <Circle
@@ -281,26 +356,6 @@ export const SwipeToFocus = memo(function SwipeToFocus({
               />
             </Svg>
           </View>
-
-          {/* Center button */}
-          <View style={[styles.button, { backgroundColor: buttonBgColor }]}>
-            {mode === 'idle' ? (
-              <Ionicons
-                name="play"
-                size={28}
-                color={iconColor}
-                style={styles.playIcon}
-              />
-            ) : mode === 'break' ? (
-              <Ionicons
-                name="play-skip-forward"
-                size={28}
-                color={iconColor}
-              />
-            ) : (
-              <LockIcon size={28} color={iconColor} />
-            )}
-          </View>
         </Animated.View>
       </GestureDetector>
 
@@ -323,33 +378,6 @@ export const SwipeToFocus = memo(function SwipeToFocus({
     </View>
   );
 });
-
-// Lock icon component
-function LockIcon({ size, color }: { size: number; color: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* Lock body */}
-      <Rect
-        x="5"
-        y="11"
-        width="14"
-        height="10"
-        rx="2"
-        stroke={color}
-        strokeWidth="2"
-        fill="none"
-      />
-      {/* Lock shackle */}
-      <Path
-        d="M8 11V7a4 4 0 1 1 8 0v4"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
-      />
-    </Svg>
-  );
-}
 
 const styles = StyleSheet.create({
   container: {

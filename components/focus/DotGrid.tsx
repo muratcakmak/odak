@@ -18,8 +18,8 @@
  * <DotGrid rows={1} cols={5} activeDots={3} isBreak />
  */
 
-import React, { memo, useMemo, useEffect } from 'react';
-import { View, StyleSheet, ViewStyle, useWindowDimensions } from 'react-native';
+import React, { memo, useMemo, useEffect, useRef, useCallback, useState } from 'react';
+import { View, StyleSheet, ViewStyle, useWindowDimensions, Platform } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -27,10 +27,20 @@ import Animated, {
   withDelay,
   withSequence,
   withRepeat,
+  withSpring,
   Easing,
   interpolate,
+  runOnJS,
 } from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 import { useUnistyles } from 'react-native-unistyles';
+import { GlassView } from 'expo-glass-effect';
+import { hasLiquidGlassSupport } from '../../utils/capabilities';
+
+// Fixed container size based on max grid (10 rows x 5 cols for 50min preset)
+const MAX_ROWS = 10;
+const MAX_COLS = 5;
 
 interface DotGridProps {
   /** Number of rows in the grid */
@@ -53,6 +63,8 @@ interface DotGridProps {
   maxDotSize?: number;
   /** Accent color for active dots */
   accentColor?: string;
+  /** Enable haptic feedback when swiping over lit dots */
+  hapticOnSwipe?: boolean;
 }
 
 const DOT_GAP = 12;
@@ -71,6 +83,7 @@ const Dot = memo(function Dot({
   isBreak,
   dotSize,
   accentColor,
+  isTouched,
 }: {
   index: number;
   isActive: boolean;
@@ -81,11 +94,15 @@ const Dot = memo(function Dot({
   isBreak: boolean;
   dotSize: number;
   accentColor?: string;
+  isTouched?: boolean;
 }) {
   const { theme } = useUnistyles();
 
   // Animated opacity for the current dot's decay
   const decayOpacity = useSharedValue(1);
+
+  // Animated scale for touch feedback
+  const touchScale = useSharedValue(1);
 
   // Update decay opacity when currentProgress changes
   useEffect(() => {
@@ -105,6 +122,17 @@ const Dot = memo(function Dot({
     }
   }, [isCurrent, currentProgress, isCharging, decayOpacity]);
 
+  // Visual feedback when touched during swipe
+  useEffect(() => {
+    if (isTouched) {
+      // Pop up animation
+      touchScale.value = withSequence(
+        withTiming(1.3, { duration: 80, easing: Easing.out(Easing.ease) }),
+        withSpring(1, { damping: 12, stiffness: 200 })
+      );
+    }
+  }, [isTouched, touchScale]);
+
   const animatedStyle = useAnimatedStyle(() => {
     const targetScale = isActive || isCharged ? 1 : 0.85;
     const baseOpacity = isActive ? 1 : isCharged ? 0.9 : 0.25;
@@ -115,12 +143,15 @@ const Dot = memo(function Dot({
     // Staggered delay for charging animation
     const delay = isCharging ? index * 20 : 0;
 
+    // Combine base scale with touch feedback scale
+    const combinedScale = targetScale * touchScale.value;
+
     return {
       transform: [
         {
           scale: withDelay(
             delay,
-            withTiming(targetScale, {
+            withTiming(combinedScale, {
               duration: 300,
               easing: Easing.out(Easing.ease),
             })
@@ -177,21 +208,99 @@ export const DotGrid = memo(function DotGrid({
   style,
   maxDotSize = DEFAULT_DOT_SIZE,
   accentColor,
+  hapticOnSwipe = false,
 }: DotGridProps) {
   const { width: windowWidth } = useWindowDimensions();
   const totalDots = rows * cols;
   const chargedDots = isCharging ? Math.floor(chargeProgress * totalDots) : 0;
+  const isGlassAvailable = hasLiquidGlassSupport();
 
   // The current dot is the last active one (activeDots - 1)
   const currentDotIndex = activeDots > 0 ? activeDots - 1 : -1;
 
-  // Calculate dot size based on available width
+  // Track last dot that triggered haptic to avoid repeats
+  const lastHapticDotRef = useRef<number>(-1);
+
+  // Track currently touched dot for visual feedback
+  const [touchedDotIndex, setTouchedDotIndex] = useState<number>(-1);
+
+  // Calculate dot size based on available width (using MAX_COLS for consistent sizing)
   const dotSize = useMemo(() => {
     // Estimate available width (80% of screen width for the grid)
     const availableWidth = windowWidth * 0.8;
-    const calculatedSize = (availableWidth - (cols - 1) * DOT_GAP) / cols;
+    const calculatedSize = (availableWidth - (MAX_COLS - 1) * DOT_GAP) / MAX_COLS;
     return Math.min(maxDotSize, Math.max(12, calculatedSize));
-  }, [windowWidth, cols, maxDotSize]);
+  }, [windowWidth, maxDotSize]);
+
+  // Calculate grid dimensions for current grid (used for hit testing)
+  const gridWidth = cols * dotSize + (cols - 1) * DOT_GAP;
+  const gridHeight = rows * dotSize + (rows - 1) * DOT_GAP;
+
+  // Calculate FIXED container dimensions based on max grid (used for glass container)
+  const maxGridWidth = MAX_COLS * dotSize + (MAX_COLS - 1) * DOT_GAP;
+  const maxGridHeight = MAX_ROWS * dotSize + (MAX_ROWS - 1) * DOT_GAP;
+
+  // Trigger haptic feedback
+  const triggerHaptic = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  }, []);
+
+  // Calculate which dot is at a given position
+  const getDotIndexAtPosition = useCallback((x: number, y: number): number => {
+    // Grid is centered, calculate offset from grid origin
+    const cellWidth = dotSize + DOT_GAP;
+    const cellHeight = dotSize + DOT_GAP;
+
+    const col = Math.floor(x / cellWidth);
+    const row = Math.floor(y / cellHeight);
+
+    if (col >= 0 && col < cols && row >= 0 && row < rows) {
+      // Check if actually within the dot (not just the cell)
+      const dotCenterX = col * cellWidth + dotSize / 2;
+      const dotCenterY = row * cellHeight + dotSize / 2;
+      const distance = Math.sqrt(Math.pow(x - dotCenterX, 2) + Math.pow(y - dotCenterY, 2));
+
+      if (distance <= dotSize / 2) {
+        return row * cols + col;
+      }
+    }
+    return -1;
+  }, [cols, rows, dotSize]);
+
+  // Handle position update during swipe
+  const handlePositionUpdate = useCallback((x: number, y: number) => {
+    const dotIndex = getDotIndexAtPosition(x, y);
+    if (dotIndex >= 0 && dotIndex < activeDots && dotIndex !== lastHapticDotRef.current) {
+      lastHapticDotRef.current = dotIndex;
+      setTouchedDotIndex(dotIndex); // Visual feedback
+      triggerHaptic();
+    }
+  }, [getDotIndexAtPosition, activeDots, triggerHaptic]);
+
+  // Clear touched dot on gesture end
+  const handleGestureEnd = useCallback(() => {
+    lastHapticDotRef.current = -1;
+    setTouchedDotIndex(-1);
+  }, []);
+
+  // Pan gesture for swipe haptic
+  const panGesture = Gesture.Pan()
+    .onStart((e) => {
+      if (hapticOnSwipe) {
+        lastHapticDotRef.current = -1;
+        runOnJS(handlePositionUpdate)(e.x, e.y);
+      }
+    })
+    .onUpdate((e) => {
+      if (hapticOnSwipe) {
+        runOnJS(handlePositionUpdate)(e.x, e.y);
+      }
+    })
+    .onEnd(() => {
+      runOnJS(handleGestureEnd)();
+    });
 
   // Generate grid rows
   const gridRows = useMemo(() => {
@@ -206,8 +315,9 @@ export const DotGrid = memo(function DotGrid({
     return result;
   }, [rows, cols]);
 
-  return (
-    <View style={[styles.container, style]}>
+  // Grid content
+  const gridContent = (
+    <View style={styles.gridInner}>
       {gridRows.map((rowIndices, rowIndex) => (
         <View key={rowIndex} style={styles.row}>
           {rowIndices.map((dotIndex) => {
@@ -227,6 +337,7 @@ export const DotGrid = memo(function DotGrid({
                 isBreak={isBreak}
                 dotSize={dotSize}
                 accentColor={accentColor}
+                isTouched={dotIndex === touchedDotIndex}
               />
             );
           })}
@@ -234,10 +345,51 @@ export const DotGrid = memo(function DotGrid({
       ))}
     </View>
   );
+
+  // iOS 26+: Wrap in GlassView container with FIXED size for all presets
+  if (Platform.OS === 'ios' && isGlassAvailable && !isBreak) {
+    const padding = 20;
+    return (
+      <GestureDetector gesture={panGesture}>
+        <View style={[styles.container, style]}>
+          <GlassView
+            style={[
+              styles.glassContainer,
+              {
+                // Use max grid dimensions for consistent container size across all presets
+                width: maxGridWidth + padding * 2,
+                height: maxGridHeight + padding * 2,
+                borderRadius: 24,
+              },
+            ]}
+          >
+            {gridContent}
+          </GlassView>
+        </View>
+      </GestureDetector>
+    );
+  }
+
+  // Fallback: No glass container
+  return (
+    <GestureDetector gesture={panGesture}>
+      <View style={[styles.container, style]}>
+        {gridContent}
+      </View>
+    </GestureDetector>
+  );
 });
 
 const styles = StyleSheet.create({
   container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glassContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridInner: {
     alignItems: 'center',
     justifyContent: 'center',
   },

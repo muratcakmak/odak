@@ -23,6 +23,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useUnistyles } from 'react-native-unistyles';
 import * as Haptics from 'expo-haptics';
+import { Host, HStack, Button as SwiftUIButton, Text as SwiftUIText } from '@expo/ui/swift-ui';
+import { glassEffect, frame, font, foregroundStyle, buttonStyle, tint } from '@expo/ui/swift-ui/modifiers';
+import { hasLiquidGlassSupport } from '../../../utils/capabilities';
 
 // Domain
 import {
@@ -54,6 +57,105 @@ import { DotGrid } from '../../../components/focus/DotGrid';
 import { SwipeToFocus } from '../../../components/focus/SwipeToFocus';
 
 const TICK_INTERVAL = 1000; // 1 second
+
+// Preset selector with Liquid Glass support on iOS 26+
+interface PresetSelectorProps {
+  presets: ReturnType<typeof getAllPresets>;
+  selectedPresetId: PresetId;
+  onSelect: (presetId: PresetId) => void;
+  accentColor: string;
+}
+
+function PresetSelector({
+  presets,
+  selectedPresetId,
+  onSelect,
+  accentColor,
+}: PresetSelectorProps) {
+  const { theme } = useUnistyles();
+  const isGlassAvailable = hasLiquidGlassSupport();
+
+  // iOS 26+: Use native SwiftUI Button with Liquid Glass
+  if (Platform.OS === 'ios' && isGlassAvailable) {
+    // Convert hex accent color to rgba with transparency for glass tint
+    const hexToRgba = (hex: string, alpha: number): string => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+    const glassTint = hexToRgba(accentColor, 0.6);
+
+    return (
+      <Host style={styles.presetSelector} matchContents>
+        <HStack spacing={12} alignment="center">
+          {presets.map((preset) => {
+            const isSelected = preset.id === selectedPresetId;
+            // Selected: accent tinted glass + white text
+            // Non-selected: regular glass + primary text
+            return (
+              <SwiftUIButton
+                key={preset.id}
+                onPress={() => onSelect(preset.id)}
+                modifiers={[
+                  frame({ width: 56, height: 56 }),
+                  glassEffect({
+                    glass: {
+                      variant: 'regular',
+                      interactive: true,
+                      tint: isSelected ? glassTint : undefined,
+                    },
+                    shape: 'circle',
+                  }),
+                ]}
+              >
+                <SwiftUIText
+                  modifiers={[
+                    font({ size: 18, weight: 'semibold' }),
+                    foregroundStyle(isSelected ? '#FFFFFF' : theme.colors.textPrimary),
+                  ]}
+                >
+                  {String(preset.durationMinutes)}
+                </SwiftUIText>
+              </SwiftUIButton>
+            );
+          })}
+        </HStack>
+      </Host>
+    );
+  }
+
+  // Fallback: React Native buttons for older iOS or Android
+  return (
+    <View style={styles.presetSelector}>
+      {presets.map((preset) => {
+        const isSelected = preset.id === selectedPresetId;
+        const textColor = isSelected ? '#FFFFFF' : theme.colors.textPrimary;
+
+        return (
+          <Pressable
+            key={preset.id}
+            onPress={() => onSelect(preset.id)}
+            style={[
+              styles.presetButton,
+              {
+                backgroundColor: isSelected
+                  ? accentColor
+                  : theme.isDark
+                  ? 'rgba(255,255,255,0.1)'
+                  : 'rgba(0,0,0,0.05)',
+              },
+            ]}
+          >
+            <Text style={[styles.presetText, { color: textColor }]}>
+              {preset.durationMinutes}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
 
 export default function FocusScreen() {
   const insets = useSafeAreaInsets();
@@ -238,39 +340,12 @@ export default function FocusScreen() {
           )
         ) : (
           /* Preset selector (idle/holding) */
-          <View style={styles.presetSelector}>
-            {allPresets.map((preset) => (
-              <Pressable
-                key={preset.id}
-                onPress={() => handlePresetSelect(preset.id)}
-                style={[
-                  styles.presetButton,
-                  {
-                    backgroundColor:
-                      preset.id === timerState.selectedPresetId
-                        ? accentColor
-                        : theme.isDark
-                        ? 'rgba(255,255,255,0.1)'
-                        : 'rgba(0,0,0,0.05)',
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.presetText,
-                    {
-                      color:
-                        preset.id === timerState.selectedPresetId
-                          ? '#FFFFFF'
-                          : theme.colors.textPrimary,
-                    },
-                  ]}
-                >
-                  {preset.durationMinutes}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <PresetSelector
+            presets={allPresets}
+            selectedPresetId={timerState.selectedPresetId}
+            onSelect={handlePresetSelect}
+            accentColor={accentColor}
+          />
         )}
       </View>
 
@@ -316,6 +391,7 @@ export default function FocusScreen() {
               activeDots={displayState.litDots}
               currentDotProgress={isFocusing ? currentDotProgress : 0}
               accentColor={accentColor}
+              hapticOnSwipe={isFocusing && settings.vibrationEnabled}
             />
           </View>
         )}
