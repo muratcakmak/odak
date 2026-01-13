@@ -399,6 +399,30 @@ export default function SettingsScreen() {
             secondaryTextColor={colors.textSecondary}
           />
           <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
+          <SettingsRow
+            icon="apps-outline"
+            iconBg={colors.systemCyan}
+            label="Live Activity"
+            subtitle="Dynamic Island & Lock Screen"
+            showSwitch
+            switchValue={focusSettings.liveActivityEnabled}
+            onSwitchChange={(value) => updateFocusSetting("liveActivityEnabled", value)}
+            textColor={colors.textPrimary}
+            secondaryTextColor={colors.textSecondary}
+          />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
+          <SettingsRow
+            icon="notifications-outline"
+            iconBg={colors.systemRed}
+            label="Notifications"
+            subtitle="Session completion alerts"
+            showSwitch
+            switchValue={focusSettings.notificationsEnabled}
+            onSwitchChange={(value) => updateFocusSetting("notificationsEnabled", value)}
+            textColor={colors.textPrimary}
+            secondaryTextColor={colors.textSecondary}
+          />
+          <View style={[styles.settingsDivider, { backgroundColor: colors.divider }]} />
           {/* Break Duration Row with Context Menu */}
           <View style={styles.settingsRow}>
             <View style={[styles.settingsIcon, { backgroundColor: colors.systemOrange }]}>

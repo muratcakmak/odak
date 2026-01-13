@@ -64,6 +64,12 @@
       ],
       "expo-font",
       "expo-sqlite"
+      [
+        "expo-live-activity",
+        {
+          "enablePushNotifications": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

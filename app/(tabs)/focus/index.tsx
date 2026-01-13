@@ -50,6 +50,9 @@ import {
   useAccentColor,
 } from '../../../utils/storage';
 
+// Live Activity
+import { useLiveActivity } from '../../../hooks/useLiveActivity';
+
 // Components
 import { DotGrid } from '../../../components/focus/DotGrid';
 import { SwipeToFocus } from '../../../components/focus/SwipeToFocus';
@@ -159,6 +162,13 @@ export default function FocusScreen() {
 
   // Sub-minute progress (0-1 within current minute)
   const [currentDotProgress, setCurrentDotProgress] = useState(0);
+
+  // Live Activity integration
+  useLiveActivity({
+    phase: timerState.phase,
+    activeTimer: timerState.activeTimer,
+    enabled: settings.liveActivityEnabled,
+  });
 
   // Load settings on mount
   useEffect(() => {

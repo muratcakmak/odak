@@ -60,6 +60,8 @@ export interface FocusSettings {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   breakDurationMinutes: number;
+  liveActivityEnabled: boolean;
+  notificationsEnabled: boolean;
 }
 
 // Computed values for UI rendering
