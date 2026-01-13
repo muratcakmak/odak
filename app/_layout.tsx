@@ -15,7 +15,6 @@ import { syncAllEventsToWidget } from "../utils/storage";
 import { useUnistyles, UnistylesRuntime } from "react-native-unistyles";
 import { getBackgroundMode } from "../utils/storage";
 import { initializeDatabase } from "../data/database";
-import { isMigrationNeeded, runMigration } from "../data/migration";
 
 // Ignored logs
 LogBox.ignoreLogs([
@@ -37,25 +36,12 @@ export default function RootLayout() {
   // Database and migration state
   const [isDbReady, setIsDbReady] = useState(false);
 
-  // Initialize database and run migration on app start
+  // Initialize database on app start
   useEffect(() => {
     async function initDb() {
       try {
         // Initialize SQLite schema
         await initializeDatabase();
-
-        // Run migration if needed (MMKV → SQLite)
-        if (isMigrationNeeded()) {
-          const result = await runMigration();
-          if (result.success) {
-            console.log(
-              `[App] Migration complete: ${result.sessionsImported} sessions, ${result.achievementsUnlocked} achievements`
-            );
-          } else {
-            console.error('[App] Migration failed:', result.error);
-          }
-        }
-
         setIsDbReady(true);
       } catch (error) {
         console.error('[App] Database initialization failed:', error);
