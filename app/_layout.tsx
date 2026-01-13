@@ -7,13 +7,18 @@ import {
 } from "@react-navigation/native";
 import { Stack } from "expo-router/stack";
 import { StatusBar } from "expo-status-bar";
-import { useColorScheme } from "react-native";
+import { useColorScheme, LogBox } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
 import { hasLiquidGlassSupport } from "../utils/capabilities";
 import { syncAllEventsToWidget } from "../utils/storage";
 import { useUnistyles, UnistylesRuntime } from "react-native-unistyles";
 import { getBackgroundMode } from "../utils/storage";
+
+// Ignored logs
+LogBox.ignoreLogs([
+  'Unsupported top level event type "topSvgLayout" dispatched',
+]);
 
 export default function RootLayout() {
   // Read stored mode synchronously to prevent theme flash
