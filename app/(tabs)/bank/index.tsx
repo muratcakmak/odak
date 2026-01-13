@@ -611,7 +611,7 @@ const styles = StyleSheet.create((theme) => ({
     flex: 1,
   },
   statValue: {
-    fontSize: 40,
+    fontSize: theme.typography.sizes.display - theme.spacing.sm,
     fontWeight: theme.typography.weights.semibold,
     fontVariant: ['tabular-nums'],
   },

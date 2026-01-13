@@ -477,7 +477,7 @@ const styles = StyleSheet.create((theme) => ({
     marginBottom: theme.spacing.sm,
   },
   streakValue: {
-    fontSize: 42,
+    fontSize: theme.typography.sizes.display - 6,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.onImage.primary,
     fontVariant: ["tabular-nums"],

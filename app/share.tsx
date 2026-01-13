@@ -560,7 +560,7 @@ const styles = StyleSheet.create((theme) => ({
     paddingHorizontal: theme.spacing.xs,
   },
   previewFooterText: {
-    fontSize: 9,
+    fontSize: theme.typography.sizes.xs - 1,
     fontFamily: "Courier",
   },
   pickersRow: {

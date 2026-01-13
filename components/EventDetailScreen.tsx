@@ -416,8 +416,8 @@ export function EventDetailScreen({ eventType }: EventDetailScreenProps = {}) {
           >
             <Ionicons name="chevron-back" size={24} color={theme.colors.textPrimary} />
           </Pressable>
-          <Ionicons name="calendar-outline" size={64} color={theme.colors.textSecondary} style={{ marginBottom: 16 }} />
-          <Text style={[styles.loadingText, { color: theme.colors.textPrimary, fontSize: 18, fontWeight: "600" }]}>Event not found</Text>
+          <Ionicons name="calendar-outline" size={64} color={theme.colors.textSecondary} style={{ marginBottom: theme.spacing.md }} />
+          <Text style={[styles.loadingText, { color: theme.colors.textPrimary, fontSize: theme.typography.sizes.lg + 2, fontWeight: "600" }]}>Event not found</Text>
           <Text style={[styles.loadingText, { color: theme.colors.textSecondary, marginTop: 8 }]}>This event may have been deleted</Text>
         </View>
       </View>
@@ -695,7 +695,7 @@ const styles = StyleSheet.create((theme) => ({
     paddingBottom: theme.spacing.lg,
   },
   mainCountdown: {
-    fontSize: 36,
+    fontSize: theme.typography.sizes.xxl + theme.spacing.sm + theme.spacing.xs,
     fontWeight: theme.typography.weights.bold,
     color: theme.colors.onImage.primary,
     marginBottom: theme.spacing.sm,
