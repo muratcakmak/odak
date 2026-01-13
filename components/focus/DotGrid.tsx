@@ -68,7 +68,7 @@ interface DotGridProps {
 }
 
 const DOT_GAP = 12;
-const DEFAULT_DOT_SIZE = 20;
+const DEFAULT_DOT_SIZE = 30;
 
 /**
  * Single animated dot component
