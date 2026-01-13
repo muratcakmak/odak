@@ -1,5 +1,5 @@
 import "../theme/unistyles";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   DarkTheme,
   DefaultTheme,
@@ -14,6 +14,8 @@ import { hasLiquidGlassSupport } from "../utils/capabilities";
 import { syncAllEventsToWidget } from "../utils/storage";
 import { useUnistyles, UnistylesRuntime } from "react-native-unistyles";
 import { getBackgroundMode } from "../utils/storage";
+import { initializeDatabase } from "../data/database";
+import { isMigrationNeeded, runMigration } from "../data/migration";
 
 // Ignored logs
 LogBox.ignoreLogs([
@@ -32,6 +34,39 @@ export default function RootLayout() {
   // Use Unistyles
   const { theme } = useUnistyles();
 
+  // Database and migration state
+  const [isDbReady, setIsDbReady] = useState(false);
+
+  // Initialize database and run migration on app start
+  useEffect(() => {
+    async function initDb() {
+      try {
+        // Initialize SQLite schema
+        await initializeDatabase();
+
+        // Run migration if needed (MMKV → SQLite)
+        if (isMigrationNeeded()) {
+          const result = await runMigration();
+          if (result.success) {
+            console.log(
+              `[App] Migration complete: ${result.sessionsImported} sessions, ${result.achievementsUnlocked} achievements`
+            );
+          } else {
+            console.error('[App] Migration failed:', result.error);
+          }
+        }
+
+        setIsDbReady(true);
+      } catch (error) {
+        console.error('[App] Database initialization failed:', error);
+        // Still allow app to run - MMKV will continue to work
+        setIsDbReady(true);
+      }
+    }
+
+    initDb();
+  }, []);
+
   // Sync events to widget storage on app start
   useEffect(() => {
     syncAllEventsToWidget();
@@ -46,6 +81,17 @@ export default function RootLayout() {
   }, [storedMode]);
 
   const useGlass = hasLiquidGlassSupport();
+
+  // Don't render until database is ready to prevent race conditions
+  if (!isDbReady) {
+    return (
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+          <StatusBar style={isDark ? "light" : "dark"} />
+        </GestureHandlerRootView>
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>

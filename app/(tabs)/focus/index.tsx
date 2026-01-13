@@ -57,6 +57,9 @@ import { useLiveActivity } from '../../../hooks/useLiveActivity';
 import { DotGrid } from '../../../components/focus/DotGrid';
 import { SwipeToFocus } from '../../../components/focus/SwipeToFocus';
 
+// Achievements
+import { useAchievements } from '../../../hooks/useAchievements';
+
 const TICK_INTERVAL = 1000; // 1 second
 
 // Preset selector with Liquid Glass support on iOS 26+
@@ -116,6 +119,9 @@ export default function FocusScreen() {
   // Settings (loaded once, updated via settings screen)
   const [settings, setSettings] = useState<FocusSettings>(createDefaultSettings);
 
+  // Achievements hook
+  const { processSession, recentlyUnlocked, dismissUnlocked } = useAchievements();
+
   // Timer state
   const [timerState, dispatch] = useReducer(
     (state: TimerState, event: TimerEvent) => {
@@ -123,7 +129,19 @@ export default function FocusScreen() {
 
       // Handle side effects
       if (result.session) {
+        // Save to MMKV (backwards compatibility)
         addFocusSession(result.session);
+
+        // Process achievements (async, fire-and-forget for UI responsiveness)
+        processSession(result.session).then((achievementResult) => {
+          if (achievementResult.newlyUnlocked.length > 0) {
+            // Achievement unlocked! The useAchievements hook will handle the UI
+            console.log(
+              '[Focus] Achievements unlocked:',
+              achievementResult.newlyUnlocked.map((a) => a.achievementId)
+            );
+          }
+        });
       }
 
       // Persist active timer

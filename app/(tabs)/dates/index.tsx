@@ -493,6 +493,10 @@ export default function DatesScreen() {
                     onPress={() => router.push({ pathname: "/dates/event/[id]", params: { id: event.id } })}
                     onLongPress={() => null}
                     delayLongPress={250}
+                    style={{
+                      borderRadius: viewMode === "grid" ? theme.borderRadius.lg : theme.borderRadius.xl,
+                      overflow: "hidden",
+                    }}
                   >
                     <TimeCard
                       title={event.title}

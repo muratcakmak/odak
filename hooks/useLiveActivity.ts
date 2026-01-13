@@ -44,17 +44,19 @@ export function useLiveActivity({
     try {
       const activityUpdateSub = LiveActivity.addActivityUpdatesListener(
         ({ activityID, activityState }) => {
-          switch (activityState) {
-            case 'dismissed':
-              // User swiped away the Live Activity
-              console.log('[LiveActivity] Activity dismissed by user:', activityID);
-              break;
-            case 'ended':
-              console.log('[LiveActivity] Activity ended:', activityID);
-              break;
-            case 'stale':
-              console.log('[LiveActivity] Activity became stale:', activityID);
-              break;
+          if (__DEV__) {
+            switch (activityState) {
+              case 'dismissed':
+                // User swiped away the Live Activity
+                console.log('[LiveActivity] Activity dismissed by user:', activityID);
+                break;
+              case 'ended':
+                console.log('[LiveActivity] Activity ended:', activityID);
+                break;
+              case 'stale':
+                console.log('[LiveActivity] Activity became stale:', activityID);
+                break;
+            }
           }
         }
       );
@@ -64,14 +66,14 @@ export function useLiveActivity({
       }
     } catch (error) {
       // Live Activities not supported (e.g., simulator, iOS < 16.2)
-      console.log('[LiveActivity] Activity listeners not available:', error);
+      console.warn('[LiveActivity] Activity listeners not available:', error);
     }
 
     return () => {
       subscriptionsRef.current.forEach((sub) => sub?.remove());
       subscriptionsRef.current = [];
     };
-  }, []);
+  }, [isEnabled]);
 
   // Start focus activity
   const startFocusActivity = useCallback(
