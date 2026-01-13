@@ -63,6 +63,7 @@
         }
       ],
       "expo-font",
+      "expo-sqlite"
       [
         "expo-live-activity",
         {
