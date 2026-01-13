@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { StyleSheet, View, Text, Pressable, ScrollView, Platform, useWindowDimensions } from "react-native";
+import { View, Text, Pressable, ScrollView, Platform, useWindowDimensions } from "react-native";
 import { SymbolView } from "expo-symbols";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, Stack } from "expo-router";
@@ -17,7 +17,7 @@ import {
   getUnlockedAchievementIds,
 } from "../../../utils/storage";
 import type { FocusSession } from "../../../domain/types";
-import { useUnistyles } from "react-native-unistyles";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import * as Haptics from "expo-haptics";
 import Animated, {
   useSharedValue,
@@ -41,8 +41,6 @@ interface StreakCardProps {
 }
 
 function StreakCard({ currentStreak, bestStreak, accentColor, theme, onTap, animatedStyle }: StreakCardProps) {
-  const styles = createStyles(theme);
-
   // SF Symbol intensity based on streak length
   const getStreakSymbol = (): string => {
     if (currentStreak >= 30) return "flame.circle.fill";
@@ -85,8 +83,6 @@ interface StatsCardsProps {
 }
 
 function StatsCards({ totalMinutes, completedSessions, totalSessions, theme }: StatsCardsProps) {
-  const styles = createStyles(theme);
-
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -148,7 +144,6 @@ interface DailyGoalProgressProps {
 }
 
 function DailyGoalProgress({ todaySessions, dailyGoal, accentColor, theme }: DailyGoalProgressProps) {
-  const styles = createStyles(theme);
   const isComplete = todaySessions >= dailyGoal;
 
   return (
@@ -196,7 +191,6 @@ interface AchievementGridProps {
 }
 
 function AchievementGrid({ unlockedIds, accentColor, theme }: AchievementGridProps) {
-  const styles = createStyles(theme);
   const { width: screenWidth } = useWindowDimensions();
 
   // Calculate badge width: (screen - padding*2 - gap*2) / 3
@@ -284,7 +278,6 @@ function getIoniconForAchievement(id: string): any {
 
 export default function YouScreen() {
   const { theme } = useUnistyles();
-  const styles = createStyles(theme);
   const isDark = theme.isDark;
 
   // Accent color
@@ -422,150 +415,150 @@ export default function YouScreen() {
 // STYLES
 // ============================================================================
 
-const createStyles = (theme: any) => StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
   container: {
     flex: 1,
   },
   scrollContent: {
     paddingBottom: 100,
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.sm,
   },
 
   // Streak Card
   streakCard: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 24,
-    paddingHorizontal: 16,
-    borderRadius: 24,
-    marginBottom: 16,
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    marginBottom: theme.spacing.md,
     aspectRatio: 1,
     width: "50%",
     alignSelf: "center",
     ...theme.effects.shadow.card,
   },
   streakIcon: {
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
   streakValue: {
     fontSize: 42,
-    fontWeight: "800",
+    fontWeight: theme.typography.weights.bold,
     color: theme.colors.onImage.primary,
     fontVariant: ["tabular-nums"],
   },
   streakLabel: {
-    fontSize: 17,
-    fontWeight: "600",
+    fontSize: theme.typography.sizes.lg + 1,
+    fontWeight: theme.typography.weights.semibold,
     color: theme.colors.onImage.secondary,
-    marginTop: 4,
+    marginTop: theme.spacing.xs,
   },
   streakBest: {
-    fontSize: 14,
+    fontSize: theme.typography.sizes.md,
     color: theme.colors.onImage.faint,
-    marginTop: 12,
+    marginTop: theme.spacing.sm + 4,
   },
 
   // Stats Cards
   statsRow: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 16,
+    gap: theme.spacing.sm + 4,
+    marginBottom: theme.spacing.md,
   },
   statCard: {
     flex: 1,
-    padding: 16,
-    borderRadius: 16,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
     alignItems: "center",
   },
   statIcon: {
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
     opacity: 0.6,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: theme.typography.sizes.xxl,
+    fontWeight: theme.typography.weights.bold,
     fontVariant: ["tabular-nums"],
   },
   statLabel: {
-    fontSize: 13,
-    marginTop: 4,
+    fontSize: theme.typography.sizes.sm + 1,
+    marginTop: theme.spacing.xs,
   },
 
   // Daily Goal
   goalContainer: {
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 24,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    marginBottom: theme.spacing.lg,
   },
   goalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: theme.spacing.sm + 4,
   },
   goalTitle: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.semibold,
     letterSpacing: 0.5,
   },
   goalDots: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.sm + 4,
   },
   goalDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: theme.spacing.lg,
+    height: theme.spacing.lg,
+    borderRadius: theme.spacing.sm + 4,
   },
   goalText: {
-    fontSize: 14,
+    fontSize: theme.typography.sizes.md,
   },
 
   // Achievements
   achievementsContainer: {
-    marginBottom: 24,
+    marginBottom: theme.spacing.lg,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.semibold,
     letterSpacing: 0.5,
-    marginBottom: 12,
+    marginBottom: theme.spacing.sm + 4,
   },
   achievementsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   achievementBadge: {
-    padding: 12,
-    borderRadius: 12,
+    padding: theme.spacing.sm + 4,
+    borderRadius: theme.borderRadius.sm + 4,
     alignItems: "center",
   },
   achievementIcon: {
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
   achievementName: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.semibold,
     textAlign: "center",
   },
   achievementDesc: {
-    fontSize: 10,
+    fontSize: theme.typography.sizes.xs,
     textAlign: "center",
     marginTop: 2,
   },
 
   // Empty state
   emptyHint: {
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.md,
     alignItems: "center",
   },
   emptyText: {
-    fontSize: 15,
+    fontSize: theme.typography.sizes.md + 1,
     textAlign: "center",
     lineHeight: 22,
   },
-});
+}));

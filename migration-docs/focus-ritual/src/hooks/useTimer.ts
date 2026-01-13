@@ -21,6 +21,8 @@ export interface TimerSettings {
   showMinutesRemaining: boolean;
   soundEnabled: boolean;
   vibrationEnabled: boolean;
+  liveActivityEnabled: boolean;
+  notificationsEnabled: boolean;
 }
 
 const defaultSettings: TimerSettings = {
@@ -32,6 +34,8 @@ const defaultSettings: TimerSettings = {
   showMinutesRemaining: false,
   soundEnabled: false,
   vibrationEnabled: true,
+  liveActivityEnabled: true,
+  notificationsEnabled: true,
 };
 
 export const getPresetDuration = (preset: SessionPreset, settings: TimerSettings): number => {

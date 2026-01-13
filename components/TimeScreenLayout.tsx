@@ -1,6 +1,6 @@
-import { View, StyleSheet, ScrollView, Text, Platform } from "react-native";
+import { View, ScrollView, Text, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useUnistyles } from "react-native-unistyles";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { Host, ContextMenu, Button, Divider } from "@expo/ui/swift-ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Animated, { FadeIn, FadeOut, Layout, Easing } from "react-native-reanimated";
@@ -50,11 +50,10 @@ export function TimeScreenLayout({
     stickyHeader,
 }: TimeScreenLayoutProps) {
     const { theme } = useUnistyles();
-    const styles = createStyles(theme);
     const insets = useSafeAreaInsets();
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: showHeader ? insets.top : 0 }]}>
+        <View style={[styles.container, { paddingTop: showHeader ? insets.top : 0 }]}>
             {/* Header - hidden when using native transparent header */}
             {showHeader && (
                 <View style={styles.header}>
@@ -62,7 +61,7 @@ export function TimeScreenLayout({
                         {headerLeft}
                     </View>
 
-                    <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>{title}</Text>
+                    <Text style={styles.headerTitle}>{title}</Text>
 
                     <View style={styles.headerRight}>
                         {headerRight}
@@ -81,10 +80,10 @@ export function TimeScreenLayout({
                 {stickyHeader}
                 {isEmpty ? (
                     <View style={styles.emptyState}>
-                        <Ionicons name={emptyStateIcon as any} size={48} color={theme.colors.textPrimary} style={{ opacity: 0.3 }} />
-                        <Text style={[styles.emptyText, { color: theme.colors.textPrimary }]}>{emptyStateText}</Text>
+                        <Ionicons name={emptyStateIcon as any} size={48} color={theme.colors.textMuted} />
+                        <Text style={styles.emptyText}>{emptyStateText}</Text>
                         {emptyStateSubtext && (
-                            <Text style={[styles.emptySubtext, { color: theme.colors.textPrimary }]}>
+                            <Text style={styles.emptySubtext}>
                                 {emptyStateSubtext}
                             </Text>
                         )}
@@ -99,32 +98,34 @@ export function TimeScreenLayout({
     );
 }
 
-const createStyles = (theme: any) => StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
     container: {
         flex: 1,
+        backgroundColor: theme.colors.background,
     },
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingHorizontal: theme.spacing.lg, // 20
-        paddingTop: theme.spacing.sm, // 8
-        paddingBottom: theme.spacing.md, // 16
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.sm,
+        paddingBottom: theme.spacing.md,
     },
     headerLeft: {
         flexDirection: "row",
         gap: theme.spacing.sm,
-        width: 60, // Fixed width for alignment
+        width: 60,
     },
     headerRight: {
-        flexDirection: 'row',
+        flexDirection: "row",
         gap: theme.spacing.sm,
-        justifyContent: 'flex-end',
-        width: 60, // Fixed width for alignment
+        justifyContent: "flex-end",
+        width: 60,
     },
     headerTitle: {
-        fontSize: theme.typography.sizes.lg, // 17
-        fontWeight: "600",
+        fontSize: theme.typography.sizes.lg,
+        fontWeight: theme.typography.weights.semibold,
+        color: theme.colors.textPrimary,
     },
     scrollView: {
         flex: 1,
@@ -134,18 +135,16 @@ const createStyles = (theme: any) => StyleSheet.create({
         paddingTop: 0,
         paddingBottom: 120,
     },
-    // Containers
     listContainer: {
         flexDirection: "column",
-        paddingTop: 16,
+        paddingTop: theme.spacing.md,
     },
     gridContainer: {
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-between",
-        paddingTop: 16,
+        paddingTop: theme.spacing.md,
     },
-    // Empty State
     emptyState: {
         flex: 1,
         alignItems: "center",
@@ -153,14 +152,17 @@ const createStyles = (theme: any) => StyleSheet.create({
         paddingTop: 100,
     },
     emptyText: {
-        fontSize: 18,
-        fontWeight: "600",
-        marginTop: 16,
-        opacity: 0.5,
+        fontSize: theme.typography.sizes.xl,
+        fontWeight: theme.typography.weights.semibold,
+        marginTop: theme.spacing.md,
+        color: theme.colors.textTertiary,
     },
     emptySubtext: {
-        fontSize: 14,
-        marginTop: 8,
-        opacity: 0.3,
+        fontSize: theme.typography.sizes.md,
+        marginTop: theme.spacing.sm,
+        color: theme.colors.textMuted,
     },
-});
+    emptyIcon: {
+        color: theme.colors.textMuted,
+    },
+}));

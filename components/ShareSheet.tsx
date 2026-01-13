@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { StyleSheet, View, Text, Pressable, Switch, Modal } from "react-native";
+import { View, Text, Pressable, Switch, Modal } from "react-native";
 import { GlassView } from "expo-glass-effect";
-import { useUnistyles } from "react-native-unistyles";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 import { hasLiquidGlassSupport } from "../utils/capabilities";
 import { useAccentColor } from "../utils/storage";
@@ -64,9 +64,6 @@ const miniGridStyles = StyleSheet.create({
 
 // Picker button component
 function PickerButton({ label, value, accentColor }: { label: string; value: string; accentColor: string }) {
-  const { theme: appTheme } = useUnistyles();
-  const styles = createStyles(appTheme);
-
   return (
     <View style={styles.pickerContainer}>
       <View style={styles.pickerButton}>
@@ -91,7 +88,6 @@ function ToggleRow({
   accentColor: string;
 }) {
   const { theme } = useUnistyles();
-  const styles = createStyles(theme);
 
   return (
     <View style={styles.toggleContainer}>
@@ -124,7 +120,6 @@ export function ShareSheet({
 
   const isGlassAvailable = hasLiquidGlassSupport();
   const { theme: appTheme } = useUnistyles();
-  const styles = createStyles(appTheme);
   const shareUi = appTheme.colors.share.ui;
   const accentColorName = useAccentColor();
   const accentColor = appTheme.colors.accent[accentColorName].primary;
@@ -243,9 +238,6 @@ function SheetContent({
   };
   accentColor: string;
 }) {
-  const { theme: appTheme } = useUnistyles();
-  const styles = createStyles(appTheme);
-
   return (
     <>
       {/* Handle bar */}
@@ -290,7 +282,7 @@ function SheetContent({
   );
 }
 
-const createStyles = (theme: any) => StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
   overlay: {
     flex: 1,
     backgroundColor: theme.colors.share.ui.overlay,
@@ -300,31 +292,31 @@ const createStyles = (theme: any) => StyleSheet.create({
     maxHeight: "70%",
   },
   sheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 40,
+    borderTopLeftRadius: theme.borderRadius.lg,
+    borderTopRightRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxl,
   },
   handleBar: {
     width: 36,
     height: 5,
     borderRadius: 3,
     alignSelf: "center",
-    marginBottom: 20,
+    marginBottom: theme.spacing.lg,
   },
   previewCard: {
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: theme.spacing.lg,
   },
   previewYear: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginBottom: 12,
+    fontSize: theme.typography.sizes.md + 1,
+    fontWeight: theme.typography.weights.semibold,
+    marginBottom: theme.spacing.sm + 4,
   },
   previewGridContainer: {
-    marginBottom: 12,
+    marginBottom: theme.spacing.sm + 4,
   },
   previewFooter: {
     flexDirection: "row",
@@ -332,17 +324,17 @@ const createStyles = (theme: any) => StyleSheet.create({
     width: "100%",
   },
   previewAppName: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.xs + 1,
     fontFamily: "Courier",
   },
   previewDaysLeft: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.xs + 1,
     fontFamily: "Courier",
   },
   pickersRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: theme.spacing.lg,
   },
   pickerContainer: {
     alignItems: "center",
@@ -351,44 +343,44 @@ const createStyles = (theme: any) => StyleSheet.create({
   pickerButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: theme.spacing.xs,
   },
   pickerValue: {
-    fontSize: 17,
-    fontWeight: "500",
+    fontSize: theme.typography.sizes.lg + 1,
+    fontWeight: theme.typography.weights.medium,
     color: theme.colors.share.ui.textPrimary,
   },
   pickerChevron: {
-    fontSize: 12,
+    fontSize: theme.typography.sizes.sm,
     color: theme.colors.share.ui.textSecondary,
     transform: [{ rotate: "180deg" }],
   },
   pickerLabel: {
-    fontSize: 13,
+    fontSize: theme.typography.sizes.sm + 1,
     color: theme.colors.share.ui.textSecondary,
-    marginTop: 4,
+    marginTop: theme.spacing.xs,
   },
   togglesContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 24,
+    marginBottom: theme.spacing.lg,
   },
   toggleContainer: {
     alignItems: "center",
     flex: 1,
   },
   toggleLabel: {
-    fontSize: 13,
+    fontSize: theme.typography.sizes.sm + 1,
     color: theme.colors.share.ui.textPrimary,
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
   shareButton: {
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: theme.borderRadius.md - 2,
+    paddingVertical: theme.spacing.md,
     alignItems: "center",
   },
   shareButtonText: {
-    fontSize: 17,
-    fontWeight: "600",
+    fontSize: theme.typography.sizes.lg + 1,
+    fontWeight: theme.typography.weights.semibold,
   },
-});
+}));

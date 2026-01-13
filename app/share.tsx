@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { StyleSheet, View, Text, Pressable, Switch, Platform } from "react-native";
+import { View, Text, Pressable, Switch, Platform } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Svg, { Path, Polygon } from "react-native-svg";
 import { Button, ContextMenu, Host } from "@expo/ui/swift-ui";
@@ -19,7 +19,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { useUnistyles } from "react-native-unistyles";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 // Type definitions
 type ThemeType = "Dark" | "Light";
@@ -198,12 +198,12 @@ function MiniDotGrid({
   );
 }
 
-const miniGridStyles = StyleSheet.create({
+const miniGridStyles = StyleSheet.create(() => ({
   container: {
     flexDirection: "row",
     flexWrap: "wrap",
   },
-});
+}));
 
 // Menu picker using iOS ContextMenu (popover style)
 function MenuPicker<T extends string>({
@@ -217,9 +217,6 @@ function MenuPicker<T extends string>({
   onSelect: (option: T) => void;
   accentColor: string;
 }) {
-  const { theme } = useUnistyles();
-  const styles = createStyles(theme);
-
   if (Platform.OS !== "ios") {
     // Fallback for non-iOS
     return (
@@ -264,7 +261,6 @@ function ToggleItem({
   accentColor: string;
 }) {
   const { theme } = useUnistyles();
-  const styles = createStyles(theme);
 
   return (
     <View style={styles.toggleItem}>
@@ -287,7 +283,6 @@ const shapeOptions: ShapeType[] = ["Dots", "Squares", "Stars", "Diamonds", "Hexa
 
 export default function ShareScreen() {
   const { theme: appTheme } = useUnistyles();
-  const styles = createStyles(appTheme);
   const accentColorName = useAccentColor();
   const accentColor = appTheme.colors.accent[accentColorName].primary;
   const params = useLocalSearchParams<{
@@ -535,34 +530,34 @@ export default function ShareScreen() {
   );
 }
 
-const createStyles = (theme: any) => StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
   container: {
     flex: 1,
-    padding: 20,
-    paddingTop: 10,
+    padding: theme.spacing.lg,
+    paddingTop: theme.spacing.sm + 2,
   },
   previewWrapper: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: theme.spacing.lg,
   },
   previewCard: {
-    borderRadius: 14,
-    padding: 12,
+    borderRadius: theme.borderRadius.md - 2,
+    padding: theme.spacing.sm + 4,
     alignItems: "center",
   },
   previewYear: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 8,
+    fontSize: theme.typography.sizes.sm + 1,
+    fontWeight: theme.typography.weights.semibold,
+    marginBottom: theme.spacing.sm,
   },
   previewGridContainer: {
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
   previewFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     width: "100%",
-    paddingHorizontal: 4,
+    paddingHorizontal: theme.spacing.xs,
   },
   previewFooterText: {
     fontSize: 9,
@@ -571,21 +566,21 @@ const createStyles = (theme: any) => StyleSheet.create({
   pickersRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 28,
-    paddingHorizontal: 20,
+    marginBottom: theme.spacing.lg + 4,
+    paddingHorizontal: theme.spacing.lg,
   },
   pickerButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: theme.spacing.xs,
   },
   pickerValue: {
-    fontSize: 17,
-    fontWeight: "400",
+    fontSize: theme.typography.sizes.lg + 1,
+    fontWeight: theme.typography.weights.regular,
     color: theme.colors.onImage.primary,
   },
   pickerChevron: {
-    fontSize: 10,
+    fontSize: theme.typography.sizes.xs,
     color: theme.colors.systemGray,
     transform: [{ rotate: "180deg" }],
     marginTop: 2,
@@ -593,26 +588,26 @@ const createStyles = (theme: any) => StyleSheet.create({
   togglesRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 28,
-    paddingHorizontal: 10,
+    marginBottom: theme.spacing.lg + 4,
+    paddingHorizontal: theme.spacing.sm + 2,
   },
   toggleItem: {
     alignItems: "center",
-    gap: 10,
+    gap: theme.spacing.sm + 2,
   },
   toggleLabel: {
-    fontSize: 13,
+    fontSize: theme.typography.sizes.sm + 1,
     color: theme.colors.onImage.primary,
   },
   shareButton: {
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: theme.borderRadius.md - 2,
+    paddingVertical: theme.spacing.md,
     alignItems: "center",
     backgroundColor: theme.colors.systemBlue,
   },
   shareButtonText: {
-    fontSize: 17,
-    fontWeight: "600",
+    fontSize: theme.typography.sizes.lg + 1,
+    fontWeight: theme.typography.weights.semibold,
     color: theme.colors.onImage.primary,
   },
-});
+}));

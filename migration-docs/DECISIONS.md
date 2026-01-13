@@ -91,15 +91,31 @@ This document tracks architectural and product decisions for Odak.
 
 ---
 
+## 2025-01-13 — Live Activity implementation
+**Decision:** Implement iOS Live Activities using `expo-live-activity` for Dynamic Island and Lock Screen countdown display.
+
+**Why:** Real-time countdown visibility without opening app; native iOS integration; clear visual feedback during focus/break sessions.
+
+**Details:**
+- Focus theme: White background, orange progress bar
+- Break theme: Orange background, white text
+- Automatic lifecycle: starts on focus begin, transitions on break, ends on completion
+- Settings toggle to enable/disable
+- Uses timestamp-based countdown (`progressBar.date`) for accurate native rendering
+
+**Tradeoff:** iOS 16.2+ only; requires Development Build (not Expo Go); adds Swift widget extension complexity.
+
+---
+
 ## Future Decisions (Pending)
 
 ### Widget update frequency
 **Options:**
 1. Per-minute updates (reliable, battery-efficient)
 2. Timeline-based with system refresh (iOS default)
-3. Live Activity for real-time (iOS 16.1+)
+3. ~~Live Activity for real-time (iOS 16.1+)~~ — Implemented
 
-**Current status:** Using option 2; consider Live Activity for v1.1.
+**Current status:** Using option 2 for widgets; Live Activity implemented for real-time countdown.
 
 ### Notification strategy
 **Options:**

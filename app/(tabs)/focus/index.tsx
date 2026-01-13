@@ -11,11 +11,11 @@ import React, { useCallback, useEffect, useReducer, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   Pressable,
   Alert,
   Platform,
 } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
@@ -50,6 +50,9 @@ import {
   useAccentColor,
 } from '../../../utils/storage';
 
+// Live Activity
+import { useLiveActivity } from '../../../hooks/useLiveActivity';
+
 // Components
 import { DotGrid } from '../../../components/focus/DotGrid';
 import { SwipeToFocus } from '../../../components/focus/SwipeToFocus';
@@ -76,7 +79,7 @@ function PresetSelector({
     <View style={styles.presetSelector}>
       {presets.map((preset) => {
         const isSelected = preset.id === selectedPresetId;
-        const textColor = isSelected ? '#FFFFFF' : theme.colors.textPrimary;
+        const textColor = isSelected ? theme.colors.onImage.primary : theme.colors.textPrimary;
 
         return (
           <Pressable
@@ -87,9 +90,7 @@ function PresetSelector({
               {
                 backgroundColor: isSelected
                   ? accentColor
-                  : theme.isDark
-                    ? 'rgba(255,255,255,0.1)'
-                    : 'rgba(0,0,0,0.05)',
+                  : theme.colors.glass.regular,
               },
             ]}
           >
@@ -141,6 +142,13 @@ export default function FocusScreen() {
 
   // Sub-minute progress (0-1 within current minute)
   const [currentDotProgress, setCurrentDotProgress] = useState(0);
+
+  // Live Activity integration
+  useLiveActivity({
+    phase: timerState.phase,
+    activeTimer: timerState.activeTimer,
+    enabled: settings.liveActivityEnabled,
+  });
 
   // Load settings on mount
   useEffect(() => {
@@ -248,11 +256,11 @@ export default function FocusScreen() {
     : theme.colors.background;
 
   const textColor = isBreak
-    ? '#FFFFFF'
+    ? theme.colors.onImage.primary
     : theme.colors.textPrimary;
 
   const subtleTextColor = isBreak
-    ? 'rgba(255, 255, 255, 0.7)'
+    ? theme.colors.onImage.subtle
     : theme.colors.textTertiary;
 
   // Tab bar height estimate for bottom padding
@@ -381,20 +389,20 @@ export default function FocusScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
   container: {
     flex: 1,
   },
   header: {
     height: 80,
-    paddingHorizontal: 24,
+    paddingHorizontal: theme.spacing.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   presetSelector: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
+    gap: theme.spacing.md - 4,
   },
   presetButton: {
     width: 56,
@@ -404,21 +412,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   presetText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: theme.typography.sizes.lg + 2,
+    fontWeight: theme.typography.weights.semibold,
   },
   timerHeader: {
     alignItems: 'center',
   },
   timerText: {
-    fontSize: 48,
-    fontWeight: '200',
+    fontSize: theme.typography.sizes.display,
+    fontWeight: theme.typography.weights.thin,
     fontVariant: ['tabular-nums'],
     letterSpacing: -1,
   },
   presetLabel: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: theme.typography.sizes.xxl,
+    fontWeight: theme.typography.weights.semibold,
     letterSpacing: 0.5,
   },
   content: {
@@ -460,31 +468,31 @@ const styles = StyleSheet.create({
     bottom: 140, // Same as gridContainer - leave space for button
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 32,
+    gap: theme.spacing.xl,
   },
   breakText: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: theme.typography.sizes.xxl,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.colors.onImage.primary,
   },
   debugInfo: {
     position: 'absolute',
-    left: 16,
+    left: theme.spacing.md,
     right: 0,
     alignItems: 'flex-start',
   },
   debugText: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.sm - 1,
     fontVariant: ['tabular-nums'],
   },
   debugSpeedupButton: {
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(255,149,0,0.3)',
-    borderRadius: 12,
+    marginTop: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md - 4,
+    paddingVertical: theme.spacing.sm - 2,
+    backgroundColor: theme.colors.glass.tinted,
+    borderRadius: theme.borderRadius.sm + 4,
   },
   debugSpeedupText: {
-    fontSize: 16,
+    fontSize: theme.typography.sizes.lg,
   },
-});
+}));

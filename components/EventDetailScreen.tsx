@@ -1,7 +1,6 @@
 import { useLocalSearchParams, router } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {
-  StyleSheet,
   View,
   Text,
   ScrollView,
@@ -30,7 +29,7 @@ import {
   type SinceEvent,
 } from "../utils/storage";
 import { AdaptivePillButton } from "./ui";
-import { useUnistyles } from "react-native-unistyles";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 type EventData =
   | { type: "ahead"; event: AheadEvent }
@@ -166,12 +165,10 @@ function getMainTimeUnit(countdown: CountdownValues, isAhead: boolean): string {
 const CalendarSection = React.memo(function CalendarSection({
   targetDate,
   isAhead,
-  styles,
   accentColor,
 }: {
   targetDate: Date;
   isAhead: boolean;
-  styles: ReturnType<typeof createStyles>;
   accentColor: string;
 }) {
   const { theme } = useUnistyles();
@@ -194,7 +191,7 @@ const CalendarSection = React.memo(function CalendarSection({
   const cardStyle = React.useMemo(() => ({
     backgroundColor: theme.colors.background,
     borderColor: theme.colors.cardBorder,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     ...theme.effects.shadow.cardGlow,
   }), [theme.colors.background, theme.colors.cardBorder, theme.effects.shadow.cardGlow]);
 
@@ -226,8 +223,6 @@ function HeaderPillButton({
   style?: any;
 }) {
   const isGlassAvailable = hasLiquidGlassSupport();
-  const { theme } = useUnistyles();
-  const styles = React.useMemo(() => createStyles(theme), [theme]);
 
   if (isGlassAvailable) {
     return (
@@ -258,7 +253,6 @@ export function EventDetailScreen({ eventType }: EventDetailScreenProps = {}) {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { theme } = useUnistyles();
-  const styles = createStyles(theme);
   const [eventData, setEventData] = useState<EventData>(null);
   const [countdown, setCountdown] = useState<CountdownValues | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -275,7 +269,7 @@ export function EventDetailScreen({ eventType }: EventDetailScreenProps = {}) {
   const cardStyle = {
     backgroundColor: theme.colors.background,
     borderColor: theme.colors.cardBorder,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     // Premium shadow
     ...theme.effects.shadow.cardGlow,
   };
@@ -604,8 +598,7 @@ export function EventDetailScreen({ eventType }: EventDetailScreenProps = {}) {
         </View>
 
         {/* Calendar Section */}
-        {/* Calendar Section */}
-        <CalendarSection targetDate={targetDate} isAhead={isAhead} styles={styles} accentColor={accentColor} />
+        <CalendarSection targetDate={targetDate} isAhead={isAhead} accentColor={accentColor} />
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
@@ -621,7 +614,7 @@ export function EventDetailScreen({ eventType }: EventDetailScreenProps = {}) {
   );
 }
 
-const createStyles = (theme: any) => StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
   container: {
     flex: 1,
   },
@@ -629,7 +622,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: theme.spacing.xxl,
   },
   loadingContainer: {
     flex: 1,
@@ -637,12 +630,12 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: theme.typography.sizes.lg,
   },
   notFoundBackButton: {
     position: "absolute",
     top: 60,
-    left: 16,
+    left: theme.spacing.md,
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -656,7 +649,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 16,
+    paddingHorizontal: theme.spacing.md,
     zIndex: 10,
   },
   closeButton: {
@@ -698,31 +691,31 @@ const createStyles = (theme: any) => StyleSheet.create({
     justifyContent: "flex-end",
   },
   heroContent: {
-    padding: 20,
-    paddingBottom: 24,
+    padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.lg,
   },
   mainCountdown: {
     fontSize: 36,
-    fontWeight: "700",
+    fontWeight: theme.typography.weights.bold,
     color: theme.colors.onImage.primary,
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
     textShadowColor: theme.colors.shadow.medium,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   eventTitle: {
-    fontSize: 22,
-    fontWeight: "600",
+    fontSize: theme.typography.sizes.xxl - 2,
+    fontWeight: theme.typography.weights.semibold,
     color: theme.colors.onImage.primary,
-    marginBottom: 4,
+    marginBottom: theme.spacing.xs,
     textShadowColor: theme.colors.shadow.medium,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   eventSubtitle: {
-    fontSize: 14,
+    fontSize: theme.typography.sizes.md,
     color: theme.colors.onImage.muted,
-    marginBottom: 20,
+    marginBottom: theme.spacing.lg,
     textShadowColor: theme.colors.shadow.medium,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
@@ -732,21 +725,21 @@ const createStyles = (theme: any) => StyleSheet.create({
   countdownUnits: {
     flexDirection: "row",
     justifyContent: "flex-start",
-    gap: 20,
+    gap: theme.spacing.lg,
   },
   countdownUnit: {
     alignItems: "center",
   },
   countdownValue: {
-    fontSize: 24,
-    fontWeight: "600",
+    fontSize: theme.typography.sizes.xxl,
+    fontWeight: theme.typography.weights.semibold,
     color: theme.colors.onImage.primary,
     textShadowColor: theme.colors.shadow.medium,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   countdownLabel: {
-    fontSize: 12,
+    fontSize: theme.typography.sizes.sm,
     color: theme.colors.onImage.subtle,
     marginTop: 2,
     textShadowColor: theme.colors.shadow.medium,
@@ -756,61 +749,61 @@ const createStyles = (theme: any) => StyleSheet.create({
 
   // Section styles
   section: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
-    padding: 16,
+    marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.md,
+    borderRadius: theme.borderRadius.sm + 4,
+    padding: theme.spacing.md,
   },
 
   // Progress Section
   progressHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
   progressText: {
-    fontSize: 14,
+    fontSize: theme.typography.sizes.md,
     color: theme.colors.systemGray,
   },
   progressBar: {
-    height: 8,
+    height: theme.spacing.sm,
     backgroundColor: theme.colors.systemGray4,
-    borderRadius: 4,
+    borderRadius: theme.spacing.xs,
     flexDirection: "row",
     overflow: "hidden",
   },
   progressDone: {
     height: "100%",
-    borderRadius: 4,
+    borderRadius: theme.spacing.xs,
   },
   progressLeft: {
     height: "100%",
-    borderRadius: 4,
+    borderRadius: theme.spacing.xs,
   },
 
   // Detail Section
   detailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: theme.spacing.sm + 4,
+    borderBottomWidth: 0.5,
     borderBottomColor: theme.colors.systemGray4,
   },
   detailRowLast: {
     borderBottomWidth: 0,
   },
   detailLabel: {
-    fontSize: 15,
+    fontSize: theme.typography.sizes.md + 1,
   },
   detailValue: {
-    fontSize: 15,
+    fontSize: theme.typography.sizes.md + 1,
   },
 
   // Calendar styles
   calendarContainer: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
+    marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.md,
+    borderRadius: theme.borderRadius.sm + 4,
     overflow: "hidden",
   },
   calendarHost: {
@@ -822,9 +815,9 @@ const createStyles = (theme: any) => StyleSheet.create({
   actionButtons: {
     flexDirection: "row",
     justifyContent: "flex-start",
-    paddingHorizontal: 16,
-    marginTop: 16,
-    gap: 12,
+    paddingHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.md,
+    gap: theme.spacing.sm + 4,
   },
   pillButton: {
     width: 50,
@@ -840,4 +833,4 @@ const createStyles = (theme: any) => StyleSheet.create({
     width: 50,
     height: 50,
   },
-});
+}));

@@ -1,6 +1,6 @@
 {
   "name": "odak",
-  "main": "expo-router/entry",
+  "main": "index.ts",
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
@@ -25,6 +25,7 @@
     "expo-haptics": "15.0.9-canary-20260105-6b962e6",
     "expo-image-picker": "17.1.0-canary-20260105-6b962e6",
     "expo-linking": "8.0.12-canary-20260105-6b962e6",
+    "expo-live-activity": "^0.4.2",
     "expo-router": "7.0.0-canary-20260105-6b962e6",
     "expo-sharing": "14.0.9-canary-20260105-6b962e6",
     "expo-splash-screen": "31.0.14-canary-20260105-6b962e6",
