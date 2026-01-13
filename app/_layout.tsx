@@ -97,22 +97,6 @@ export default function RootLayout() {
               }}
             />
 
-            <Stack.Screen
-              name="countdown/[id]"
-              options={{
-                headerShown: false,
-                presentation: "card",
-                contentStyle: { backgroundColor: theme.colors.background },
-              }}
-            />
-            <Stack.Screen
-              name="milestone/[id]"
-              options={{
-                headerShown: false,
-                presentation: "card",
-                contentStyle: { backgroundColor: theme.colors.background },
-              }}
-            />
           </Stack>
         </ThemeProvider>
       </GestureHandlerRootView>

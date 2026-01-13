@@ -584,7 +584,7 @@ struct OdakAheadWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: SelectAheadEventIntent.self, provider: AheadEventProvider()) { entry in
             OdakWidgetEntryView(entry: entry)
-                .widgetURL(entry.event != nil ? URL(string: "odak://countdown/\(entry.event!.id)") : URL(string: "odak://dates"))
+                .widgetURL(entry.event != nil ? URL(string: "odak://dates/event/\(entry.event!.id)") : URL(string: "odak://dates"))
         }
         .configurationDisplayName("Countdown")
         .description("Track days until your event")
@@ -600,7 +600,7 @@ struct OdakSinceWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: SelectSinceEventIntent.self, provider: SinceEventProvider()) { entry in
             OdakWidgetEntryView(entry: entry)
-                .widgetURL(entry.event != nil ? URL(string: "odak://milestone/\(entry.event!.id)") : URL(string: "odak://dates"))
+                .widgetURL(entry.event != nil ? URL(string: "odak://dates/event/\(entry.event!.id)") : URL(string: "odak://dates"))
         }
         .configurationDisplayName("Milestone")
         .description("Track days since your event")

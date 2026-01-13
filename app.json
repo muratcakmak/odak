@@ -36,6 +36,9 @@
       "output": "static",
       "favicon": "./assets/favicon.png"
     },
+    "buildCacheProvider": {
+      "plugin": "expo-build-disk-cache"
+    },
     "plugins": [
       "expo-router",
       [
