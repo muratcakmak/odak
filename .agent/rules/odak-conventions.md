@@ -18,8 +18,8 @@
 - NO `Animated` from react-native
 
 ## iOS Version Handling
-- iOS 26+: Liquid Glass (`expo-glass-effect`)
-- iOS 18-25: BlurView fallback
+- iOS 26+: Liquid Glass rely on `expo/ui/swiftui` (`expo-glass-effect` at last resort if `expo/ui/swiftui` doesn't offer any solution)
+- iOS 18 and below: BlurView fallback. Don't try to imitate liquid glass in other platforms. Fallback to native primitives
 - Older/Android: Solid color
 - Check with `hasLiquidGlassSupport()` from `utils/capabilities.ts`
 - Swift: Use `#if compiler(>=6.2)` AND `#available(iOS 26.0, *)`
