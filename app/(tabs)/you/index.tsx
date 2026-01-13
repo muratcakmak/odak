@@ -194,8 +194,10 @@ function AchievementGrid({ achievements, accentColor, theme }: AchievementGridPr
   const { width: screenWidth } = useWindowDimensions();
 
   // Calculate badge width: (screen - padding*2 - gap*2) / 3
-  const horizontalPadding = 20;
-  const gap = 8;
+  // Uses theme.spacing.lg (24) for horizontal padding matching scrollContent
+  // Uses theme.spacing.sm (8) for gap matching achievementsGrid
+  const horizontalPadding = theme.spacing.lg;
+  const gap = theme.spacing.sm;
   const badgeWidth = (screenWidth - horizontalPadding * 2 - gap * 2) / 3;
 
   // Get visible achievement definitions sorted by sortOrder
@@ -224,8 +226,8 @@ function AchievementGrid({ achievements, accentColor, theme }: AchievementGridPr
                 styles.achievementBadge,
                 {
                   width: badgeWidth,
-                  backgroundColor: theme.colors.surface,
-                  opacity: isUnlocked ? 1 : 0.4,
+                  backgroundColor: theme.colors.card,
+                  opacity: isUnlocked ? 1 : 0.5,
                 },
               ]}
             >
@@ -582,7 +584,7 @@ const styles = StyleSheet.create((theme) => ({
   achievementDesc: {
     fontSize: theme.typography.sizes.xs,
     textAlign: "center",
-    marginTop: 2,
+    marginTop: theme.spacing.xs / 2,
   },
 
   // Empty state

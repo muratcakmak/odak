@@ -418,7 +418,7 @@ export function EventDetailScreen({ eventType }: EventDetailScreenProps = {}) {
           </Pressable>
           <Ionicons name="calendar-outline" size={64} color={theme.colors.textSecondary} style={{ marginBottom: theme.spacing.md }} />
           <Text style={[styles.loadingText, { color: theme.colors.textPrimary, fontSize: theme.typography.sizes.lg + 2, fontWeight: "600" }]}>Event not found</Text>
-          <Text style={[styles.loadingText, { color: theme.colors.textSecondary, marginTop: 8 }]}>This event may have been deleted</Text>
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary, marginTop: theme.spacing.sm }]}>This event may have been deleted</Text>
         </View>
       </View>
     );
