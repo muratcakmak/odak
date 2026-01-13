@@ -4,9 +4,10 @@ module.exports = function (api) {
     presets: ["babel-preset-expo"],
     plugins: [
       "react-native-reanimated/plugin",
-      // Unistyles v3 Babel plugin - must process ALL folders with StyleSheet.create
+      // Unistyles v3 Babel plugin - root must be a specific folder, not project root
       ["react-native-unistyles/plugin", {
-        root: ["app", "components", "theme"],
+        root: "app",
+        autoProcessImports: ["react-native-unistyles"]
       }],
     ],
   };

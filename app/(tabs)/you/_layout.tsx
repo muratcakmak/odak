@@ -16,10 +16,8 @@ export default function YouLayout() {
             ? theme.colors.transparent
             : theme.colors.background,
         },
-        // Neutral tint color for header icons
-        headerTintColor: isGlassAvailable && rt.themeName === "light"
-          ? "#000000"
-          : theme.colors.textPrimary,
+        // Neutral tint color for header icons - on liquid glass light mode, text is dark
+        headerTintColor: theme.colors.textPrimary,
         // When liquid glass is available, let the system handle blur natively
         // Otherwise, no blur needed since we have solid background
         headerBlurEffect: isGlassAvailable ? undefined : undefined,

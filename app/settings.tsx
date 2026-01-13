@@ -21,6 +21,7 @@ import {
   getDailyGoal,
   setDailyGoal,
 } from "../utils/storage";
+import { hasLiquidGlassSupport } from "../utils/capabilities";
 import type { FocusSettings } from "../domain/types";
 import { StyleSheet, useUnistyles, UnistylesRuntime } from "react-native-unistyles";
 
@@ -59,7 +60,7 @@ function SettingsRow({
   rightIcon?: string;
 }) {
   const { theme } = useUnistyles();
-    const resolvedTextColor = textColor ?? theme.colors.textPrimary;
+  const resolvedTextColor = textColor ?? theme.colors.textPrimary;
   const resolvedSecondaryTextColor = secondaryTextColor ?? theme.colors.textSecondary;
   const resolvedIconColor = iconColor ?? theme.colors.onImage.primary;
 
@@ -172,13 +173,16 @@ export default function SettingsScreen() {
   };
 
   const { theme } = useUnistyles();
-    const colors = theme.colors;
+  const colors = theme.colors;
+  const useGlass = hasLiquidGlassSupport();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: useGlass ? "transparent" : colors.background }]}>
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        contentInsetAdjustmentBehavior="automatic"
       >
         {/* Appearance Section */}
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Appearance</Text>
@@ -483,10 +487,10 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create((theme) => ({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   scrollContent: {
     padding: theme.spacing.md,
+    paddingTop: theme.spacing.xl + theme.spacing.lg, // Account for sheet grabber
     paddingBottom: theme.spacing.xl,
   },
   sectionTitle: {

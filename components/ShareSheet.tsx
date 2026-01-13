@@ -52,7 +52,7 @@ function MiniDotGrid({
   );
 }
 
-const miniGridStyles = StyleSheet.create({
+const miniGridStyles = StyleSheet.create(() => ({
   container: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -60,7 +60,7 @@ const miniGridStyles = StyleSheet.create({
   dot: {
     borderRadius: 100,
   },
-});
+}));
 
 // Picker button component
 function PickerButton({ label, value, accentColor }: { label: string; value: string; accentColor: string }) {

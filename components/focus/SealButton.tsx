@@ -17,11 +17,11 @@
 import React, { useCallback, useRef, useState, memo } from 'react';
 import {
   View,
-  StyleSheet,
   Pressable,
   Text,
   Platform,
 } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -150,13 +150,9 @@ export const SealButton = memo(function SealButton({
       runOnJS(endHold)();
     });
 
-  const buttonColor = theme.isDark
-    ? 'rgba(255, 255, 255, 0.1)'
-    : 'rgba(0, 0, 0, 0.05)';
+  const buttonColor = theme.colors.glass.regular;
 
-  const iconColor = theme.isDark
-    ? 'rgba(255, 255, 255, 0.6)'
-    : 'rgba(0, 0, 0, 0.4)';
+  const iconColor = theme.colors.textTertiary;
 
   const progressColor = theme.colors.systemRed;
 
@@ -233,7 +229,7 @@ function LockIcon({ size, color }: { size: number; color: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(() => ({
   container: {
     position: 'relative',
   },
@@ -246,6 +242,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
   },
-});
+}));
 
 export default SealButton;

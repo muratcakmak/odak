@@ -12,11 +12,11 @@
 import React, { useCallback, useEffect, useRef, memo } from 'react';
 import {
   View,
-  StyleSheet,
   AccessibilityInfo,
   Pressable,
   Platform,
 } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -285,23 +285,23 @@ export const SwipeToFocus = memo(function SwipeToFocus({
   const activeColor = accentColor || theme.colors.systemOrange;
 
   const buttonBgColor = mode === 'idle'
-    ? (theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)')
+    ? theme.colors.glass.regular
     : mode === 'break'
-      ? 'rgba(255,255,255,0.2)' // White translucent for break (on accent bg)
-      : (theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)');
+      ? theme.colors.onImage.ultraFaint // White translucent for break (on accent bg)
+      : theme.colors.glass.regular;
 
   const ringColor = mode === 'idle'
     ? activeColor
     : mode === 'break'
-      ? 'rgba(255,255,255,0.3)' // Subtle white ring for break
+      ? theme.colors.onImage.ghost // Subtle white ring for break
       : theme.colors.systemRed;
 
   // Icon colors: accent for play (call-to-action), muted for focusing, white for break
   const iconColor = mode === 'idle'
     ? activeColor // Accent colored play icon on glass
     : mode === 'break'
-      ? '#FFFFFF' // White icon for break (on accent background)
-      : (theme.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)');
+      ? theme.colors.onImage.primary // White icon for break (on accent background)
+      : theme.colors.textTertiary;
 
   return (
     <View style={styles.container}>
@@ -323,7 +323,7 @@ export const SwipeToFocus = memo(function SwipeToFocus({
                 cx={RING_SIZE / 2}
                 cy={RING_SIZE / 2}
                 r={radius}
-                stroke={theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}
+                stroke={theme.colors.glass.regular}
                 strokeWidth={STROKE_WIDTH}
                 fill="none"
               />
@@ -366,7 +366,7 @@ export const SwipeToFocus = memo(function SwipeToFocus({
   );
 });
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     borderRadius: BUTTON_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.colors.shadow.base,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -407,6 +407,6 @@ const styles = StyleSheet.create({
     width: 1,
     height: 1,
   },
-});
+}));
 
 export default SwipeToFocus;

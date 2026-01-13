@@ -360,7 +360,7 @@ export default function DatesScreen() {
 
   // Navigate to event detail
   const handleShowEvent = (id: string) => {
-    router.push({ pathname: "/event/[id]", params: { id } });
+    router.push({ pathname: "/dates/event/[id]", params: { id } });
   };
 
   // Open add modal
@@ -488,12 +488,7 @@ export default function DatesScreen() {
               style={viewMode === "grid" ? styles.gridCardWrapper : styles.listCardWrapper}
             >
               <Link href={{ pathname: "/dates/event/[id]", params: { id: event.id } }} style={styles.cardLink} asChild>
-                <Link.Trigger
-                  style={{
-                    borderRadius: viewMode === "grid" ? theme.borderRadius.lg : theme.borderRadius.xl,
-                    overflow: "hidden",
-                  }}
-                >
+                <Link.Trigger>
                   <Pressable
                     onPress={() => router.push({ pathname: "/dates/event/[id]", params: { id: event.id } })}
                     onLongPress={() => null}

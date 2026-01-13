@@ -14,15 +14,11 @@ export default function BankLayout() {
         headerBlurEffect: isLiquidGlass
           ? undefined
           : (rt.themeName === "dark" ? "systemChromeMaterialDark" : "systemChromeMaterialLight"),
-        // Large title text styling - use black on iOS 26 light mode (liquid glass has white bg)
+        // Large title text styling
         headerLargeTitleStyle: {
-          color: isLiquidGlass && rt.themeName === "light"
-            ? "#000000"
-            : theme.colors.textPrimary,
+          color: theme.colors.textPrimary,
         },
-        headerTintColor: isLiquidGlass && rt.themeName === "light"
-          ? "#000000"
-          : theme.colors.textPrimary,
+        headerTintColor: theme.colors.textPrimary,
         headerTransparent: isLiquidGlass,
       }}
     >

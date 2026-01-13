@@ -42,10 +42,10 @@ interface StreakCardProps {
 
 function StreakCard({ currentStreak, bestStreak, accentColor, theme, onTap, animatedStyle }: StreakCardProps) {
   // SF Symbol intensity based on streak length
-  const getStreakSymbol = (): string => {
-    if (currentStreak >= 30) return "flame.circle.fill";
-    if (currentStreak >= 14) return "flame.fill";
-    return "flame";
+  const getStreakSymbol = () => {
+    if (currentStreak >= 30) return "flame.circle.fill" as const;
+    if (currentStreak >= 14) return "flame.fill" as const;
+    return "flame" as const;
   };
 
   return (

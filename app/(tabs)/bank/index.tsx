@@ -11,11 +11,11 @@ import React, { useMemo, useCallback, useState, useEffect, useLayoutEffect } fro
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   RefreshControl,
   Pressable,
 } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUnistyles } from 'react-native-unistyles';
 import { useNavigation, router } from 'expo-router';
@@ -125,7 +125,7 @@ export default function BankScreen() {
   const isLiquidGlass = hasLiquidGlassSupport();
   const headerIconColor =
     isLiquidGlass && rt.themeName === 'light'
-      ? '#000000'
+      ? theme.colors.textPrimary
       : theme.colors.textPrimary;
 
   // Set up header right button for History
@@ -298,12 +298,10 @@ export default function BankScreen() {
   };
 
   // Colors
-  const cardBg = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
-  const barEmpty = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const cardBg = theme.colors.glass.regular;
+  const barEmpty = theme.colors.glass.regular;
   const barFilled = accentColor;
-  const barFilledFaded = theme.isDark
-    ? 'rgba(255,149,0,0.6)'
-    : 'rgba(255,149,0,0.5)';
+  const barFilledFaded = theme.colors.glass.tinted;
   const dotColor = accentColor;
 
   // Tab bar height estimate
@@ -580,62 +578,62 @@ export default function BankScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
   container: {
     flex: 1,
   },
   content: {
-    padding: 16,
-    gap: 16,
+    padding: theme.spacing.md,
+    gap: theme.spacing.md,
   },
   card: {
-    padding: 20,
-    borderRadius: 16,
+    padding: theme.spacing.lg - 4,
+    borderRadius: theme.borderRadius.md,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: theme.spacing.lg - 4,
   },
   cardLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: theme.typography.sizes.sm + 1,
+    fontWeight: theme.typography.weights.semibold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 32,
+    gap: theme.spacing.xl,
   },
   statItem: {
     flex: 1,
   },
   statValue: {
     fontSize: 40,
-    fontWeight: '600',
+    fontWeight: theme.typography.weights.semibold,
     fontVariant: ['tabular-nums'],
   },
   statLabel: {
-    fontSize: 14,
-    marginTop: 4,
+    fontSize: theme.typography.sizes.md,
+    marginTop: theme.spacing.xs,
   },
   weekSummary: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: theme.typography.sizes.sm + 1,
+    fontWeight: theme.typography.weights.medium,
   },
   chartContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
     height: 120,
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   barColumn: {
     flex: 1,
     alignItems: 'center',
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   barWrapper: {
     flex: 1,
@@ -650,13 +648,13 @@ const styles = StyleSheet.create({
     minHeight: 8,
   },
   dayLabel: {
-    fontSize: 11,
+    fontSize: theme.typography.sizes.sm - 1,
     textTransform: 'uppercase',
   },
   dotsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   dot: {
     width: 16,
@@ -664,6 +662,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: theme.typography.sizes.md,
   },
-});
+}));

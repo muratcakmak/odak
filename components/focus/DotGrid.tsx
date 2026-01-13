@@ -19,7 +19,8 @@
  */
 
 import React, { memo, useMemo, useEffect, useRef, useCallback, useState } from 'react';
-import { View, StyleSheet, ViewStyle, useWindowDimensions, Platform } from 'react-native';
+import { View, ViewStyle, useWindowDimensions, Platform } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -171,14 +172,14 @@ const Dot = memo(function Dot({
   const dotColor = useMemo(() => {
     if (isBreak) {
       // White dots for break mode (shown on accent background)
-      return isActive ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
+      return isActive ? theme.colors.onImage.primary : theme.colors.onImage.ghost;
     }
     // Accent color dots for focus mode
     return isActive || isCharged
       ? (accentColor || theme.colors.systemOrange)
       : theme.isDark
-        ? 'rgba(255, 255, 255, 0.15)'
-        : 'rgba(0, 0, 0, 0.1)';
+        ? theme.colors.onImage.ultraFaint
+        : theme.colors.glass.regular;
   }, [isBreak, isActive, isCharged, accentColor, theme]);
 
   return (
@@ -380,7 +381,7 @@ export const DotGrid = memo(function DotGrid({
   );
 });
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(() => ({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -401,6 +402,6 @@ const styles = StyleSheet.create({
   dot: {
     // Base dot styles - size and color applied dynamically
   },
-});
+}));
 
 export default DotGrid;
