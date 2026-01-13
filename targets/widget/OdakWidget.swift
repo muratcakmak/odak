@@ -609,8 +609,8 @@ struct OdakSinceWidget: Widget {
 }
 
 // MARK: - Widget Bundle
+// Note: @main removed - widgets are registered in LiveActivityWidgetBundle
 
-@main
 struct OdakWidgetBundle: WidgetBundle {
     var body: some Widget {
         OdakAheadWidget()
