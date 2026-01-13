@@ -27,6 +27,13 @@ export default function DatesLayout() {
       }}
     >
       <Stack.Screen name="index" />
+      <Stack.Screen
+        name="event/[id]"
+        options={{
+          presentation: "card",
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

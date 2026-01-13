@@ -91,14 +91,7 @@ export default function RootLayout() {
                 },
               }}
             />
-            <Stack.Screen
-              name="event/[id]"
-              options={{
-                headerShown: false,
-                presentation: "card",
-                contentStyle: { backgroundColor: theme.colors.background },
-              }}
-            />
+
             <Stack.Screen
               name="countdown/[id]"
               options={{
