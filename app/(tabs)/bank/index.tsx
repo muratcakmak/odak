@@ -24,6 +24,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
 import { getFocusHistory, storage, useAccentColor } from '../../../utils/storage';
 import { hasLiquidGlassSupport } from '../../../utils/capabilities';
+import { deduplicateSessions } from '../../../domain';
 import type { FocusSession } from '../../../domain/types';
 
 // Date utilities (no external deps)
@@ -173,16 +174,21 @@ export default function BankScreen() {
     setRefreshing(false);
   }, []);
 
+  const deduplicatedSessions = useMemo(
+    () => deduplicateSessions(sessions),
+    [sessions]
+  );
+
   // Today's stats
   const todayStats = useMemo(() => {
-    const todaySessions = sessions.filter(
+    const todaySessions = deduplicatedSessions.filter(
       (s) => isToday(new Date(s.startedAt)) && s.wasCompleted
     );
     return {
       count: todaySessions.length,
       minutes: todaySessions.reduce((acc, s) => acc + s.totalMinutes, 0),
     };
-  }, [sessions]);
+  }, [deduplicatedSessions]);
 
   // 7-day data
   const weekData = useMemo(() => {
@@ -191,7 +197,7 @@ export default function BankScreen() {
 
     for (let i = 6; i >= 0; i--) {
       const date = subDays(now, i);
-      const daySessions = sessions.filter((s) => {
+      const daySessions = deduplicatedSessions.filter((s) => {
         const sessionDate = new Date(s.startedAt);
         return isSameDay(sessionDate, date) && s.wasCompleted;
       });
@@ -205,7 +211,7 @@ export default function BankScreen() {
     }
 
     return days;
-  }, [sessions]);
+  }, [deduplicatedSessions]);
 
   const maxMinutes = Math.max(...weekData.map((d) => d.minutes), 1);
   const weekTotal = weekData.reduce((acc, d) => acc + d.minutes, 0);
@@ -220,7 +226,7 @@ export default function BankScreen() {
       const weekStart = startOfWeek(subDays(now, i * 7));
       const weekEnd = subDays(weekStart, -7);
 
-      const weekSessions = sessions.filter((s) => {
+      const weekSessions = deduplicatedSessions.filter((s) => {
         const sessionDate = new Date(s.startedAt);
         return (
           sessionDate >= weekStart &&
@@ -239,7 +245,7 @@ export default function BankScreen() {
     }
 
     return weeks;
-  }, [sessions]);
+  }, [deduplicatedSessions]);
 
   const maxMonthMinutes = Math.max(...monthData.map((w) => w.minutes), 1);
   const monthTotal = monthData.reduce((acc, w) => acc + w.minutes, 0);
@@ -258,7 +264,7 @@ export default function BankScreen() {
         new Date(now.getFullYear(), now.getMonth() - i + 1, 1)
       );
 
-      const monthSessions = sessions.filter((s) => {
+      const monthSessions = deduplicatedSessions.filter((s) => {
         const sessionDate = new Date(s.startedAt);
         return (
           sessionDate >= monthStart &&
@@ -276,7 +282,7 @@ export default function BankScreen() {
     }
 
     return months;
-  }, [sessions]);
+  }, [deduplicatedSessions]);
 
   const maxQuarterMinutes = Math.max(...quarterData.map((m) => m.minutes), 1);
   const quarterTotal = quarterData.reduce((acc, m) => acc + m.minutes, 0);

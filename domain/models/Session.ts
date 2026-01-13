@@ -166,3 +166,17 @@ export function getTotalMinutesForDay(sessions: FocusSession[]): number {
     .filter((s) => s.wasCompleted)
     .reduce((total, s) => total + s.totalMinutes, 0);
 }
+
+/**
+ * Deduplicate sessions by ID, keeping the LAST occurrence (final state).
+ *
+ * Sessions are saved twice: once when started (wasCompleted: false)
+ * and again when completed (wasCompleted: true). We want the final state.
+ */
+export function deduplicateSessions(sessions: FocusSession[]): FocusSession[] {
+  const sessionMap = new Map<string, FocusSession>();
+  for (const session of sessions) {
+    sessionMap.set(session.id, session);
+  }
+  return Array.from(sessionMap.values());
+}

@@ -46,6 +46,7 @@ export {
   groupSessionsByDay,
   formatDayLabel,
   getTotalMinutesForDay,
+  deduplicateSessions,
 } from './models/Session';
 
 // Timer engine

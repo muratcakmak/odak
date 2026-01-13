@@ -16,8 +16,8 @@ import { StyleSheet } from 'react-native-unistyles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUnistyles } from 'react-native-unistyles';
 
-import { getFocusHistory, storage, useAccentColor } from '../../../utils/storage';
-import { getPreset } from '../../../domain';
+import { getFocusHistory, storage } from '../../../utils/storage';
+import { getPreset, deduplicateSessions } from '../../../domain';
 import type { FocusSession } from '../../../domain/types';
 
 // Group sessions by day
@@ -27,13 +27,7 @@ function groupSessionsByDay(sessions: FocusSession[]): { title: string; data: Fo
 
   const groups: Record<string, FocusSession[]> = {};
 
-  // Deduplicate sessions by ID (keep first occurrence)
-  const seen = new Set<string>();
-  const deduplicated = sessions.filter((session) => {
-    if (seen.has(session.id)) return false;
-    seen.add(session.id);
-    return true;
-  });
+  const deduplicated = deduplicateSessions(sessions);
 
   // Sort sessions by startedAt descending (most recent first)
   const sorted = [...deduplicated].sort(
@@ -87,11 +81,6 @@ function formatTime(isoString: string): string {
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useUnistyles();
-
-  // Accent color from user settings
-  const accentColorName = useAccentColor();
-  const accent = theme.colors.accent[accentColorName];
-  const accentColor = theme.isDark ? accent.secondary : accent.primary;
 
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -155,10 +144,10 @@ export default function HistoryScreen() {
               <View
                 style={[
                   styles.statusBadge,
-                  { backgroundColor: accentColor },
+                  { backgroundColor: theme.colors.systemRed },
                 ]}
               >
-                <Text style={styles.statusText}>–</Text>
+                <Text style={styles.statusText}>✕</Text>
               </View>
             )}
           </View>
