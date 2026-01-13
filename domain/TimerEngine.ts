@@ -55,6 +55,8 @@ export function createDefaultSettings(): FocusSettings {
     soundEnabled: true,
     vibrationEnabled: true,
     breakDurationMinutes: DEFAULT_BREAK_MINUTES,
+    liveActivityEnabled: true,
+    notificationsEnabled: true,
   };
 }
 

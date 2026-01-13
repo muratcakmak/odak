@@ -62,7 +62,13 @@
           "appGroupId": "group.com.omc345.odak"
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-live-activity",
+        {
+          "enablePushNotifications": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
