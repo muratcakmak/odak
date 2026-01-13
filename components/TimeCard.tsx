@@ -1,8 +1,6 @@
 import React from "react";
-import { StyleSheet, View, Text, Pressable, ImageBackground, StyleProp, ViewStyle } from "react-native";
-
-
-import { useUnistyles } from "react-native-unistyles";
+import { View, Text, Pressable, ImageBackground, StyleProp, ViewStyle } from "react-native";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 interface TimeCardProps {
     title: string;
@@ -30,7 +28,6 @@ export function TimeCard({
     showProgress = false,
 }: TimeCardProps) {
     const { theme } = useUnistyles();
-    const styles = createStyles(theme);
 
     const containerStyle = compact ? styles.cardGrid : styles.cardList;
     const content = (
@@ -72,10 +69,10 @@ export function TimeCard({
     );
 }
 
-const createStyles = (theme: any) => StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
     cardList: {
         width: "100%",
-        height: 170, // Medium widget proportions
+        height: 170,
         borderRadius: theme.borderRadius.xl,
         overflow: "hidden",
     },
@@ -94,61 +91,65 @@ const createStyles = (theme: any) => StyleSheet.create({
         resizeMode: 'cover',
     },
     darkGradientOverlay: {
-        ...StyleSheet.absoluteFillObject,
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         backgroundColor: theme.colors.overlay.light,
     },
     overlayList: {
         flex: 1,
-        padding: 20,
-        justifyContent: 'space-between', // Split top and bottom
+        padding: theme.spacing.lg,
+        justifyContent: 'space-between',
     },
     overlayGrid: {
         flex: 1,
-        padding: 14,
-        justifyContent: 'space-between', // Split top and bottom
+        padding: theme.spacing.md,
+        justifyContent: 'space-between',
     },
     topContent: {
-        gap: 4,
+        gap: theme.spacing.xs,
     },
     bottomContent: {
-        gap: 4,
+        gap: theme.spacing.xs,
     },
     daysValueList: {
-        fontSize: 32, // Large as seen in screenshot "In 30 days"
-        fontWeight: "800",
+        fontSize: theme.typography.sizes.display - 16,
+        fontWeight: theme.typography.weights.bold,
         color: theme.colors.onImage.primary,
         ...theme.effects.textShadow.md,
     },
     daysValueGrid: {
-        fontSize: 24, // Smaller for grid
-        fontWeight: "800",
+        fontSize: theme.typography.sizes.xxl,
+        fontWeight: theme.typography.weights.bold,
         color: theme.colors.onImage.primary,
         ...theme.effects.textShadow.md,
     },
     titleList: {
-        fontSize: 18,
-        fontWeight: "700",
+        fontSize: theme.typography.sizes.lg,
+        fontWeight: theme.typography.weights.bold,
         color: theme.colors.onImage.primary,
         ...theme.effects.textShadow.md,
     },
     titleGrid: {
-        fontSize: 15, // Smaller for grid
-        fontWeight: "700",
+        fontSize: theme.typography.sizes.md + 1,
+        fontWeight: theme.typography.weights.bold,
         color: theme.colors.onImage.primary,
         ...theme.effects.textShadow.md,
     },
     subtitleList: {
-        fontSize: 14,
-        fontWeight: "500",
+        fontSize: theme.typography.sizes.md,
+        fontWeight: theme.typography.weights.medium,
         color: theme.colors.onImage.secondary,
         ...theme.effects.textShadow.sm,
         marginTop: 2,
     },
     subtitleGrid: {
-        fontSize: 12, // Smaller for grid
-        fontWeight: "500",
+        fontSize: theme.typography.sizes.sm,
+        fontWeight: theme.typography.weights.medium,
         color: theme.colors.onImage.secondary,
         ...theme.effects.textShadow.sm,
         marginTop: 2,
     },
-});
+}));

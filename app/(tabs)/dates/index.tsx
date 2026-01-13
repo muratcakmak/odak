@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { StyleSheet, View, Text, ScrollView, Pressable, Modal, TextInput, Platform, Image, Alert, Keyboard, TouchableWithoutFeedback, KeyboardAvoidingView, useWindowDimensions } from "react-native";
+import { View, Text, ScrollView, Pressable, Modal, TextInput, Platform, Image, Alert, Keyboard, TouchableWithoutFeedback, KeyboardAvoidingView, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { hasLiquidGlassSupport } from "../../../utils/capabilities";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -14,7 +14,7 @@ import {
   saveImageLocally, useAccentColor,
   type AheadEvent, type SinceEvent, type ViewMode
 } from "../../../utils/storage";
-import { useUnistyles } from "react-native-unistyles";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 // Shared Components
 import { TimeScreenLayout } from "../../../components/TimeScreenLayout";
 import { TimeCard } from "../../../components/TimeCard";
@@ -94,7 +94,6 @@ function AddEventModal({
   });
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const { theme } = useUnistyles();
-  const styles = createStyles(theme);
   const inputBg = theme.colors.surface;
   const accentColorName = useAccentColor();
   const accentColor = theme.colors.accent[accentColorName].primary;
@@ -253,7 +252,6 @@ function AddEventModal({
 
 export default function DatesScreen() {
   const { theme } = useUnistyles();
-  const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
 
   // Mode state (ahead or since)
@@ -362,7 +360,7 @@ export default function DatesScreen() {
 
   // Navigate to event detail
   const handleShowEvent = (id: string) => {
-    router.push({ pathname: "/event/[id]", params: { id } });
+    router.push({ pathname: "/dates/event/[id]", params: { id } });
   };
 
   // Open add modal
@@ -536,7 +534,7 @@ export default function DatesScreen() {
   );
 }
 
-const createStyles = (theme: any) => StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
   gridCardWrapper: {
     width: "47%",
     aspectRatio: 1,
@@ -559,20 +557,20 @@ const createStyles = (theme: any) => StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm + 4,
   },
   headerGlassButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.lg + 4,
   },
   modalHeaderButton: {
-    fontSize: 17,
+    fontSize: theme.typography.sizes.lg + 1,
   },
   modalTitle: {
-    fontSize: 17,
-    fontWeight: "600",
+    fontSize: theme.typography.sizes.lg + 1,
+    fontWeight: theme.typography.weights.semibold,
   },
   modalContent: {
     padding: 0,
@@ -581,7 +579,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     flexGrow: 1,
   },
   formControlsContainer: {
-    padding: 20,
+    padding: theme.spacing.lg,
   },
   photoPicker: {
     height: 220,
@@ -598,24 +596,24 @@ const createStyles = (theme: any) => StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   photoPlaceholderText: {
-    fontSize: 15,
+    fontSize: theme.typography.sizes.md + 1,
   },
   inputSection: {
-    marginBottom: 24,
+    marginBottom: theme.spacing.lg,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 8,
+    fontSize: theme.typography.sizes.sm + 1,
+    fontWeight: theme.typography.weights.semibold,
+    marginBottom: theme.spacing.sm,
     textTransform: "uppercase",
   },
   textInput: {
-    fontSize: 17,
-    padding: 16,
-    borderRadius: 12,
+    fontSize: theme.typography.sizes.lg + 1,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.sm + 4,
   },
   datePickerContainer: {
     height: 380,
@@ -629,8 +627,8 @@ const createStyles = (theme: any) => StyleSheet.create({
     height: 380,
   },
   dateButton: {
-    padding: 16,
-    borderRadius: 12,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.sm + 4,
     alignItems: "center",
   },
-});
+}));

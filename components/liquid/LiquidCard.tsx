@@ -7,7 +7,8 @@ import {
   withTiming,
 } from "react-native-reanimated";
 import { useEffect } from "react";
-import { StyleSheet, View, Text, useWindowDimensions } from "react-native";
+import { View, Text, useWindowDimensions } from "react-native";
+import { StyleSheet } from "react-native-unistyles";
 
 interface LiquidCardProps {
   title: string;
@@ -119,7 +120,6 @@ export function LiquidCard({
 
   // Use Unistyles
   const { theme } = useUnistyles();
-  const styles = createStyles(theme, width, height);
 
   // Use theme color if no override provided
   const liquidColor = color ?? theme.colors.liquid.blue;
@@ -163,8 +163,8 @@ export function LiquidCard({
   const percentage = Math.round(fillLevel * 100);
 
   return (
-    <View style={styles.container}>
-      <Canvas style={StyleSheet.absoluteFill}>
+    <View style={[styles.container, { width, height }]}>
+      <Canvas style={styles.absoluteFill}>
         <RoundedRect x={0} y={0} width={width} height={height} r={24} color={theme.colors.surfaceElevated} />
         <Fill>
           <Shader source={LIQUID_SHADER} uniforms={uniforms} />
@@ -179,24 +179,32 @@ export function LiquidCard({
   );
 }
 
-// Manual StyleSheet creation using Unistyles theme
-const createStyles = (theme: any, width: number, height: number) => StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
   container: {
-    borderRadius: 24,
+    borderRadius: theme.borderRadius.lg,
     overflow: "hidden",
     backgroundColor: theme.colors.surfaceElevated,
-    width,
-    height,
+  },
+  absoluteFill: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   content: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: "center",
     alignItems: "center",
     padding: theme.spacing.lg,
   },
   percentage: {
     fontSize: theme.typography.sizes.hero,
-    fontWeight: "100",
+    fontWeight: theme.typography.weights.ultraLight,
     color: theme.colors.textPrimary,
     textShadowColor: theme.colors.textMuted,
     textShadowOffset: { width: 0, height: 2 },
@@ -204,7 +212,7 @@ const createStyles = (theme: any, width: number, height: number) => StyleSheet.c
   },
   title: {
     fontSize: theme.typography.sizes.xxl,
-    fontWeight: "300",
+    fontWeight: theme.typography.weights.light,
     color: theme.colors.textPrimary,
     marginTop: theme.spacing.sm,
     textShadowColor: theme.colors.textMuted,
@@ -219,4 +227,4 @@ const createStyles = (theme: any, width: number, height: number) => StyleSheet.c
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-});
+}));

@@ -7,8 +7,8 @@ import {
   withTiming,
 } from "react-native-reanimated";
 import { useEffect } from "react";
-import { StyleSheet, View, Text, useWindowDimensions } from "react-native";
-import { useUnistyles } from "react-native-unistyles";
+import { View, Text, useWindowDimensions } from "react-native";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 interface FlowCardProps {
   title: string;
@@ -122,7 +122,6 @@ export function FlowCard({
   const width = customWidth ?? dimensions.width - 40;
   const height = customHeight ?? 200;
   const { theme } = useUnistyles();
-  const styles = createStyles(theme);
 
   const time = useSharedValue(0);
 
@@ -161,7 +160,7 @@ export function FlowCard({
 
   return (
     <View style={[styles.container, { width, height }]}>
-      <Canvas style={StyleSheet.absoluteFill}>
+      <Canvas style={styles.absoluteFill}>
         <RoundedRect x={0} y={0} width={width} height={height} r={24} color={theme.colors.surfaceDark} />
         <Fill>
           <Shader source={FLOW_SHADER} uniforms={uniforms} />
@@ -177,50 +176,61 @@ export function FlowCard({
   );
 }
 
-const createStyles = (theme: any) => StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
   container: {
-    borderRadius: 24,
+    borderRadius: theme.borderRadius.lg,
     overflow: "hidden",
     backgroundColor: theme.colors.surfaceDark,
   },
+  absoluteFill: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   content: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: theme.spacing.lg,
   },
   daysCount: {
-    fontSize: 64,
-    fontWeight: "100",
+    fontSize: theme.typography.sizes.hero,
+    fontWeight: theme.typography.weights.ultraLight,
     color: theme.colors.onImage.primary,
     textShadowColor: theme.colors.shadow.medium,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   daysLabel: {
-    fontSize: 18,
-    fontWeight: "300",
+    fontSize: theme.typography.sizes.lg,
+    fontWeight: theme.typography.weights.light,
     color: theme.colors.onImage.ghost,
-    marginTop: -8,
+    marginTop: -theme.spacing.sm,
     textShadowColor: theme.colors.shadow.medium,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   title: {
-    fontSize: 22,
-    fontWeight: "300",
+    fontSize: theme.typography.sizes.xxl,
+    fontWeight: theme.typography.weights.light,
     color: theme.colors.onImage.primary,
-    marginTop: 16,
+    marginTop: theme.spacing.md,
     textShadowColor: theme.colors.shadow.medium,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   elapsed: {
-    fontSize: 14,
+    fontSize: theme.typography.sizes.md,
     color: theme.colors.onImage.ghost,
-    marginTop: 4,
+    marginTop: theme.spacing.xs,
     textShadowColor: theme.colors.shadow.medium,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-});
+}));

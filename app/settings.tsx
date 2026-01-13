@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import {
-  StyleSheet,
   View,
   Text,
   Pressable,
@@ -22,8 +21,9 @@ import {
   getDailyGoal,
   setDailyGoal,
 } from "../utils/storage";
+import { hasLiquidGlassSupport } from "../utils/capabilities";
 import type { FocusSettings } from "../domain/types";
-import { useUnistyles, UnistylesRuntime } from "react-native-unistyles";
+import { StyleSheet, useUnistyles, UnistylesRuntime } from "react-native-unistyles";
 
 // Settings row component
 function SettingsRow({
@@ -60,7 +60,6 @@ function SettingsRow({
   rightIcon?: string;
 }) {
   const { theme } = useUnistyles();
-  const styles = createStyles(theme);
   const resolvedTextColor = textColor ?? theme.colors.textPrimary;
   const resolvedSecondaryTextColor = secondaryTextColor ?? theme.colors.textSecondary;
   const resolvedIconColor = iconColor ?? theme.colors.onImage.primary;
@@ -110,8 +109,7 @@ function SettingsRow({
 // Plus badge component
 function PlusBadge() {
   const { theme } = useUnistyles();
-  const styles = createStyles(theme);
-
+  
   return (
     <View style={styles.plusBadge}>
       <Text style={styles.plusBadgeText}>Plus</Text>
@@ -175,14 +173,16 @@ export default function SettingsScreen() {
   };
 
   const { theme } = useUnistyles();
-  const styles = createStyles(theme);
   const colors = theme.colors;
+  const useGlass = hasLiquidGlassSupport();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: useGlass ? "transparent" : colors.background }]}>
       <ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        contentInsetAdjustmentBehavior="automatic"
       >
         {/* Appearance Section */}
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Appearance</Text>
@@ -484,87 +484,84 @@ export default function SettingsScreen() {
   );
 }
 
-const createStyles = (theme: any) => StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
   container: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+    padding: theme.spacing.md,
+    paddingTop: theme.spacing.xl + theme.spacing.lg, // Account for sheet grabber
+    paddingBottom: theme.spacing.xl,
   },
-  // Section title
   sectionTitle: {
-    fontSize: 13,
+    fontSize: theme.typography.sizes.sm,
     color: theme.colors.textSecondary,
-    marginBottom: 8,
-    marginLeft: 16,
+    marginBottom: theme.spacing.sm,
+    marginLeft: theme.spacing.md,
     textTransform: "uppercase",
   },
-  // Settings card
   settingsCard: {
     backgroundColor: theme.colors.card,
-    borderRadius: 12,
-    marginBottom: 24,
+    borderRadius: theme.borderRadius.md,
+    marginBottom: theme.spacing.lg,
     overflow: "hidden",
   },
   settingsRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: theme.spacing.sm + 4,
+    paddingHorizontal: theme.spacing.md,
   },
   settingsIcon: {
     width: 28,
     height: 28,
-    borderRadius: 6,
+    borderRadius: theme.borderRadius.sm - 2,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: theme.spacing.sm + 4,
   },
   settingsLabelContainer: {
     flex: 1,
   },
   settingsLabel: {
-    fontSize: 16,
+    fontSize: theme.typography.sizes.lg,
     color: theme.colors.textPrimary,
   },
   settingsSubtitle: {
-    fontSize: 12,
+    fontSize: theme.typography.sizes.sm,
     color: theme.colors.textSecondary,
     marginTop: 2,
   },
   settingsRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   settingsValue: {
-    fontSize: 16,
+    fontSize: theme.typography.sizes.lg,
     color: theme.colors.textSecondary,
   },
   settingsDivider: {
-    height: StyleSheet.hairlineWidth,
+    height: 0.5,
     backgroundColor: theme.colors.divider,
     marginLeft: 56,
   },
-  // Plus badge
   plusBadge: {
     backgroundColor: theme.colors.systemOrange,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.sm - 2,
   },
   plusBadgeText: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: theme.typography.sizes.sm,
+    fontWeight: theme.typography.weights.semibold,
     color: theme.colors.onImage.primary,
   },
-  // Version text
   versionText: {
-    fontSize: 13,
+    fontSize: theme.typography.sizes.sm,
     color: theme.colors.textSecondary,
     textAlign: "center",
     fontStyle: "italic",
-    marginTop: 8,
+    marginTop: theme.spacing.sm,
   },
-});
+}));

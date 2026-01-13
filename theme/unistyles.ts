@@ -1,6 +1,16 @@
+/**
+ * Unistyles Configuration
+ *
+ * IMPORTANT: This file must have NO imports from app code to avoid circular deps.
+ * It's imported first in index.ts before expo-router loads any routes.
+ */
 import { StyleSheet } from 'react-native-unistyles';
+import { MMKV } from 'react-native-mmkv';
 import { Appearance } from 'react-native';
-import { storage } from '../utils/storage';
+
+// Create a dedicated MMKV instance for theme reading only
+// This avoids importing from utils/storage which has circular dependencies
+const themeStorage = new MMKV();
 
 /**
  * Reko Theme Tokens
@@ -40,6 +50,7 @@ export const lightColors = {
     systemPink: "#FF2D55",
     systemPurple: "#AF52DE",
     systemTeal: "#5AC8FA",
+    systemCyan: "#32ADE6",
     systemIndigo: "#5856D6",
     systemMint: "#00C7BE",
     systemBrown: "#A2845E",
@@ -98,6 +109,7 @@ export const darkColors = {
     systemPink: "#FF375F",
     systemPurple: "#BF5AF2",
     systemTeal: "#5AC8FA",
+    systemCyan: "#64D2FF",
     systemIndigo: "#5856D6",
     systemMint: "#00C7BE",
     systemBrown: "#A2845E",
@@ -439,15 +451,22 @@ type AppThemes = {
 type AppBreakpoints = typeof breakpoints;
 
 // Read stored preference synchronously at module load to prevent theme flash
+// Uses dedicated themeStorage MMKV instance to avoid circular deps
 function getInitialTheme(): 'light' | 'dark' {
-    const storedMode = storage.getString('background_mode') as 'dark' | 'light' | 'device' | undefined;
-    const mode = storedMode || 'device';
+    try {
+        const storedMode = themeStorage.getString('background_mode') as 'dark' | 'light' | 'device' | undefined;
+        const mode = storedMode || 'device';
 
-    if (mode === 'device') {
+        if (mode === 'device') {
+            const colorScheme = Appearance.getColorScheme();
+            return colorScheme === 'light' ? 'light' : 'dark';
+        }
+        return mode;
+    } catch {
+        // Fallback if storage read fails
         const colorScheme = Appearance.getColorScheme();
         return colorScheme === 'light' ? 'light' : 'dark';
     }
-    return mode;
 }
 
 // Override library types

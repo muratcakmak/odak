@@ -9,10 +9,10 @@ import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   SectionList,
   RefreshControl,
 } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUnistyles } from 'react-native-unistyles';
 
@@ -133,9 +133,7 @@ export default function HistoryScreen() {
           style={[
             styles.sessionCard,
             {
-              backgroundColor: theme.isDark
-                ? 'rgba(255,255,255,0.05)'
-                : 'rgba(0,0,0,0.03)',
+              backgroundColor: theme.colors.glass.regular,
             },
           ]}
         >
@@ -226,20 +224,20 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
   container: {
     flex: 1,
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: theme.spacing.md,
   },
   sectionHeader: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingVertical: theme.spacing.md - 4,
+    paddingHorizontal: theme.spacing.sm,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: theme.typography.sizes.sm + 1,
+    fontWeight: theme.typography.weights.semibold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -247,20 +245,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.sm + 4,
+    marginBottom: theme.spacing.sm,
   },
   sessionInfo: {
     flex: 1,
   },
   presetName: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: theme.typography.sizes.lg + 1,
+    fontWeight: theme.typography.weights.semibold,
   },
   sessionMeta: {
-    fontSize: 13,
+    fontSize: theme.typography.sizes.sm + 1,
     marginTop: 2,
   },
   sessionStatus: {},
@@ -272,9 +270,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   statusText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    color: theme.colors.onImage.primary,
+    fontSize: theme.typography.sizes.md,
+    fontWeight: theme.typography.weights.semibold,
   },
   emptyState: {
     alignItems: 'center',
@@ -282,12 +280,12 @@ const styles = StyleSheet.create({
     paddingVertical: 80,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 8,
+    fontSize: theme.typography.sizes.xl,
+    fontWeight: theme.typography.weights.semibold,
+    marginBottom: theme.spacing.sm,
   },
   emptySubtitle: {
-    fontSize: 15,
+    fontSize: theme.typography.sizes.lg - 1,
     textAlign: 'center',
   },
-});
+}));

@@ -41,4 +41,17 @@
 ## System
 - [ ] Notifications only request permission when enabled
 - [ ] Notification fires at end of focus/break
-- [ ] Live Activity (if enabled) shows correct phase + end time
+
+## Live Activity (iOS 16.2+)
+- [ ] Live Activity appears on Dynamic Island when focus starts
+- [ ] Countdown displays correctly on Lock Screen
+- [ ] Focus theme: white background, orange progress
+- [ ] Break theme: orange background, white text
+- [ ] Activity transitions smoothly from focus to break
+- [ ] Activity ends with "Complete" message after break
+- [ ] Activity ends with "Ended Early" if session broken
+- [ ] Skipping break ends activity immediately
+- [ ] Settings toggle enables/disables Live Activity
+- [ ] Tapping Live Activity opens app via deep link
+- [ ] Countdown continues accurately when app backgrounded
+- [ ] Orphaned activities cleaned up on app restart

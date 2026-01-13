@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { StyleSheet, View, Text, useWindowDimensions, Platform } from "react-native";
+import { View, Text, useWindowDimensions, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { AdaptiveCard, AdaptivePillButton } from "../../components/ui";
@@ -29,7 +29,7 @@ import {
   useLifeUnit,
   getLifeUnit,
 } from "../../utils/storage";
-import { useUnistyles } from "react-native-unistyles";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 // View types
 type ViewType = "now" | "today" | "month" | "year" | "life" | "since" | "ahead";
@@ -442,7 +442,6 @@ export default function LeftScreen() {
 
   // Use Unistyles
   const { theme } = useUnistyles();
-  const styles = createStyles(theme);
 
   // Local state for accent color (replacing useTheme hook logic)
   const accentColorName = useAccentColor();
@@ -759,7 +758,7 @@ export default function LeftScreen() {
   );
 }
 
-const createStyles = (theme: any) => StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
   container: {
     flex: 1,
   },
@@ -783,15 +782,15 @@ const createStyles = (theme: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   shareButton: {
-    paddingHorizontal: 12,
+    paddingHorizontal: theme.spacing.sm + 4,
   },
   labelText: {
-    fontSize: 17,
-    fontWeight: "600",
+    fontSize: theme.typography.sizes.lg + 1,
+    fontWeight: theme.typography.weights.semibold,
   },
   daysLeftText: {
-    fontSize: 15,
-    fontWeight: "500",
+    fontSize: theme.typography.sizes.md + 1,
+    fontWeight: theme.typography.weights.medium,
   },
   cardContainer: {
     flex: 1,
@@ -811,7 +810,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     flex: 1,
     borderRadius: theme.borderRadius.lg,
     overflow: "hidden",
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.5,
     borderColor: theme.colors.cardBorder,
     backgroundColor: theme.colors.background,
   },
@@ -826,4 +825,4 @@ const createStyles = (theme: any) => StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "flex-start",
   },
-});
+}));

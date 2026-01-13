@@ -22,11 +22,11 @@
 import React, { useCallback, useEffect, useRef, memo } from 'react';
 import {
   View,
-  StyleSheet,
   AccessibilityInfo,
   Pressable,
   Platform,
 } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -205,7 +205,7 @@ export const HoldableArea = memo(function HoldableArea({
   );
 });
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(() => ({
   container: {
     // Don't use flex: 1 - just wrap children without expanding
   },
@@ -221,6 +221,6 @@ const styles = StyleSheet.create({
     width: 1,
     height: 1,
   },
-});
+}));
 
 export default HoldableArea;

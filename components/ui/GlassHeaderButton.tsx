@@ -1,8 +1,8 @@
 import React from "react";
-import { Pressable, View, ViewStyle, StyleProp, StyleSheet } from "react-native";
+import { Pressable, View, ViewStyle, StyleProp } from "react-native";
 import { GlassView } from "expo-glass-effect";
 import { hasLiquidGlassSupport } from "../../utils/capabilities";
-import { useUnistyles } from "react-native-unistyles";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 
 interface GlassHeaderButtonProps {
   children: React.ReactNode;
@@ -38,14 +38,14 @@ export function GlassHeaderButton({ children, onPress, style }: GlassHeaderButto
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create((theme) => ({
   button: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: theme.spacing.md - 2,
+    paddingVertical: theme.spacing.sm + 2,
+    borderRadius: theme.borderRadius.lg + 4,
     flexDirection: "row",
     alignItems: "center",
   },
-});
+}));
 
 export default GlassHeaderButton;
