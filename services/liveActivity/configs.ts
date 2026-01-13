@@ -17,7 +17,7 @@ export const FOCUS_CONFIG: LiveActivityConfig = {
   subtitleColor: '#666666',
   progressViewTint: '#FF9500', // Orange accent
   progressViewLabelColor: '#000000',
-  deepLinkUrl: 'odak://focus',
+  deepLinkUrl: '/focus',
   timerType: 'digital',
   padding: 16,
   imagePosition: 'left',
@@ -34,7 +34,7 @@ export const BREAK_CONFIG: LiveActivityConfig = {
   subtitleColor: 'rgba(255,255,255,0.8)',
   progressViewTint: '#FFFFFF',
   progressViewLabelColor: '#FFFFFF',
-  deepLinkUrl: 'odak://focus',
+  deepLinkUrl: '/focus',
   timerType: 'digital',
   padding: 16,
   imagePosition: 'left',
