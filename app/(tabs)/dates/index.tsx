@@ -490,16 +490,15 @@ export default function DatesScreen() {
               style={viewMode === "grid" ? styles.gridCardWrapper : styles.listCardWrapper}
             >
               <Link href={{ pathname: "/dates/event/[id]", params: { id: event.id } }} style={styles.cardLink} asChild>
-                <Link.Trigger
-                  style={{
-                    borderRadius: viewMode === "grid" ? theme.borderRadius.lg : theme.borderRadius.xl,
-                    overflow: "hidden",
-                  }}
-                >
+                <Link.Trigger>
                   <Pressable
                     onPress={() => router.push({ pathname: "/dates/event/[id]", params: { id: event.id } })}
                     onLongPress={() => null}
                     delayLongPress={250}
+                    style={{
+                      borderRadius: viewMode === "grid" ? theme.borderRadius.lg : theme.borderRadius.xl,
+                      overflow: "hidden",
+                    }}
                   >
                     <TimeCard
                       title={event.title}
