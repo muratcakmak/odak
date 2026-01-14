@@ -326,7 +326,8 @@ export default function FocusScreen() {
         {/* Break mode overlay */}
         {isBreak && (
           <View style={styles.breakOverlay}>
-            <View style={styles.breakContent}>
+            {/* Grid uses same positioning as focus mode */}
+            <View style={styles.gridContainer}>
               <DotGrid
                 rows={1}
                 cols={settings.breakDurationMinutes}
@@ -335,7 +336,10 @@ export default function FocusScreen() {
                 isBreak
                 accentColor={accentColor}
               />
+            </View>
 
+            {/* Text positioned independently below grid area */}
+            <View style={styles.breakTextContainer}>
               <Text style={styles.breakText}>
                 Take a break
               </Text>
@@ -487,19 +491,16 @@ const styles = StyleSheet.create((theme) => ({
     right: 0,
     bottom: 0,
   },
-  // Break content centered above the button
-  breakContent: {
+  // Break text positioned independently below grid area
+  breakTextContainer: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
     bottom: {
-      [mq.only.width(0, 'sm')]: 140,    // iPhone (same as gridContainer)
-      [mq.only.width('sm')]: 180,        // iPad+
+      [mq.only.width(0, 'sm')]: 200,    // iPhone: above holdButtonContainer
+      [mq.only.width('sm')]: 240,        // iPad+
     },
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: theme.spacing.xl,
   },
   breakText: {
     fontSize: theme.typography.sizes.xxl,
