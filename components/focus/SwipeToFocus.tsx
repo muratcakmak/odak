@@ -32,6 +32,7 @@ import Animated, {
   cancelAnimation,
   runOnJS,
   Easing,
+  FadeIn,
 } from 'react-native-reanimated';
 import Svg, { Rect, Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
@@ -185,18 +186,22 @@ export const SwipeToFocus = memo(function SwipeToFocus({
   // Breathing animation scale (idle only)
   const breathingScale = useSharedValue(1);
 
+  // Reusable function to start breathing animation
+  const startBreathingAnimation = useCallback(() => {
+    breathingScale.value = withRepeat(
+      withSequence(
+        withTiming(1.03, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1, // Infinite repeat
+      true // Reverse
+    );
+  }, [breathingScale]);
+
   // Start/stop breathing animation based on mode
   useEffect(() => {
     if (mode === 'idle') {
-      // Subtle breathing animation to draw attention
-      breathingScale.value = withRepeat(
-        withSequence(
-          withTiming(1.03, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-          withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1, // Infinite repeat
-        true // Reverse
-      );
+      startBreathingAnimation();
     } else {
       cancelAnimation(breathingScale);
       breathingScale.value = withTiming(1, { duration: 150 });
@@ -205,7 +210,7 @@ export const SwipeToFocus = memo(function SwipeToFocus({
     return () => {
       cancelAnimation(breathingScale);
     };
-  }, [mode, breathingScale]);
+  }, [mode, breathingScale, startBreathingAnimation]);
 
   // Reset progress when mode changes
   useEffect(() => {
@@ -322,17 +327,10 @@ export const SwipeToFocus = memo(function SwipeToFocus({
 
       // Restart breathing animation if in idle mode
       if (mode === 'idle') {
-        breathingScale.value = withRepeat(
-          withSequence(
-            withTiming(1.03, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-            withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) })
-          ),
-          -1,
-          true
-        );
+        startBreathingAnimation();
       }
     }
-  }, [progress, isHolding, hasTriggered, mode, breathingScale]);
+  }, [progress, isHolding, hasTriggered, mode, startBreathingAnimation]);
 
   // Gesture handler
   const gesture = Gesture.LongPress()
@@ -414,7 +412,7 @@ export const SwipeToFocus = memo(function SwipeToFocus({
       {showHint && mode === 'idle' && (
         <Animated.Text
           style={[styles.hintText, { color: theme.colors.textTertiary }]}
-          entering={require('react-native-reanimated').FadeIn.duration(300).delay(500)}
+          entering={FadeIn.duration(300).delay(500)}
         >
           Hold to start
         </Animated.Text>

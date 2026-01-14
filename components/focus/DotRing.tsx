@@ -93,7 +93,7 @@ const Dot = memo(function Dot({
       transform: [{ scale }],
       backgroundColor: lit
         ? mode === 'focusing'
-          ? theme.colors.systemRed
+          ? theme.colors.textPrimary
           : accentColor
         : theme.colors.glass.regular,
     };
