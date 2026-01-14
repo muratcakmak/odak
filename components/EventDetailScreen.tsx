@@ -190,17 +190,15 @@ const CalendarSection = React.memo(function CalendarSection({
   // Memoize card style to prevent object recreation
   const cardStyle = React.useMemo(() => ({
     backgroundColor: theme.colors.background,
-    borderColor: theme.colors.cardBorder,
-    borderWidth: 0.5,
     ...theme.effects.shadow.cardGlow,
-  }), [theme.colors.background, theme.colors.cardBorder, theme.effects.shadow.cardGlow]);
+  }), [theme.colors.background, theme.effects.shadow.cardGlow]);
 
   if (Platform.OS !== "ios") {
     return null;
   }
 
   return (
-    <View style={[styles.calendarContainer, cardStyle]} pointerEvents="none">
+    <View style={[styles.calendarContainer, cardStyle]}>
       <Host style={styles.calendarHost}>
         <DatePicker
           selection={targetDate}
@@ -268,8 +266,6 @@ export function EventDetailScreen({ eventType }: EventDetailScreenProps = {}) {
 
   const cardStyle = {
     backgroundColor: theme.colors.background,
-    borderColor: theme.colors.cardBorder,
-    borderWidth: 0.5,
     // Premium shadow
     ...theme.effects.shadow.cardGlow,
   };
