@@ -62,7 +62,7 @@ import { useAchievements } from '../../../hooks/useAchievements';
 
 const TICK_INTERVAL = 1000; // 1 second
 
-// Preset selector with Liquid Glass support on iOS 26+
+// Preset selector
 interface PresetSelectorProps {
   presets: ReturnType<typeof getAllPresets>;
   selectedPresetId: PresetId;

@@ -225,6 +225,26 @@ export const DotGrid = memo(function DotGrid({
   // SharedValue for selected dot - runs on UI thread
   const selectedDot = useSharedValue<number>(-1);
 
+  // Track previous total dots for animation trigger
+  const prevTotalDots = useRef(totalDots);
+
+  // Vertical offset for bump animation
+  const containerTranslateY = useSharedValue(0);
+
+  // Subtle bump animation when grid size changes (preset switch)
+  useEffect(() => {
+    if (prevTotalDots.current !== totalDots && prevTotalDots.current > 0) {
+      // Start slightly below and spring up
+      containerTranslateY.value = 3;
+      containerTranslateY.value = withSpring(0);
+    }
+    prevTotalDots.current = totalDots;
+  }, [totalDots, containerTranslateY]);
+
+  const containerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: containerTranslateY.value }],
+  }));
+
   // Track last dot that triggered haptic (JS thread)
   const lastHapticDotRef = useRef<number>(-1);
 
@@ -371,7 +391,7 @@ export const DotGrid = memo(function DotGrid({
     const padding = 20;
     return (
       <GestureDetector gesture={panGesture}>
-        <View style={[styles.container, style]}>
+        <Animated.View style={[styles.container, style, containerAnimatedStyle]}>
           <GlassView
             style={[
               styles.glassContainer,
@@ -385,7 +405,7 @@ export const DotGrid = memo(function DotGrid({
           >
             {gridContent}
           </GlassView>
-        </View>
+        </Animated.View>
       </GestureDetector>
     );
   }
@@ -395,7 +415,7 @@ export const DotGrid = memo(function DotGrid({
     const padding = 20;
     return (
       <GestureDetector gesture={panGesture}>
-        <View style={[styles.container, style]}>
+        <Animated.View style={[styles.container, style, containerAnimatedStyle]}>
           <View
             style={[
               styles.blurContainer,
@@ -423,7 +443,7 @@ export const DotGrid = memo(function DotGrid({
               {gridContent}
             </View>
           </View>
-        </View>
+        </Animated.View>
       </GestureDetector>
     );
   }
@@ -432,7 +452,7 @@ export const DotGrid = memo(function DotGrid({
   const padding = 20;
   return (
     <GestureDetector gesture={panGesture}>
-      <View style={[styles.container, style]}>
+      <Animated.View style={[styles.container, style, containerAnimatedStyle]}>
         <View
           style={[
             styles.solidContainer,
@@ -446,7 +466,7 @@ export const DotGrid = memo(function DotGrid({
         >
           {gridContent}
         </View>
-      </View>
+      </Animated.View>
     </GestureDetector>
   );
 });

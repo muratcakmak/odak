@@ -60,7 +60,7 @@ export default function RootLayout() {
     const timeout = setTimeout(() => {
       const hasSeen = getHasSeenWelcome();
       // Force show in development or if not seen
-      if (!hasSeen || __DEV__) {
+      if (!hasSeen) {
         router.push("/welcome");
       }
     }, 500);
