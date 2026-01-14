@@ -61,10 +61,10 @@ interface AwardItemProps {
   definition: AchievementDefinition;
   isUnlocked: boolean;
   accentColor: string;
-  width: number;
+  columns: number;
 }
 
-function AwardItem({ definition, isUnlocked, accentColor, width }: AwardItemProps) {
+function AwardItem({ definition, isUnlocked, accentColor, columns }: AwardItemProps) {
   const { theme } = useUnistyles();
   const iconColor = isUnlocked ? accentColor : theme.colors.textSecondary;
   const ioniconName = IONICON_MAP[definition.icon] ?? "ribbon";
@@ -77,13 +77,18 @@ function AwardItem({ definition, isUnlocked, accentColor, width }: AwardItemProp
     });
   };
 
+  // Calculate flex basis percentage based on columns (accounting for gaps)
+  const basisPercent = `${100 / columns - 2}%` as const;
+
   return (
     <Pressable
       onPress={handlePress}
       style={({ pressed }) => [
         styles.badgeContainer,
         {
-          width,
+          flexBasis: basisPercent,
+          flexGrow: 1,
+          maxWidth: `${100 / columns}%`,
           backgroundColor: theme.colors.card,
           opacity: pressed ? 0.7 : isUnlocked ? 1 : 0.5,
         },
@@ -113,12 +118,6 @@ function AwardItem({ definition, isUnlocked, accentColor, width }: AwardItemProp
       >
         {definition.name}
       </Text>
-      <Text
-        style={[styles.badgeDesc, { color: theme.colors.textSecondary }]}
-        numberOfLines={1}
-      >
-        {definition.description}
-      </Text>
     </Pressable>
   );
 }
@@ -138,10 +137,8 @@ export default function AwardsGalleryScreen() {
   const accent = theme.colors.accent[accentColorName];
   const accentColor = theme.isDark ? accent.secondary : accent.primary;
 
-  // Calculate badge width for 3-column grid
-  const horizontalPadding = theme.spacing.lg;
-  const gap = theme.spacing.sm;
-  const badgeWidth = (screenWidth - horizontalPadding * 2 - gap * 2) / 3;
+  // Responsive column count based on screen width
+  const columns = screenWidth >= 1024 ? 5 : screenWidth >= 768 ? 4 : 3;
 
   // Get all visible achievements sorted
   const visibleDefinitions = getVisibleAchievements();
@@ -183,7 +180,7 @@ export default function AwardsGalleryScreen() {
               definition={definition}
               isUnlocked={isUnlocked}
               accentColor={accentColor}
-              width={badgeWidth}
+              columns={columns}
             />
           );
         })}
@@ -225,10 +222,5 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.typography.sizes.sm,
     fontWeight: theme.typography.weights.semibold,
     textAlign: "center",
-  },
-  badgeDesc: {
-    fontSize: theme.typography.sizes.xs,
-    textAlign: "center",
-    marginTop: theme.spacing.xs / 2,
   },
 }));
