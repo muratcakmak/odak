@@ -8,6 +8,7 @@ import {
   Switch,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
 import { Host, ContextMenu, Button } from "@expo/ui/swift-ui";
 import {
   getBackgroundMode,
@@ -109,7 +110,7 @@ function SettingsRow({
 // Plus badge component
 function PlusBadge() {
   const { theme } = useUnistyles();
-  
+
   return (
     <View style={styles.plusBadge}>
       <Text style={styles.plusBadgeText}>Plus</Text>
@@ -175,6 +176,7 @@ export default function SettingsScreen() {
   const { theme } = useUnistyles();
   const colors = theme.colors;
   const useGlass = hasLiquidGlassSupport();
+  const router = useRouter();
 
   return (
     <View style={[styles.container, { backgroundColor: useGlass ? "transparent" : colors.background }]}>
@@ -475,6 +477,21 @@ export default function SettingsScreen() {
               </View>
             )}
           </View>
+        </View>
+
+        {/* About Section */}
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>About</Text>
+        <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
+          <SettingsRow
+            icon="star-outline"
+            iconBg={colors.systemYellow}
+            label="What is new?"
+            subtitle="View welcome screen"
+            onPress={() => router.push("/welcome")}
+            textColor={colors.textPrimary}
+            secondaryTextColor={colors.textSecondary}
+            showChevron
+          />
         </View>
 
         {/* Version Footer */}

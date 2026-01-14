@@ -342,7 +342,7 @@ export default function FocusScreen() {
             {/* Text positioned independently below grid area */}
             <View style={styles.breakTextContainer}>
               <Text style={styles.breakText}>
-                Take a break
+                Break
               </Text>
             </View>
 
@@ -505,7 +505,7 @@ const styles = StyleSheet.create((theme) => ({
   },
   breakText: {
     fontSize: theme.typography.sizes.xxl,
-    fontWeight: theme.typography.weights.semibold,
+    fontWeight: theme.typography.weights.light,
     color: theme.colors.onImage.primary,
   },
   debugInfo: {

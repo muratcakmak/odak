@@ -504,6 +504,17 @@ export function setSharePreferences(prefs: {
   if (prefs.showApp !== undefined) storage.set(SHARE_SHOW_APP_KEY, prefs.showApp);
 }
 
+// Welcome Modal Preference
+const HAS_SEEN_WELCOME_KEY = "has_seen_welcome";
+
+export function getHasSeenWelcome(): boolean {
+  return storage.getBoolean(HAS_SEEN_WELCOME_KEY) ?? false;
+}
+
+export function setHasSeenWelcome(seen: boolean): void {
+  storage.set(HAS_SEEN_WELCOME_KEY, seen);
+}
+
 // ============================================================================
 // FOCUS TIMER STORAGE (Odak Pomodoro)
 // ============================================================================
