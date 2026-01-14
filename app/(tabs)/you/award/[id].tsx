@@ -10,7 +10,7 @@
  */
 
 import { View, Text, Platform } from "react-native";
-import { useLocalSearchParams, Stack } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Animated, { FadeInUp, ZoomIn } from "react-native-reanimated";
@@ -19,6 +19,23 @@ import { StyleSheet } from "react-native-unistyles";
 import { useAchievements } from "../../../../hooks/useAchievements";
 import { getAchievementById } from "../../../../domain/models/Achievement";
 import { formatProgressText, IONICON_MAP, AWARD_DETAIL_COLORS } from "../../../../components/awards";
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Format ISO date string to localized display format
+ */
+function formatDate(isoString?: string | null): string | null {
+  if (!isoString) return null;
+  const date = new Date(isoString);
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
 
 // ============================================================================
 // Progress Bar Component
@@ -66,13 +83,6 @@ export default function AwardDetailScreen() {
   if (!definition) {
     return (
       <View style={styles.container}>
-        <Stack.Screen
-          options={{
-            headerTitle: "",
-            headerStyle: { backgroundColor: AWARD_DETAIL_COLORS.background },
-            headerTintColor: AWARD_DETAIL_COLORS.textPrimary,
-          }}
-        />
         <Text style={styles.errorText}>Award not found</Text>
       </View>
     );
@@ -82,31 +92,10 @@ export default function AwardDetailScreen() {
   const currentProgress = progress?.currentProgress ?? 0;
   const iconColor = isUnlocked ? AWARD_DETAIL_COLORS.accent : AWARD_DETAIL_COLORS.textSecondary;
   const ioniconName = IONICON_MAP[definition.icon] ?? "ribbon";
-
-  // Format unlock date (unlockedAt is ISO string)
-  const formatDate = (isoString?: string | null) => {
-    if (!isoString) return null;
-    const date = new Date(isoString);
-    return date.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
   const unlockDate = formatDate(progress?.unlockedAt);
 
   return (
     <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          headerTitle: "",
-          headerStyle: { backgroundColor: AWARD_DETAIL_COLORS.background },
-          headerTintColor: AWARD_DETAIL_COLORS.textPrimary,
-          headerTransparent: false,
-        }}
-      />
-
       <View style={styles.content}>
         {/* Large Badge Icon */}
         <Animated.View

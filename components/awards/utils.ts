@@ -93,7 +93,6 @@ export function formatProgressText(
   const displayUnit = unit
     .replace("_", " ")
     .replace("deep sessions", "deep")
-    .replace("sessions", "sessions")
     .replace("percent", "%");
 
   return `${current}/${target} ${displayUnit}`;

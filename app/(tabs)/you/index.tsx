@@ -14,7 +14,6 @@ import {
   updateBestStreak,
 } from "../../../utils/storage";
 import { useAchievements } from "../../../hooks/useAchievements";
-import { getVisibleAchievements } from "../../../domain/models/Achievement";
 import type { FocusSession } from "../../../domain/types";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import * as Haptics from "expo-haptics";
