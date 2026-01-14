@@ -197,9 +197,12 @@ export const SwipeToFocus = memo(function SwipeToFocus({
 
   // Handle hold completion
   const handleComplete = useCallback(() => {
+    // Reset progress immediately to prevent color flicker when mode changes
+    // (otherwise red ring appears for 1 frame at full progress before useEffect resets it)
+    progress.value = 0;
     triggerHaptic(mode === 'idle' ? 'success' : 'warning');
     onComplete();
-  }, [mode, onComplete, triggerHaptic]);
+  }, [mode, onComplete, triggerHaptic, progress]);
 
   // Start hold tracking
   const startHold = useCallback(() => {
