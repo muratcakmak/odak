@@ -26,6 +26,9 @@ type DateMode = "ahead" | "since";
 // Sort options
 type SortType = "date_asc" | "date_desc" | "title_asc" | "title_desc";
 
+// Constants
+const MAX_TITLE_LENGTH = 35;
+
 // Unified event type for display
 type DisplayEvent = {
   id: string;
@@ -221,7 +224,7 @@ function AddEventModal({
                     placeholderTextColor={theme.colors.textSecondary}
                     value={title}
                     onChangeText={setTitle}
-                    maxLength={39}
+                    maxLength={MAX_TITLE_LENGTH}
                   />
                 </View>
 
@@ -417,7 +420,7 @@ export default function DatesScreen() {
             >
               List View
             </Stack.Header.MenuAction>
-            <Stack.Header.Spacer width={16} />
+            <Stack.Header.Spacer width={theme.spacing.md} />
             <Stack.Header.MenuAction
               icon={sortType === "date_asc" ? "checkmark" : undefined}
               onPress={() => setSortType("date_asc")}
