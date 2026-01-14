@@ -87,7 +87,12 @@ function PresetSelector({
         return (
           <Pressable
             key={preset.id}
-            onPress={() => onSelect(preset.id)}
+            onPress={() => {
+              if (Platform.OS === 'ios') {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              onSelect(preset.id);
+            }}
             style={[
               styles.presetButton,
               {
