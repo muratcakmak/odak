@@ -30,7 +30,7 @@ class LiveActivityServiceClass {
     this.stopActivity();
 
     const state: LiveActivity.LiveActivityState = {
-      title: 'Focus',
+      title: 'Odak',
       subtitle: `${totalMinutes} min ${PRESET_LABELS[presetId] || 'Focus'}`,
       progressBar: {
         date: new Date(endsAt).getTime(),
