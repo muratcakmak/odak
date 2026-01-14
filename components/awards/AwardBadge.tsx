@@ -1,5 +1,5 @@
 /**
- * AwardBadge - Reusable award badge component with shared element transition support
+ * AwardBadge - Reusable award badge component
  *
  * Used in:
  * - AwardsCard (summary on You screen)
@@ -10,7 +10,6 @@
 import { Platform, View, Text } from "react-native";
 import { SymbolView } from "expo-symbols";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import Animated, { SharedTransition } from "react-native-reanimated";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import type { AchievementDefinition } from "../../domain/achievements/types";
 
@@ -27,8 +26,6 @@ interface AwardBadgeProps {
   isUnlocked: boolean;
   /** Size variant */
   size?: BadgeSize;
-  /** Shared transition tag for animations */
-  sharedTransitionTag?: string;
   /** Override icon color (defaults to accent when unlocked, gray when locked) */
   iconColor?: string;
   /** Show name under icon */
@@ -98,9 +95,6 @@ const IONICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
   "clock.badge.checkmark": "time",
 };
 
-// Shared transition config
-export const awardTransition = SharedTransition.duration(400).springify();
-
 // ============================================================================
 // Component
 // ============================================================================
@@ -109,7 +103,6 @@ export function AwardBadge({
   definition,
   isUnlocked,
   size = "medium",
-  sharedTransitionTag,
   iconColor,
   showName = false,
   showDescription = false,
@@ -182,25 +175,6 @@ export function AwardBadge({
       )}
     </View>
   );
-
-  // Use Animated.View with sharedTransitionTag if provided
-  if (sharedTransitionTag) {
-    return (
-      <Animated.View
-        sharedTransitionTag={sharedTransitionTag}
-        sharedTransitionStyle={awardTransition}
-        style={[
-          styles.container,
-          {
-            padding: config.containerPadding,
-            opacity: isUnlocked ? 1 : 0.5,
-          },
-        ]}
-      >
-        {content}
-      </Animated.View>
-    );
-  }
 
   return (
     <View

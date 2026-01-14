@@ -1,4 +1,4 @@
-export { AwardBadge, awardTransition } from "./AwardBadge";
+export { AwardBadge } from "./AwardBadge";
 export {
   getNextAchievableAward,
   countUnlockedAwards,

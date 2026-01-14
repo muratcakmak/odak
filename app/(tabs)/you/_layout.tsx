@@ -25,8 +25,16 @@ export default function YouLayout() {
         // Neutral tint color for header icons - on liquid glass light mode, text is dark
         headerTintColor: theme.colors.textPrimary,
         // When liquid glass is available, let the system handle blur natively
-        // Otherwise, no blur needed since we have solid background
-        headerBlurEffect: isGlassAvailable ? undefined : undefined,
+        // Otherwise, use system chrome material blur
+        headerBlurEffect: isGlassAvailable
+          ? undefined
+          : rt.themeName === "dark"
+            ? "systemChromeMaterialDark"
+            : "systemChromeMaterialLight",
+        // Large title text styling
+        headerLargeTitleStyle: {
+          color: theme.colors.textPrimary,
+        },
         headerLargeTitle: false,
         headerTitleAlign: "center",
       }}

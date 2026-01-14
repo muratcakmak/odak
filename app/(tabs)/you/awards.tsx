@@ -8,18 +8,18 @@
  * Tapping an award navigates to the detail view with shared element transition.
  */
 
+import { useLayoutEffect } from "react";
 import { View, Text, Pressable, ScrollView, useWindowDimensions, Platform } from "react-native";
-import { router, Stack } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import Animated from "react-native-reanimated";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import * as Haptics from "expo-haptics";
 
 import { useAchievements } from "../../../hooks/useAchievements";
 import { getVisibleAchievements } from "../../../domain/models/Achievement";
 import { useAccentColor } from "../../../utils/storage";
-import { AwardBadge, awardTransition, countUnlockedAwards } from "../../../components/awards";
+import { countUnlockedAwards } from "../../../components/awards";
 import type { AchievementDefinition } from "../../../domain/achievements/types";
 
 // Android fallback icons
@@ -89,11 +89,7 @@ function AwardItem({ definition, isUnlocked, accentColor, width }: AwardItemProp
         },
       ]}
     >
-      <Animated.View
-        sharedTransitionTag={`award-${definition.id}`}
-        sharedTransitionStyle={awardTransition}
-        style={styles.iconContainer}
-      >
+      <View style={styles.iconContainer}>
         {Platform.OS === "ios" ? (
           <SymbolView
             name={definition.icon as any}
@@ -107,7 +103,7 @@ function AwardItem({ definition, isUnlocked, accentColor, width }: AwardItemProp
             color={iconColor}
           />
         )}
-      </Animated.View>
+      </View>
       <Text
         style={[
           styles.badgeName,
@@ -135,6 +131,7 @@ export default function AwardsGalleryScreen() {
   const { theme } = useUnistyles();
   const { width: screenWidth } = useWindowDimensions();
   const { achievements } = useAchievements();
+  const navigation = useNavigation();
 
   // Accent color
   const accentColorName = useAccentColor();
@@ -154,48 +151,44 @@ export default function AwardsGalleryScreen() {
 
   // Count unlocked
   const unlockedCount = countUnlockedAwards(achievements ?? []);
+  const countText = `${unlockedCount} of ${visibleDefinitions.length} earned`;
+
+  // Set up header right with count (like Stats tab pattern)
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Text style={[styles.headerCount, { color: theme.colors.textSecondary }]}>
+          {countText}
+        </Text>
+      ),
+    });
+  }, [navigation, countText, theme.colors.textSecondary]);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Stack.Screen
-        options={{
-          headerTitle: "Awards",
-          headerLargeTitle: true,
-        }}
-      />
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      contentInsetAdjustmentBehavior="automatic"
+    >
+      {/* Awards Grid */}
+      <View style={styles.grid}>
+        {visibleDefinitions.map((definition) => {
+          const progress = progressMap.get(definition.id);
+          const isUnlocked = progress?.isUnlocked ?? false;
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        contentInsetAdjustmentBehavior="automatic"
-      >
-        {/* Header with count */}
-        <View style={styles.header}>
-          <Text style={[styles.headerCount, { color: theme.colors.textSecondary }]}>
-            {unlockedCount} of {visibleDefinitions.length} earned
-          </Text>
-        </View>
-
-        {/* Awards Grid */}
-        <View style={styles.grid}>
-          {visibleDefinitions.map((definition) => {
-            const progress = progressMap.get(definition.id);
-            const isUnlocked = progress?.isUnlocked ?? false;
-
-            return (
-              <AwardItem
-                key={definition.id}
-                definition={definition}
-                isUnlocked={isUnlocked}
-                accentColor={accentColor}
-                width={badgeWidth}
-              />
-            );
-          })}
-        </View>
-      </ScrollView>
-    </View>
+          return (
+            <AwardItem
+              key={definition.id}
+              definition={definition}
+              isUnlocked={isUnlocked}
+              accentColor={accentColor}
+              width={badgeWidth}
+            />
+          );
+        })}
+      </View>
+    </ScrollView>
   );
 }
 
@@ -207,15 +200,9 @@ const styles = StyleSheet.create((theme) => ({
   container: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
-  },
   scrollContent: {
     paddingHorizontal: theme.spacing.lg,
     paddingBottom: 100,
-  },
-  header: {
-    paddingVertical: theme.spacing.md,
   },
   headerCount: {
     fontSize: theme.typography.sizes.md,

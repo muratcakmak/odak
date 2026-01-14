@@ -13,12 +13,12 @@ import { View, Text, Platform } from "react-native";
 import { useLocalSearchParams, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import Animated from "react-native-reanimated";
+import Animated, { FadeInUp, ZoomIn } from "react-native-reanimated";
 import { StyleSheet } from "react-native-unistyles";
 
 import { useAchievements } from "../../../../hooks/useAchievements";
 import { getAchievementById } from "../../../../domain/models/Achievement";
-import { awardTransition, formatProgressText } from "../../../../components/awards";
+import { formatProgressText } from "../../../../components/awards";
 
 // Dark theme colors (always used regardless of system theme)
 const DARK_COLORS = {
@@ -150,8 +150,7 @@ export default function AwardDetailScreen() {
       <View style={styles.content}>
         {/* Large Badge Icon */}
         <Animated.View
-          sharedTransitionTag={`award-${definition.id}`}
-          sharedTransitionStyle={awardTransition}
+          entering={ZoomIn.duration(300).springify()}
           style={styles.iconContainer}
         >
           {Platform.OS === "ios" ? (
@@ -170,25 +169,37 @@ export default function AwardDetailScreen() {
         </Animated.View>
 
         {/* Title */}
-        <Text style={styles.title}>{definition.name}</Text>
+        <Animated.Text
+          entering={FadeInUp.delay(100).duration(300)}
+          style={styles.title}
+        >
+          {definition.name}
+        </Animated.Text>
 
         {/* Description */}
-        <Text style={styles.description}>{definition.description}</Text>
+        <Animated.Text
+          entering={FadeInUp.delay(150).duration(300)}
+          style={styles.description}
+        >
+          {definition.description}
+        </Animated.Text>
 
         {/* Progress or Earned Date */}
-        {isUnlocked ? (
-          unlockDate && (
-            <Text style={styles.earnedDate}>
-              Earned on {unlockDate}
-            </Text>
-          )
-        ) : (
-          <ProgressBar
-            current={currentProgress}
-            target={definition.criteriaValue}
-            unit={definition.criteriaUnit}
-          />
-        )}
+        <Animated.View entering={FadeInUp.delay(200).duration(300)}>
+          {isUnlocked ? (
+            unlockDate && (
+              <Text style={styles.earnedDate}>
+                Earned on {unlockDate}
+              </Text>
+            )
+          ) : (
+            <ProgressBar
+              current={currentProgress}
+              target={definition.criteriaValue}
+              unit={definition.criteriaUnit}
+            />
+          )}
+        </Animated.View>
       </View>
     </View>
   );
