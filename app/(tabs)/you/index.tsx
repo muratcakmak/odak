@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { View, Text, Pressable, ScrollView, Platform, useWindowDimensions } from "react-native";
+import { View, Text, Pressable, ScrollView, Platform } from "react-native";
 import { SymbolView } from "expo-symbols";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, Stack } from "expo-router";
@@ -13,9 +13,7 @@ import {
   getTotalStats,
   updateBestStreak,
 } from "../../../utils/storage";
-import { useAchievements, useStreak } from "../../../hooks/useAchievements";
-import { getVisibleAchievements } from "../../../domain/models/Achievement";
-import type { AchievementProgress } from "../../../domain/achievements/types";
+import { useAchievements } from "../../../hooks/useAchievements";
 import type { FocusSession } from "../../../domain/types";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import * as Haptics from "expo-haptics";
@@ -26,6 +24,13 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import {
+  getNextAchievableAward,
+  countUnlockedAwards,
+  getTotalAwardsCount,
+  formatProgressText,
+  IONICON_MAP,
+} from "../../../components/awards";
 
 // ============================================================================
 // STREAK CARD - Hero component showing current streak
@@ -181,131 +186,103 @@ function DailyGoalProgress({ todaySessions, dailyGoal, accentColor, theme }: Dai
 }
 
 // ============================================================================
-// ACHIEVEMENT GRID - Badge collection with SF Symbols
+// AWARDS CARD - Summary card showing next achievable award
 // ============================================================================
 
-interface AchievementGridProps {
-  achievements: AchievementProgress[];
+interface AwardsCardProps {
+  achievements: ReturnType<typeof useAchievements>["achievements"];
   accentColor: string;
   theme: any;
+  onTap: () => void;
+  animatedStyle: any;
 }
 
-function AchievementGrid({ achievements, accentColor, theme }: AchievementGridProps) {
-  const { width: screenWidth } = useWindowDimensions();
+function AwardsCard({ achievements, accentColor, theme, onTap, animatedStyle }: AwardsCardProps) {
+  const nextAward = getNextAchievableAward(achievements ?? []);
+  const unlockedCount = countUnlockedAwards(achievements ?? []);
+  const totalCount = getTotalAwardsCount();
+  const allUnlocked = unlockedCount === totalCount;
 
-  // Calculate badge width: (screen - padding*2 - gap*2) / 3
-  // Uses theme.spacing.lg (24) for horizontal padding matching scrollContent
-  // Uses theme.spacing.sm (8) for gap matching achievementsGrid
-  const horizontalPadding = theme.spacing.lg;
-  const gap = theme.spacing.sm;
-  const badgeWidth = (screenWidth - horizontalPadding * 2 - gap * 2) / 3;
+  // Default to trophy icon if all unlocked
+  const iconName = nextAward?.definition.icon ?? "trophy.fill";
+  const ioniconName = IONICON_MAP[iconName] ?? "trophy";
+  const iconColor = allUnlocked ? accentColor : theme.colors.textSecondary;
 
-  // Get visible achievement definitions sorted by sortOrder
-  const visibleDefinitions = getVisibleAchievements();
-
-  // Create a map of progress by achievement ID for quick lookup
-  // Safety check for initial render before hook completes
-  const progressMap = new Map((achievements ?? []).map((a) => [a.achievementId, a]));
+  // Progress calculation
+  const progressPercent = nextAward
+    ? Math.min((nextAward.progress.currentProgress ?? 0) / nextAward.definition.criteriaValue * 100, 100)
+    : 100;
 
   return (
-    <View style={styles.achievementsContainer}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
-        ACHIEVEMENTS ({(achievements ?? []).filter((a) => a.isUnlocked).length}/{visibleDefinitions.length})
-      </Text>
+    <Pressable onPress={onTap}>
+      <Animated.View style={[styles.awardsCard, { backgroundColor: theme.colors.surface }, animatedStyle]}>
+        {/* Icon and Name Row */}
+        <View style={styles.awardsHeader}>
+          {Platform.OS === "ios" ? (
+            <SymbolView
+              name={iconName as any}
+              size={24}
+              tintColor={iconColor}
+              style={styles.awardsIcon}
+            />
+          ) : (
+            <Ionicons
+              name={ioniconName}
+              size={24}
+              color={iconColor}
+              style={styles.awardsIcon}
+            />
+          )}
+          <Text style={[styles.awardsName, { color: theme.colors.textPrimary }]} numberOfLines={1}>
+            {allUnlocked ? "All Awards Earned!" : nextAward?.definition.name ?? "Awards"}
+          </Text>
+          {/* Chevron */}
+          {Platform.OS === "ios" ? (
+            <SymbolView
+              name="chevron.right"
+              size={16}
+              tintColor={theme.colors.textSecondary}
+            />
+          ) : (
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={theme.colors.textSecondary}
+            />
+          )}
+        </View>
 
-      <View style={styles.achievementsGrid}>
-        {visibleDefinitions.map((definition) => {
-          const progress = progressMap.get(definition.id);
-          const isUnlocked = progress?.isUnlocked ?? false;
-          const iconColor = isUnlocked ? accentColor : theme.colors.textSecondary;
-
-          return (
-            <View
-              key={definition.id}
-              style={[
-                styles.achievementBadge,
-                {
-                  width: badgeWidth,
-                  backgroundColor: theme.colors.card,
-                  opacity: isUnlocked ? 1 : 0.5,
-                },
-              ]}
-            >
-              {Platform.OS === "ios" ? (
-                <SymbolView
-                  name={definition.icon as any}
-                  size={28}
-                  tintColor={iconColor}
-                  style={styles.achievementIcon}
-                />
-              ) : (
-                <Ionicons
-                  name={getIoniconForAchievement(definition.id)}
-                  size={28}
-                  color={iconColor}
-                  style={styles.achievementIcon}
-                />
-              )}
-              <Text
+        {/* Progress Bar */}
+        {!allUnlocked && nextAward && (
+          <View style={styles.progressContainer}>
+            <View style={[styles.progressBarBackground, { backgroundColor: theme.colors.borderSecondary }]}>
+              <View
                 style={[
-                  styles.achievementName,
-                  { color: isUnlocked ? theme.colors.textPrimary : theme.colors.textSecondary },
+                  styles.progressBarFill,
+                  {
+                    width: `${progressPercent}%`,
+                    backgroundColor: accentColor,
+                  },
                 ]}
-                numberOfLines={1}
-              >
-                {definition.name}
-              </Text>
-              <Text
-                style={[styles.achievementDesc, { color: theme.colors.textSecondary }]}
-                numberOfLines={1}
-              >
-                {definition.description}
-              </Text>
+              />
             </View>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
+            <Text style={[styles.progressText, { color: theme.colors.textSecondary }]}>
+              {formatProgressText(
+                nextAward.progress.currentProgress ?? 0,
+                nextAward.definition.criteriaValue,
+                nextAward.definition.criteriaUnit ?? ""
+              )}
+            </Text>
+          </View>
+        )}
 
-// Android fallback icons for achievements
-function getIoniconForAchievement(id: string): any {
-  const map: Record<string, string> = {
-    // Commitment
-    first_focus: "sparkles",
-    morning_ritual: "sunny",
-    night_owl: "moon",
-    // Consistency
-    streak_3: "flame-outline",
-    streak_7: "flame",
-    streak_14: "flame",
-    streak_30: "flame",
-    streak_100: "trophy",
-    streak_365: "crown",
-    // Completion
-    completion_rate_80: "checkmark-circle",
-    completion_rate_90: "checkmark-circle",
-    completion_rate_95: "star-circle",
-    perfect_day: "sunny",
-    perfect_week: "calendar",
-    // Depth
-    first_deep: "water-outline",
-    deep_10: "water",
-    deep_50: "water",
-    deep_100: "water",
-    deep_marathon: "fitness",
-    // Milestone
-    sessions_10: "leaf-outline",
-    sessions_50: "leaf",
-    sessions_100: "ribbon",
-    sessions_500: "ribbon",
-    sessions_1000: "medal",
-    hours_10: "time-outline",
-    hours_50: "time",
-    hours_100: "time",
-  };
-  return map[id] || "ribbon";
+        {/* Count */}
+        <Text style={[styles.awardsCount, { color: theme.colors.textSecondary }]}>
+          {unlockedCount} of {totalCount} awards earned
+        </Text>
+      </Animated.View>
+    </Pressable>
+  );
 }
 
 // ============================================================================
@@ -331,23 +308,41 @@ export default function YouScreen() {
   const [todaySessions, setTodaySessions] = useState(0);
   const [stats, setStats] = useState({ totalMinutes: 0, totalSessions: 0, completedSessions: 0 });
 
-  // Animated values for streak card
-  const cardScale = useSharedValue(1);
+  // Animated values for cards
+  const streakCardScale = useSharedValue(1);
+  const awardsCardScale = useSharedValue(1);
 
-  const cardAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: cardScale.value }],
+  const streakCardAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: streakCardScale.value }],
   }));
 
-  const triggerAnimation = useCallback(() => {
-    cardScale.value = withSequence(
+  const awardsCardAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: awardsCardScale.value }],
+  }));
+
+  const triggerStreakAnimation = useCallback(() => {
+    streakCardScale.value = withSequence(
       withTiming(1.05, { duration: 150 }),
       withSpring(1, { damping: 12, stiffness: 150 })
     );
   }, []);
 
-  const handleCardTap = () => {
+  const triggerAwardsAnimation = useCallback(() => {
+    awardsCardScale.value = withSequence(
+      withTiming(1.02, { duration: 100 }),
+      withSpring(1, { damping: 15, stiffness: 200 })
+    );
+  }, []);
+
+  const handleStreakCardTap = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    triggerAnimation();
+    triggerStreakAnimation();
+  };
+
+  const handleAwardsCardTap = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerAwardsAnimation();
+    router.push("/you/awards");
   };
 
   // Load data on focus
@@ -371,9 +366,9 @@ export default function YouScreen() {
       refreshAchievements();
 
       // Trigger animation
-      const timeout = setTimeout(triggerAnimation, 100);
+      const timeout = setTimeout(triggerStreakAnimation, 100);
       return () => clearTimeout(timeout);
-    }, [triggerAnimation, refreshAchievements])
+    }, [triggerStreakAnimation, refreshAchievements])
   );
 
   const openSettings = () => {
@@ -408,8 +403,8 @@ export default function YouScreen() {
           bestStreak={profile.bestStreak}
           accentColor={accentColor}
           theme={theme}
-          onTap={handleCardTap}
-          animatedStyle={cardAnimatedStyle}
+          onTap={handleStreakCardTap}
+          animatedStyle={streakCardAnimatedStyle}
         />
 
         {/* Stats Cards */}
@@ -428,11 +423,13 @@ export default function YouScreen() {
           theme={theme}
         />
 
-        {/* Achievements */}
-        <AchievementGrid
+        {/* Awards Summary Card */}
+        <AwardsCard
           achievements={achievements}
           accentColor={accentColor}
           theme={theme}
+          onTap={handleAwardsCardTap}
+          animatedStyle={awardsCardAnimatedStyle}
         />
 
         {/* Empty state hint */}
@@ -553,38 +550,43 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.typography.sizes.md,
   },
 
-  // Achievements
-  achievementsContainer: {
+  // Awards Card
+  awardsCard: {
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
     marginBottom: theme.spacing.lg,
   },
-  sectionTitle: {
-    fontSize: theme.typography.sizes.sm,
-    fontWeight: theme.typography.weights.semibold,
-    letterSpacing: 0.5,
-    marginBottom: theme.spacing.sm + 4,
-  },
-  achievementsGrid: {
+  awardsHeader: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.sm,
-  },
-  achievementBadge: {
-    padding: theme.spacing.sm + 4,
-    borderRadius: theme.borderRadius.sm + 4,
     alignItems: "center",
-  },
-  achievementIcon: {
     marginBottom: theme.spacing.sm,
   },
-  achievementName: {
-    fontSize: theme.typography.sizes.sm,
-    fontWeight: theme.typography.weights.semibold,
-    textAlign: "center",
+  awardsIcon: {
+    marginRight: theme.spacing.sm,
   },
-  achievementDesc: {
-    fontSize: theme.typography.sizes.xs,
-    textAlign: "center",
-    marginTop: theme.spacing.xs / 2,
+  awardsName: {
+    flex: 1,
+    fontSize: theme.typography.sizes.lg,
+    fontWeight: theme.typography.weights.semibold,
+  },
+  progressContainer: {
+    marginBottom: theme.spacing.sm + 4,
+  },
+  progressBarBackground: {
+    height: 6,
+    borderRadius: 3,
+    overflow: "hidden",
+    marginBottom: theme.spacing.xs,
+  },
+  progressBarFill: {
+    height: "100%",
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: theme.typography.sizes.sm,
+  },
+  awardsCount: {
+    fontSize: theme.typography.sizes.md,
   },
 
   // Empty state
