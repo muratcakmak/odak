@@ -37,7 +37,8 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { useUnistyles } from 'react-native-unistyles';
 import { GlassView } from 'expo-glass-effect';
-import { hasLiquidGlassSupport } from '../../utils/capabilities';
+import { BlurView } from 'expo-blur';
+import { hasLiquidGlassSupport, hasBlurSupport } from '../../utils/capabilities';
 
 // Fixed container size based on max grid (10 rows x 5 cols for 50min preset)
 const MAX_ROWS = 10;
@@ -212,9 +213,11 @@ export const DotGrid = memo(function DotGrid({
   hapticOnSwipe = false,
 }: DotGridProps) {
   const { width: windowWidth } = useWindowDimensions();
+  const { theme } = useUnistyles();
   const totalDots = rows * cols;
   const chargedDots = isCharging ? Math.floor(chargeProgress * totalDots) : 0;
   const isGlassAvailable = hasLiquidGlassSupport();
+  const isBlurAvailable = hasBlurSupport();
 
   // The current dot is the last active one (activeDots - 1)
   const currentDotIndex = activeDots > 0 ? activeDots - 1 : -1;
@@ -371,11 +374,62 @@ export const DotGrid = memo(function DotGrid({
     );
   }
 
-  // Fallback: No glass container
+  // iOS 18-25: Use BlurView for native-like container
+  if (Platform.OS === 'ios' && isBlurAvailable && !isBreak) {
+    const padding = 20;
+    return (
+      <GestureDetector gesture={panGesture}>
+        <View style={[styles.container, style]}>
+          <View
+            style={[
+              styles.blurContainer,
+              {
+                width: maxGridWidth + padding * 2,
+                height: maxGridHeight + padding * 2,
+                borderRadius: 24,
+                overflow: 'hidden',
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(245,245,247,0.85)',
+                borderWidth: 1,
+                borderColor: theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)',
+                shadowColor: theme.colors.shadow.base,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.12,
+                shadowRadius: 16,
+              },
+            ]}
+          >
+            <BlurView
+              intensity={30}
+              tint={theme.isDark ? 'dark' : 'light'}
+              style={styles.blurFill}
+            />
+            <View style={styles.blurContent}>
+              {gridContent}
+            </View>
+          </View>
+        </View>
+      </GestureDetector>
+    );
+  }
+
+  // Android / Older iOS / Break mode: Solid color fallback
+  const padding = 20;
   return (
     <GestureDetector gesture={panGesture}>
       <View style={[styles.container, style]}>
-        {gridContent}
+        <View
+          style={[
+            styles.solidContainer,
+            {
+              width: maxGridWidth + padding * 2,
+              height: maxGridHeight + padding * 2,
+              borderRadius: 24,
+              backgroundColor: isBreak ? 'transparent' : theme.colors.glass.regular,
+            },
+          ]}
+        >
+          {gridContent}
+        </View>
       </View>
     </GestureDetector>
   );
@@ -387,6 +441,26 @@ const styles = StyleSheet.create(() => ({
     justifyContent: 'center',
   },
   glassContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  blurContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  blurFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  blurContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  solidContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },

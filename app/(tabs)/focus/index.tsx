@@ -15,7 +15,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, mq } from 'react-native-unistyles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
@@ -412,10 +412,14 @@ const styles = StyleSheet.create((theme) => ({
     flex: 1,
   },
   header: {
-    height: 80,
+    height: {
+      [mq.only.width(0, 'sm')]: 80,      // iPhone
+      [mq.only.width('sm')]: 160,         // iPad+ (more space below tab bar)
+    },
     paddingHorizontal: theme.spacing.lg,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
+    paddingBottom: theme.spacing.md,
   },
   presetSelector: {
     flexDirection: 'row',
@@ -457,7 +461,10 @@ const styles = StyleSheet.create((theme) => ({
     top: 0,
     left: 0,
     right: 0,
-    bottom: 140, // Leave space for button at bottom
+    bottom: {
+      [mq.only.width(0, 'sm')]: 140,    // iPhone
+      [mq.only.width('sm')]: 180,        // iPad+
+    },
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -466,7 +473,10 @@ const styles = StyleSheet.create((theme) => ({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 92, // Above tab bar
+    bottom: {
+      [mq.only.width(0, 'sm')]: 92,     // iPhone
+      [mq.only.width('sm')]: 120,        // iPad+
+    },
     alignItems: 'center',
   },
   // Break mode takes over the whole content area
@@ -483,7 +493,10 @@ const styles = StyleSheet.create((theme) => ({
     top: 0,
     left: 0,
     right: 0,
-    bottom: 140, // Same as gridContainer - leave space for button
+    bottom: {
+      [mq.only.width(0, 'sm')]: 140,    // iPhone (same as gridContainer)
+      [mq.only.width('sm')]: 180,        // iPad+
+    },
     justifyContent: 'center',
     alignItems: 'center',
     gap: theme.spacing.xl,
