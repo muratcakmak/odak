@@ -19,39 +19,8 @@ import * as Haptics from "expo-haptics";
 import { useAchievements } from "../../../hooks/useAchievements";
 import { getVisibleAchievements } from "../../../domain/models/Achievement";
 import { useAccentColor } from "../../../utils/storage";
-import { countUnlockedAwards } from "../../../components/awards";
+import { countUnlockedAwards, IONICON_MAP } from "../../../components/awards";
 import type { AchievementDefinition } from "../../../domain/achievements/types";
-
-// Android fallback icons
-const IONICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
-  sparkle: "sparkles",
-  "sunrise.fill": "sunny",
-  "moon.stars.fill": "moon",
-  flame: "flame-outline",
-  "flame.fill": "flame",
-  "flame.circle": "flame",
-  "flame.circle.fill": "flame",
-  "trophy.fill": "trophy",
-  "crown.fill": "medal",
-  "checkmark.seal": "checkmark-circle",
-  "checkmark.seal.fill": "checkmark-circle",
-  "star.circle.fill": "star",
-  "sun.max.fill": "sunny",
-  "calendar.badge.checkmark": "calendar",
-  drop: "water-outline",
-  "drop.fill": "water",
-  "drop.circle": "water",
-  "drop.circle.fill": "water",
-  "figure.run": "fitness",
-  leaf: "leaf-outline",
-  "leaf.fill": "leaf",
-  "laurel.leading": "ribbon",
-  "laurel.trailing": "ribbon",
-  "medal.fill": "medal",
-  clock: "time-outline",
-  "clock.fill": "time",
-  "clock.badge.checkmark": "time",
-};
 
 // ============================================================================
 // Award Badge Item

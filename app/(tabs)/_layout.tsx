@@ -19,15 +19,11 @@ export default function TabLayout() {
     ? undefined
     : (isDark ? "systemThickMaterialDark" : "systemThickMaterialLight");
 
-  // Inactive tint color - adapts to theme
-  const inactiveTintColor = theme.colors.textSecondary;
-
   return (
     <NativeTabs
       // Key forces re-render when theme, accent, or background mode changes
       key={`tabs-${isDark ? 'dark' : 'light'}-${accentColorName}-${backgroundMode}`}
       tintColor={accentColor}
-      inactiveTintColor={inactiveTintColor}
       blurEffect={blurEffect}
       disableTransparentOnScrollEdge={true}
     >

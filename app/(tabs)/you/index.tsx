@@ -30,6 +30,7 @@ import {
   countUnlockedAwards,
   getTotalAwardsCount,
   formatProgressText,
+  IONICON_MAP,
 } from "../../../components/awards";
 
 // ============================================================================
@@ -189,37 +190,6 @@ function DailyGoalProgress({ todaySessions, dailyGoal, accentColor, theme }: Dai
 // AWARDS CARD - Summary card showing next achievable award
 // ============================================================================
 
-// Android fallback icons
-const IONICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
-  sparkle: "sparkles",
-  "sunrise.fill": "sunny",
-  "moon.stars.fill": "moon",
-  flame: "flame-outline",
-  "flame.fill": "flame",
-  "flame.circle": "flame",
-  "flame.circle.fill": "flame",
-  "trophy.fill": "trophy",
-  "crown.fill": "medal",
-  "checkmark.seal": "checkmark-circle",
-  "checkmark.seal.fill": "checkmark-circle",
-  "star.circle.fill": "star",
-  "sun.max.fill": "sunny",
-  "calendar.badge.checkmark": "calendar",
-  drop: "water-outline",
-  "drop.fill": "water",
-  "drop.circle": "water",
-  "drop.circle.fill": "water",
-  "figure.run": "fitness",
-  leaf: "leaf-outline",
-  "leaf.fill": "leaf",
-  "laurel.leading": "ribbon",
-  "laurel.trailing": "ribbon",
-  "medal.fill": "medal",
-  clock: "time-outline",
-  "clock.fill": "time",
-  "clock.badge.checkmark": "time",
-};
-
 interface AwardsCardProps {
   achievements: ReturnType<typeof useAchievements>["achievements"];
   accentColor: string;
@@ -301,7 +271,7 @@ function AwardsCard({ achievements, accentColor, theme, onTap, animatedStyle }: 
               {formatProgressText(
                 nextAward.progress.currentProgress ?? 0,
                 nextAward.definition.criteriaValue,
-                nextAward.definition.criteriaUnit
+                nextAward.definition.criteriaUnit ?? ""
               )}
             </Text>
           </View>

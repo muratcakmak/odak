@@ -1,12 +1,7 @@
 import { Stack } from "expo-router";
 import { hasLiquidGlassSupport } from "../../../utils/capabilities";
 import { useUnistyles } from "react-native-unistyles";
-
-// Dark theme colors for award detail screen
-const DARK_COLORS = {
-  background: "#000000",
-  textPrimary: "#FFFFFF",
-};
+import { AWARD_DETAIL_COLORS } from "../../../components/awards";
 
 export default function YouLayout() {
   const isGlassAvailable = hasLiquidGlassSupport();
@@ -51,8 +46,8 @@ export default function YouLayout() {
         name="award/[id]"
         options={{
           headerTitle: "",
-          headerStyle: { backgroundColor: DARK_COLORS.background },
-          headerTintColor: DARK_COLORS.textPrimary,
+          headerStyle: { backgroundColor: AWARD_DETAIL_COLORS.background },
+          headerTintColor: AWARD_DETAIL_COLORS.textPrimary,
           headerTransparent: false,
         }}
       />

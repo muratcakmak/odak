@@ -18,47 +18,7 @@ import { StyleSheet } from "react-native-unistyles";
 
 import { useAchievements } from "../../../../hooks/useAchievements";
 import { getAchievementById } from "../../../../domain/models/Achievement";
-import { formatProgressText } from "../../../../components/awards";
-
-// Dark theme colors (always used regardless of system theme)
-const DARK_COLORS = {
-  background: "#000000",
-  textPrimary: "#FFFFFF",
-  textSecondary: "rgba(255, 255, 255, 0.6)",
-  accent: "#FF9F0A", // Orange
-  progressBackground: "rgba(255, 255, 255, 0.2)",
-};
-
-// Android fallback icons
-const IONICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
-  sparkle: "sparkles",
-  "sunrise.fill": "sunny",
-  "moon.stars.fill": "moon",
-  flame: "flame-outline",
-  "flame.fill": "flame",
-  "flame.circle": "flame",
-  "flame.circle.fill": "flame",
-  "trophy.fill": "trophy",
-  "crown.fill": "medal",
-  "checkmark.seal": "checkmark-circle",
-  "checkmark.seal.fill": "checkmark-circle",
-  "star.circle.fill": "star",
-  "sun.max.fill": "sunny",
-  "calendar.badge.checkmark": "calendar",
-  drop: "water-outline",
-  "drop.fill": "water",
-  "drop.circle": "water",
-  "drop.circle.fill": "water",
-  "figure.run": "fitness",
-  leaf: "leaf-outline",
-  "leaf.fill": "leaf",
-  "laurel.leading": "ribbon",
-  "laurel.trailing": "ribbon",
-  "medal.fill": "medal",
-  clock: "time-outline",
-  "clock.fill": "time",
-  "clock.badge.checkmark": "time",
-};
+import { formatProgressText, IONICON_MAP, AWARD_DETAIL_COLORS } from "../../../../components/awards";
 
 // ============================================================================
 // Progress Bar Component
@@ -99,8 +59,8 @@ export default function AwardDetailScreen() {
   const { achievements } = useAchievements();
 
   // Get achievement definition and progress
-  const definition = getAchievementById(id);
-  const progress = achievements?.find((a) => a.achievementId === id);
+  const definition = id ? getAchievementById(id) : undefined;
+  const progress = id ? achievements?.find((a) => a.achievementId === id) : undefined;
 
   // Handle missing data
   if (!definition) {
@@ -109,8 +69,8 @@ export default function AwardDetailScreen() {
         <Stack.Screen
           options={{
             headerTitle: "",
-            headerStyle: { backgroundColor: DARK_COLORS.background },
-            headerTintColor: DARK_COLORS.textPrimary,
+            headerStyle: { backgroundColor: AWARD_DETAIL_COLORS.background },
+            headerTintColor: AWARD_DETAIL_COLORS.textPrimary,
           }}
         />
         <Text style={styles.errorText}>Award not found</Text>
@@ -120,13 +80,13 @@ export default function AwardDetailScreen() {
 
   const isUnlocked = progress?.isUnlocked ?? false;
   const currentProgress = progress?.currentProgress ?? 0;
-  const iconColor = isUnlocked ? DARK_COLORS.accent : DARK_COLORS.textSecondary;
+  const iconColor = isUnlocked ? AWARD_DETAIL_COLORS.accent : AWARD_DETAIL_COLORS.textSecondary;
   const ioniconName = IONICON_MAP[definition.icon] ?? "ribbon";
 
-  // Format unlock date
-  const formatDate = (timestamp?: number) => {
-    if (!timestamp) return null;
-    const date = new Date(timestamp);
+  // Format unlock date (unlockedAt is ISO string)
+  const formatDate = (isoString?: string | null) => {
+    if (!isoString) return null;
+    const date = new Date(isoString);
     return date.toLocaleDateString(undefined, {
       year: "numeric",
       month: "long",
@@ -134,15 +94,15 @@ export default function AwardDetailScreen() {
     });
   };
 
-  const unlockDate = progress?.unlockedAt ? formatDate(progress.unlockedAt) : null;
+  const unlockDate = formatDate(progress?.unlockedAt);
 
   return (
     <View style={styles.container}>
       <Stack.Screen
         options={{
           headerTitle: "",
-          headerStyle: { backgroundColor: DARK_COLORS.background },
-          headerTintColor: DARK_COLORS.textPrimary,
+          headerStyle: { backgroundColor: AWARD_DETAIL_COLORS.background },
+          headerTintColor: AWARD_DETAIL_COLORS.textPrimary,
           headerTransparent: false,
         }}
       />
@@ -196,7 +156,7 @@ export default function AwardDetailScreen() {
             <ProgressBar
               current={currentProgress}
               target={definition.criteriaValue}
-              unit={definition.criteriaUnit}
+              unit={definition.criteriaUnit ?? ""}
             />
           )}
         </Animated.View>
@@ -212,7 +172,7 @@ export default function AwardDetailScreen() {
 const styles = StyleSheet.create(() => ({
   container: {
     flex: 1,
-    backgroundColor: DARK_COLORS.background,
+    backgroundColor: AWARD_DETAIL_COLORS.background,
   },
   content: {
     flex: 1,
@@ -226,14 +186,14 @@ const styles = StyleSheet.create(() => ({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: DARK_COLORS.textPrimary,
+    color: AWARD_DETAIL_COLORS.textPrimary,
     textAlign: "center",
     marginBottom: 12,
   },
   description: {
     fontSize: 17,
     fontWeight: "400",
-    color: DARK_COLORS.textSecondary,
+    color: AWARD_DETAIL_COLORS.textSecondary,
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 32,
@@ -241,7 +201,7 @@ const styles = StyleSheet.create(() => ({
   earnedDate: {
     fontSize: 15,
     fontWeight: "400",
-    color: DARK_COLORS.textSecondary,
+    color: AWARD_DETAIL_COLORS.textSecondary,
     textAlign: "center",
   },
   progressContainer: {
@@ -251,24 +211,24 @@ const styles = StyleSheet.create(() => ({
   progressBarBackground: {
     width: "100%",
     height: 8,
-    backgroundColor: DARK_COLORS.progressBackground,
+    backgroundColor: AWARD_DETAIL_COLORS.progressBackground,
     borderRadius: 4,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
-    backgroundColor: DARK_COLORS.accent,
+    backgroundColor: AWARD_DETAIL_COLORS.accent,
     borderRadius: 4,
   },
   progressText: {
     fontSize: 15,
     fontWeight: "500",
-    color: DARK_COLORS.textSecondary,
+    color: AWARD_DETAIL_COLORS.textSecondary,
     marginTop: 12,
   },
   errorText: {
     fontSize: 17,
-    color: DARK_COLORS.textSecondary,
+    color: AWARD_DETAIL_COLORS.textSecondary,
     textAlign: "center",
   },
 }));

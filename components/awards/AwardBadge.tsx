@@ -12,6 +12,7 @@ import { SymbolView } from "expo-symbols";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import type { AchievementDefinition } from "../../domain/achievements/types";
+import { IONICON_MAP } from "./iconMap";
 
 // ============================================================================
 // Types
@@ -58,42 +59,6 @@ const SIZE_CONFIG = {
     descSize: 16,
   },
 } as const;
-
-// Android fallback icons
-const IONICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
-  // Commitment
-  sparkle: "sparkles",
-  "sunrise.fill": "sunny",
-  "moon.stars.fill": "moon",
-  // Consistency
-  flame: "flame-outline",
-  "flame.fill": "flame",
-  "flame.circle": "flame",
-  "flame.circle.fill": "flame",
-  "trophy.fill": "trophy",
-  "crown.fill": "medal",
-  // Completion
-  "checkmark.seal": "checkmark-circle",
-  "checkmark.seal.fill": "checkmark-circle",
-  "star.circle.fill": "star",
-  "sun.max.fill": "sunny",
-  "calendar.badge.checkmark": "calendar",
-  // Depth
-  drop: "water-outline",
-  "drop.fill": "water",
-  "drop.circle": "water",
-  "drop.circle.fill": "water",
-  "figure.run": "fitness",
-  // Milestone
-  leaf: "leaf-outline",
-  "leaf.fill": "leaf",
-  "laurel.leading": "ribbon",
-  "laurel.trailing": "ribbon",
-  "medal.fill": "medal",
-  clock: "time-outline",
-  "clock.fill": "time",
-  "clock.badge.checkmark": "time",
-};
 
 // ============================================================================
 // Component
