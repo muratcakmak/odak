@@ -113,9 +113,12 @@ function AddEventModal({
     }
   }, [visible, mode]);
 
+  // Validation: require both title and image
+  const canAdd = title.trim().length > 0 && selectedImage !== null;
+
   const handleAdd = () => {
-    if (title.trim()) {
-      onAdd(title.trim(), selectedDate, selectedImage || undefined);
+    if (canAdd) {
+      onAdd(title.trim(), selectedDate, selectedImage);
       setTitle("");
       setSelectedImage(null);
       onClose();
@@ -175,8 +178,8 @@ function AddEventModal({
               <Text style={[styles.modalHeaderButton, { color: theme.colors.systemBlue }]}>Cancel</Text>
             </HeaderButton>
             <Text style={[styles.modalTitle, { color: theme.colors.textPrimary }]}>{modalTitle}</Text>
-            <HeaderButton onPress={handleAdd} disabled={!title.trim()}>
-              <Text style={[styles.modalHeaderButton, { color: title.trim() ? theme.colors.systemBlue : theme.colors.textSecondary }]}>
+            <HeaderButton onPress={handleAdd} disabled={!canAdd}>
+              <Text style={[styles.modalHeaderButton, { color: canAdd ? theme.colors.systemBlue : theme.colors.textSecondary }]}>
                 Add
               </Text>
             </HeaderButton>
@@ -218,6 +221,7 @@ function AddEventModal({
                     placeholderTextColor={theme.colors.textSecondary}
                     value={title}
                     onChangeText={setTitle}
+                    maxLength={39}
                   />
                 </View>
 
@@ -413,6 +417,7 @@ export default function DatesScreen() {
             >
               List View
             </Stack.Header.MenuAction>
+            <Stack.Header.Spacer width={16} />
             <Stack.Header.MenuAction
               icon={sortType === "date_asc" ? "checkmark" : undefined}
               onPress={() => setSortType("date_asc")}
