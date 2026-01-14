@@ -335,6 +335,7 @@ export default function FocusScreen() {
                 currentDotProgress={currentDotProgress}
                 isBreak
                 accentColor={accentColor}
+                hapticOnSwipe={settings.vibrationEnabled}
               />
             </View>
 
@@ -367,7 +368,7 @@ export default function FocusScreen() {
               activeDots={displayState.litDots}
               currentDotProgress={isFocusing ? currentDotProgress : 0}
               accentColor={accentColor}
-              hapticOnSwipe={isFocusing && settings.vibrationEnabled}
+              hapticOnSwipe={settings.vibrationEnabled}
             />
           </View>
         )}
@@ -466,8 +467,8 @@ const styles = StyleSheet.create((theme) => ({
     left: 0,
     right: 0,
     bottom: {
-      [mq.only.width(0, 'sm')]: 140,    // iPhone
-      [mq.only.width('sm')]: 180,        // iPad+
+      [mq.only.width(0, 'sm')]: 160,    // iPhone
+      [mq.only.width('sm')]: 210,        // iPad+
     },
     justifyContent: 'center',
     alignItems: 'center',
