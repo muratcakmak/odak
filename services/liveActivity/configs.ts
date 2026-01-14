@@ -19,7 +19,7 @@ export const FOCUS_CONFIG: LiveActivityConfig = {
   progressViewLabelColor: '#000000',
   deepLinkUrl: '/focus',
   timerType: 'digital',
-  padding: 16,
+  padding: 24,
   imagePosition: 'left',
   imageSize: { width: 50, height: 50 },
 };
@@ -34,9 +34,9 @@ export const BREAK_CONFIG: LiveActivityConfig = {
   subtitleColor: 'rgba(255,255,255,0.8)',
   progressViewTint: '#FFFFFF',
   progressViewLabelColor: '#FFFFFF',
-  deepLinkUrl: '/focus',
+  deepLinkUrl: '/(tabs)/focus',
   timerType: 'digital',
-  padding: 16,
+  padding: 24,
   imagePosition: 'left',
   imageSize: { width: 50, height: 50 },
 };

@@ -11,6 +11,11 @@ You are working inside the **Odak** repository (a Pomodoro-style focus app). You
 
 ## Non-Negotiables
 
+### Do NOT commit
+- **Never run `git commit`** — the user handles all commits
+- **Do NOT write commit messages** — just make the code changes
+- Only stage files if explicitly asked
+
 ### Bun is the default package manager
 - **Always use `bun`** for installing, running, and managing packages
 - **DO NOT use npm, yarn, or npx** — always use bun equivalents

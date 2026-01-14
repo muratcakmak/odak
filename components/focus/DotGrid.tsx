@@ -37,7 +37,8 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { useUnistyles } from 'react-native-unistyles';
 import { GlassView } from 'expo-glass-effect';
-import { hasLiquidGlassSupport } from '../../utils/capabilities';
+import { BlurView } from 'expo-blur';
+import { hasLiquidGlassSupport, hasBlurSupport } from '../../utils/capabilities';
 
 // Fixed container size based on max grid (10 rows x 5 cols for 50min preset)
 const MAX_ROWS = 10;
@@ -212,14 +213,39 @@ export const DotGrid = memo(function DotGrid({
   hapticOnSwipe = false,
 }: DotGridProps) {
   const { width: windowWidth } = useWindowDimensions();
+  const { theme } = useUnistyles();
   const totalDots = rows * cols;
   const chargedDots = isCharging ? Math.floor(chargeProgress * totalDots) : 0;
   const isGlassAvailable = hasLiquidGlassSupport();
+  const isBlurAvailable = hasBlurSupport();
 
   // The current dot is the last active one (activeDots - 1)
   const currentDotIndex = activeDots > 0 ? activeDots - 1 : -1;
 
-  // Track last dot that triggered haptic to avoid repeats
+  // SharedValue for selected dot - runs on UI thread
+  const selectedDot = useSharedValue<number>(-1);
+
+  // Track previous total dots for animation trigger
+  const prevTotalDots = useRef(totalDots);
+
+  // Vertical offset for bump animation
+  const containerTranslateY = useSharedValue(0);
+
+  // Subtle bump animation when grid size changes (preset switch)
+  useEffect(() => {
+    if (prevTotalDots.current !== totalDots && prevTotalDots.current > 0) {
+      // Start slightly below and spring up
+      containerTranslateY.value = 3;
+      containerTranslateY.value = withSpring(0);
+    }
+    prevTotalDots.current = totalDots;
+  }, [totalDots, containerTranslateY]);
+
+  const containerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: containerTranslateY.value }],
+  }));
+
+  // Track last dot that triggered haptic (JS thread)
   const lastHapticDotRef = useRef<number>(-1);
 
   // Track currently touched dot for visual feedback
@@ -233,6 +259,9 @@ export const DotGrid = memo(function DotGrid({
     return Math.min(maxDotSize, Math.max(12, calculatedSize));
   }, [windowWidth, maxDotSize]);
 
+  // Cell size for hit testing (dot + gap)
+  const cellSize = dotSize + DOT_GAP;
+
   // Calculate grid dimensions for current grid (used for hit testing)
   const gridWidth = cols * dotSize + (cols - 1) * DOT_GAP;
   const gridHeight = rows * dotSize + (rows - 1) * DOT_GAP;
@@ -241,66 +270,76 @@ export const DotGrid = memo(function DotGrid({
   const maxGridWidth = MAX_COLS * dotSize + (MAX_COLS - 1) * DOT_GAP;
   const maxGridHeight = MAX_ROWS * dotSize + (MAX_ROWS - 1) * DOT_GAP;
 
-  // Trigger haptic feedback
-  const triggerHaptic = useCallback(() => {
-    if (Platform.OS === 'ios') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, []);
-
-  // Calculate which dot is at a given position
-  const getDotIndexAtPosition = useCallback((x: number, y: number): number => {
-    // Grid is centered, calculate offset from grid origin
-    const cellWidth = dotSize + DOT_GAP;
-    const cellHeight = dotSize + DOT_GAP;
-
-    const col = Math.floor(x / cellWidth);
-    const row = Math.floor(y / cellHeight);
-
-    if (col >= 0 && col < cols && row >= 0 && row < rows) {
-      // Check if actually within the dot (not just the cell)
-      const dotCenterX = col * cellWidth + dotSize / 2;
-      const dotCenterY = row * cellHeight + dotSize / 2;
-      const distance = Math.sqrt(Math.pow(x - dotCenterX, 2) + Math.pow(y - dotCenterY, 2));
-
-      if (distance <= dotSize / 2) {
-        return row * cols + col;
+  // Haptic and visual feedback handler (called from worklet via runOnJS)
+  const triggerHapticAndFeedback = useCallback((dotIndex: number) => {
+    if (dotIndex !== lastHapticDotRef.current && dotIndex >= 0) {
+      if (Platform.OS === 'ios') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-    }
-    return -1;
-  }, [cols, rows, dotSize]);
-
-  // Handle position update during swipe
-  const handlePositionUpdate = useCallback((x: number, y: number) => {
-    const dotIndex = getDotIndexAtPosition(x, y);
-    if (dotIndex >= 0 && dotIndex < activeDots && dotIndex !== lastHapticDotRef.current) {
       lastHapticDotRef.current = dotIndex;
-      setTouchedDotIndex(dotIndex); // Visual feedback
-      triggerHaptic();
+      setTouchedDotIndex(dotIndex);
+    } else if (dotIndex < 0) {
+      lastHapticDotRef.current = -1;
+      setTouchedDotIndex(-1);
     }
-  }, [getDotIndexAtPosition, activeDots, triggerHaptic]);
-
-  // Clear touched dot on gesture end
-  const handleGestureEnd = useCallback(() => {
-    lastHapticDotRef.current = -1;
-    setTouchedDotIndex(-1);
   }, []);
 
-  // Pan gesture for swipe haptic
+  // Pan gesture - hit detection runs in worklet, only runOnJS when dot changes
+  // Uses "nearest dot" approach for more forgiving touch detection
   const panGesture = Gesture.Pan()
     .onStart((e) => {
-      if (hapticOnSwipe) {
-        lastHapticDotRef.current = -1;
-        runOnJS(handlePositionUpdate)(e.x, e.y);
+      'worklet';
+      if (!hapticOnSwipe) return;
+
+      // Find nearest dot using rounded division (snaps to closest)
+      const col = Math.round(e.x / cellSize - 0.5);
+      const row = Math.round(e.y / cellSize - 0.5);
+      let dotIndex = -1;
+
+      if (col >= 0 && col < cols && row >= 0 && row < rows) {
+        dotIndex = row * cols + col;
+      } else {
+        // Clamp to grid bounds for edge touches
+        const clampedCol = Math.max(0, Math.min(cols - 1, col));
+        const clampedRow = Math.max(0, Math.min(rows - 1, row));
+        dotIndex = clampedRow * cols + clampedCol;
+      }
+
+      if (dotIndex >= 0 && dotIndex < totalDots) {
+        selectedDot.value = dotIndex;
+        runOnJS(triggerHapticAndFeedback)(dotIndex);
       }
     })
     .onUpdate((e) => {
-      if (hapticOnSwipe) {
-        runOnJS(handlePositionUpdate)(e.x, e.y);
+      'worklet';
+      if (!hapticOnSwipe) return;
+
+      // Find nearest dot using rounded division (snaps to closest)
+      const col = Math.round(e.x / cellSize - 0.5);
+      const row = Math.round(e.y / cellSize - 0.5);
+      let dotIndex = -1;
+
+      if (col >= 0 && col < cols && row >= 0 && row < rows) {
+        dotIndex = row * cols + col;
+      } else {
+        // Clamp to grid bounds for edge touches
+        const clampedCol = Math.max(0, Math.min(cols - 1, col));
+        const clampedRow = Math.max(0, Math.min(rows - 1, row));
+        dotIndex = clampedRow * cols + clampedCol;
+      }
+
+      // Only trigger runOnJS if dot actually changed
+      if (dotIndex >= 0 && dotIndex < totalDots && dotIndex !== selectedDot.value) {
+        selectedDot.value = dotIndex;
+        runOnJS(triggerHapticAndFeedback)(dotIndex);
       }
     })
     .onEnd(() => {
-      runOnJS(handleGestureEnd)();
+      'worklet';
+      if (!hapticOnSwipe) return;
+
+      selectedDot.value = -1;
+      runOnJS(triggerHapticAndFeedback)(-1);
     });
 
   // Generate grid rows
@@ -352,7 +391,7 @@ export const DotGrid = memo(function DotGrid({
     const padding = 20;
     return (
       <GestureDetector gesture={panGesture}>
-        <View style={[styles.container, style]}>
+        <Animated.View style={[styles.container, style, containerAnimatedStyle]}>
           <GlassView
             style={[
               styles.glassContainer,
@@ -366,17 +405,68 @@ export const DotGrid = memo(function DotGrid({
           >
             {gridContent}
           </GlassView>
-        </View>
+        </Animated.View>
       </GestureDetector>
     );
   }
 
-  // Fallback: No glass container
+  // iOS 18-25: Use BlurView for native-like container
+  if (Platform.OS === 'ios' && isBlurAvailable && !isBreak) {
+    const padding = 20;
+    return (
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[styles.container, style, containerAnimatedStyle]}>
+          <View
+            style={[
+              styles.blurContainer,
+              {
+                width: maxGridWidth + padding * 2,
+                height: maxGridHeight + padding * 2,
+                borderRadius: 24,
+                overflow: 'hidden',
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(245,245,247,0.85)',
+                borderWidth: 1,
+                borderColor: theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)',
+                shadowColor: theme.colors.shadow.base,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.12,
+                shadowRadius: 16,
+              },
+            ]}
+          >
+            <BlurView
+              intensity={30}
+              tint={theme.isDark ? 'dark' : 'light'}
+              style={styles.blurFill}
+            />
+            <View style={styles.blurContent}>
+              {gridContent}
+            </View>
+          </View>
+        </Animated.View>
+      </GestureDetector>
+    );
+  }
+
+  // Android / Older iOS / Break mode: Solid color fallback
+  const padding = 20;
   return (
     <GestureDetector gesture={panGesture}>
-      <View style={[styles.container, style]}>
-        {gridContent}
-      </View>
+      <Animated.View style={[styles.container, style, containerAnimatedStyle]}>
+        <View
+          style={[
+            styles.solidContainer,
+            {
+              width: maxGridWidth + padding * 2,
+              height: maxGridHeight + padding * 2,
+              borderRadius: 24,
+              backgroundColor: isBreak ? 'transparent' : theme.colors.glass.regular,
+            },
+          ]}
+        >
+          {gridContent}
+        </View>
+      </Animated.View>
     </GestureDetector>
   );
 });
@@ -387,6 +477,26 @@ const styles = StyleSheet.create(() => ({
     justifyContent: 'center',
   },
   glassContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  blurContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  blurFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  blurContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  solidContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },

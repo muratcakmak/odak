@@ -51,7 +51,7 @@ export function createDefaultSettings(): FocusSettings {
   return {
     version: 1,
     autoBreakEnabled: true,
-    showMinutesRemaining: false,
+    showMinutesRemaining: true,
     soundEnabled: true,
     vibrationEnabled: true,
     breakDurationMinutes: DEFAULT_BREAK_MINUTES,

@@ -15,7 +15,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, mq } from 'react-native-unistyles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
@@ -62,7 +62,7 @@ import { useAchievements } from '../../../hooks/useAchievements';
 
 const TICK_INTERVAL = 1000; // 1 second
 
-// Preset selector with Liquid Glass support on iOS 26+
+// Preset selector
 interface PresetSelectorProps {
   presets: ReturnType<typeof getAllPresets>;
   selectedPresetId: PresetId;
@@ -87,7 +87,12 @@ function PresetSelector({
         return (
           <Pressable
             key={preset.id}
-            onPress={() => onSelect(preset.id)}
+            onPress={() => {
+              if (Platform.OS === 'ios') {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              onSelect(preset.id);
+            }}
             style={[
               styles.presetButton,
               {
@@ -326,7 +331,8 @@ export default function FocusScreen() {
         {/* Break mode overlay */}
         {isBreak && (
           <View style={styles.breakOverlay}>
-            <View style={styles.breakContent}>
+            {/* Grid uses same positioning as focus mode */}
+            <View style={styles.gridContainer}>
               <DotGrid
                 rows={1}
                 cols={settings.breakDurationMinutes}
@@ -334,10 +340,14 @@ export default function FocusScreen() {
                 currentDotProgress={currentDotProgress}
                 isBreak
                 accentColor={accentColor}
+                hapticOnSwipe={settings.vibrationEnabled}
               />
+            </View>
 
+            {/* Text positioned independently below grid area */}
+            <View style={styles.breakTextContainer}>
               <Text style={styles.breakText}>
-                Take a break
+                Break
               </Text>
             </View>
 
@@ -363,7 +373,7 @@ export default function FocusScreen() {
               activeDots={displayState.litDots}
               currentDotProgress={isFocusing ? currentDotProgress : 0}
               accentColor={accentColor}
-              hapticOnSwipe={isFocusing && settings.vibrationEnabled}
+              hapticOnSwipe={settings.vibrationEnabled}
             />
           </View>
         )}
@@ -412,10 +422,14 @@ const styles = StyleSheet.create((theme) => ({
     flex: 1,
   },
   header: {
-    height: 80,
+    height: {
+      [mq.only.width(0, 'sm')]: 80,      // iPhone
+      [mq.only.width('sm')]: 160,         // iPad+ (more space below tab bar)
+    },
     paddingHorizontal: theme.spacing.lg,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
+    paddingBottom: theme.spacing.md,
   },
   presetSelector: {
     flexDirection: 'row',
@@ -457,7 +471,10 @@ const styles = StyleSheet.create((theme) => ({
     top: 0,
     left: 0,
     right: 0,
-    bottom: 140, // Leave space for button at bottom
+    bottom: {
+      [mq.only.width(0, 'sm')]: 160,    // iPhone
+      [mq.only.width('sm')]: 210,        // iPad+
+    },
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -466,7 +483,10 @@ const styles = StyleSheet.create((theme) => ({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 92, // Above tab bar
+    bottom: {
+      [mq.only.width(0, 'sm')]: 92,     // iPhone
+      [mq.only.width('sm')]: 120,        // iPad+
+    },
     alignItems: 'center',
   },
   // Break mode takes over the whole content area
@@ -477,20 +497,20 @@ const styles = StyleSheet.create((theme) => ({
     right: 0,
     bottom: 0,
   },
-  // Break content centered above the button
-  breakContent: {
+  // Break text positioned independently below grid area
+  breakTextContainer: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
-    bottom: 140, // Same as gridContainer - leave space for button
-    justifyContent: 'center',
+    bottom: {
+      [mq.only.width(0, 'sm')]: 200,    // iPhone: above holdButtonContainer
+      [mq.only.width('sm')]: 240,        // iPad+
+    },
     alignItems: 'center',
-    gap: theme.spacing.xl,
   },
   breakText: {
     fontSize: theme.typography.sizes.xxl,
-    fontWeight: theme.typography.weights.semibold,
+    fontWeight: theme.typography.weights.light,
     color: theme.colors.onImage.primary,
   },
   debugInfo: {

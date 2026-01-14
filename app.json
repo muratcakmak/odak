@@ -10,6 +10,7 @@
     "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": true,
+      "orientation": "portrait",
       "bundleIdentifier": "com.omc345.odak",
       "icon": "./assets/icon-light.png",
       "darkIcon": "./assets/icon-dark.png",

@@ -504,6 +504,17 @@ export function setSharePreferences(prefs: {
   if (prefs.showApp !== undefined) storage.set(SHARE_SHOW_APP_KEY, prefs.showApp);
 }
 
+// Welcome Modal Preference
+const HAS_SEEN_WELCOME_KEY = "has_seen_welcome";
+
+export function getHasSeenWelcome(): boolean {
+  return storage.getBoolean(HAS_SEEN_WELCOME_KEY) ?? false;
+}
+
+export function setHasSeenWelcome(seen: boolean): void {
+  storage.set(HAS_SEEN_WELCOME_KEY, seen);
+}
+
 // ============================================================================
 // FOCUS TIMER STORAGE (Odak Pomodoro)
 // ============================================================================
@@ -906,5 +917,25 @@ export function useFocusProfile(): FocusProfile {
   }, []);
 
   return profile;
+}
+
+// ============================================================================
+// HOLD HINT (First-launch tutorial for hold-to-start button)
+// ============================================================================
+
+const HOLD_HINT_SEEN_KEY = "hold_hint_seen";
+
+/**
+ * Check if user has seen the "Hold to start" hint
+ */
+export function hasSeenHoldHint(): boolean {
+  return storage.getBoolean(HOLD_HINT_SEEN_KEY) ?? false;
+}
+
+/**
+ * Mark the hold hint as seen (called after first successful hold completion)
+ */
+export function markHoldHintSeen(): void {
+  storage.set(HOLD_HINT_SEEN_KEY, true);
 }
 

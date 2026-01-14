@@ -13,7 +13,8 @@ import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-c
 import { hasLiquidGlassSupport } from "../utils/capabilities";
 import { syncAllEventsToWidget } from "../utils/storage";
 import { useUnistyles, UnistylesRuntime } from "react-native-unistyles";
-import { getBackgroundMode } from "../utils/storage";
+import { getBackgroundMode, getHasSeenWelcome } from "../utils/storage";
+import { router } from "expo-router";
 import { initializeDatabase } from "../data/database";
 
 // Ignored logs
@@ -51,6 +52,20 @@ export default function RootLayout() {
     }
 
     initDb();
+  }, []);
+
+  // Check for first run and show welcome modal
+  useEffect(() => {
+    // Small delay to ensure navigation is ready and layout is mounted
+    const timeout = setTimeout(() => {
+      const hasSeen = getHasSeenWelcome();
+      // Force show in development or if not seen
+      if (!hasSeen) {
+        router.push("/welcome");
+      }
+    }, 500);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   // Sync events to widget storage on app start
@@ -126,6 +141,13 @@ export default function RootLayout() {
                     ? theme.colors.transparent
                     : theme.colors.surface,
                 },
+              }}
+            />
+            <Stack.Screen
+              name="welcome"
+              options={{
+                headerShown: false,
+                presentation: "modal",
               }}
             />
 
