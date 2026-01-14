@@ -908,3 +908,23 @@ export function useFocusProfile(): FocusProfile {
   return profile;
 }
 
+// ============================================================================
+// HOLD HINT (First-launch tutorial for hold-to-start button)
+// ============================================================================
+
+const HOLD_HINT_SEEN_KEY = "hold_hint_seen";
+
+/**
+ * Check if user has seen the "Hold to start" hint
+ */
+export function hasSeenHoldHint(): boolean {
+  return storage.getBoolean(HOLD_HINT_SEEN_KEY) ?? false;
+}
+
+/**
+ * Mark the hold hint as seen (called after first successful hold completion)
+ */
+export function markHoldHintSeen(): void {
+  storage.set(HOLD_HINT_SEEN_KEY, true);
+}
+

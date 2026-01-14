@@ -7,38 +7,44 @@
  *
  * Follows PRODUCT.md: "Hold to Start" and "Break the Seal" rituals.
  * Includes VoiceOver-accessible alternative.
+ *
+ * Features a dot-charging ring that fills progressively during hold,
+ * mirroring the main DotGrid visual language.
  */
 
-import React, { useCallback, useEffect, useRef, memo } from 'react';
+import React, { useCallback, useEffect, useRef, memo, useState } from 'react';
 import {
   View,
+  Text,
   AccessibilityInfo,
   Pressable,
   Platform,
 } from 'react-native';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  useAnimatedProps,
   withTiming,
   withSpring,
+  withRepeat,
+  withSequence,
+  cancelAnimation,
   runOnJS,
+  Easing,
 } from 'react-native-reanimated';
-import Svg, { Circle, Rect, Path } from 'react-native-svg';
+import Svg, { Rect, Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
-import { useUnistyles } from 'react-native-unistyles';
 import { Ionicons } from '@expo/vector-icons';
 
+import { DotRing } from './DotRing';
+import { hasSeenHoldHint, markHoldHintSeen } from '../../utils/storage';
 
 const BUTTON_SIZE = 72;
-const RING_SIZE = 88;
-const STROKE_WIDTH = 4;
+const RING_SIZE = 112; // Slightly larger to accommodate dot ring
 const HOLD_DURATION_IDLE = 1500; // 1.5s to start focus
 const HOLD_DURATION_FOCUS = 2000; // 2s to break seal
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const DOT_COUNT = 12; // Must match DotRing's DOT_COUNT
 
 type ButtonMode = 'idle' | 'focusing' | 'break';
 
@@ -69,7 +75,7 @@ function LockIcon({ size, color }: { size: number; color: string }) {
   );
 }
 
-// Focus button with Liquid Glass support on iOS 26+
+// Focus button with enhanced visibility
 interface FocusButtonProps {
   mode: ButtonMode;
   iconColor: string;
@@ -78,6 +84,8 @@ interface FocusButtonProps {
 }
 
 function FocusButton({ mode, iconColor, buttonBgColor, accentColor }: FocusButtonProps) {
+  const { theme } = useUnistyles();
+
   const icon =
     mode === 'idle' ? (
       <Ionicons name="play" size={28} color={iconColor} style={styles.playIcon} />
@@ -87,8 +95,14 @@ function FocusButton({ mode, iconColor, buttonBgColor, accentColor }: FocusButto
       <LockIcon size={28} color={iconColor} />
     );
 
+  // Subtle border for idle state to improve visibility
+  const borderStyle = mode === 'idle' ? {
+    borderWidth: 1,
+    borderColor: `${accentColor}50`, // 30% opacity
+  } : {};
+
   return (
-    <View style={[styles.button, { backgroundColor: buttonBgColor }]}>
+    <View style={[styles.button, { backgroundColor: buttonBgColor }, borderStyle]}>
       {icon}
     </View>
   );
@@ -121,6 +135,10 @@ export const SwipeToFocus = memo(function SwipeToFocus({
   const isVoiceOverRef = useRef(false);
   const holdStartRef = useRef<number | null>(null);
   const holdIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastLitDotCountRef = useRef<number>(0); // Track lit dots for haptic feedback
+
+  // Tutorial hint state
+  const [showHint, setShowHint] = useState(false);
 
   const holdDuration = mode === 'idle' ? HOLD_DURATION_IDLE : HOLD_DURATION_FOCUS;
   const isBreakMode = mode === 'break';
@@ -129,6 +147,14 @@ export const SwipeToFocus = memo(function SwipeToFocus({
     : mode === 'break'
       ? 'Skip break'
       : 'Hold to end focus session';
+
+  // Check if hint should be shown on mount
+  // Always show in dev mode for testing
+  useEffect(() => {
+    if (mode === 'idle' && (__DEV__ || !hasSeenHoldHint())) {
+      setShowHint(true);
+    }
+  }, [mode]);
 
   // Track VoiceOver state
   useEffect(() => {
@@ -156,15 +182,37 @@ export const SwipeToFocus = memo(function SwipeToFocus({
   const isHolding = useSharedValue(false);
   const hasTriggered = useSharedValue(false);
 
+  // Breathing animation scale (idle only)
+  const breathingScale = useSharedValue(1);
+
+  // Start/stop breathing animation based on mode
+  useEffect(() => {
+    if (mode === 'idle') {
+      // Subtle breathing animation to draw attention
+      breathingScale.value = withRepeat(
+        withSequence(
+          withTiming(1.03, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1, // Infinite repeat
+        true // Reverse
+      );
+    } else {
+      cancelAnimation(breathingScale);
+      breathingScale.value = withTiming(1, { duration: 150 });
+    }
+
+    return () => {
+      cancelAnimation(breathingScale);
+    };
+  }, [mode, breathingScale]);
+
   // Reset progress when mode changes
   useEffect(() => {
     progress.value = 0;
     hasTriggered.value = false;
+    lastLitDotCountRef.current = 0;
   }, [mode, progress, hasTriggered]);
-
-  // Ring circumference
-  const radius = (RING_SIZE - STROKE_WIDTH) / 2;
-  const circumference = 2 * Math.PI * radius;
 
   // Cleanup on unmount
   useEffect(() => {
@@ -198,11 +246,17 @@ export const SwipeToFocus = memo(function SwipeToFocus({
   // Handle hold completion
   const handleComplete = useCallback(() => {
     // Reset progress immediately to prevent color flicker when mode changes
-    // (otherwise red ring appears for 1 frame at full progress before useEffect resets it)
     progress.value = 0;
     triggerHaptic(mode === 'idle' ? 'success' : 'warning');
+
+    // Mark hint as seen on first successful hold (idle mode only)
+    if (mode === 'idle' && showHint) {
+      markHoldHintSeen();
+      setShowHint(false);
+    }
+
     onComplete();
-  }, [mode, onComplete, triggerHaptic, progress]);
+  }, [mode, onComplete, triggerHaptic, progress, showHint]);
 
   // Start hold tracking
   const startHold = useCallback(() => {
@@ -215,7 +269,12 @@ export const SwipeToFocus = memo(function SwipeToFocus({
       return;
     }
 
+    // Stop breathing animation during hold
+    cancelAnimation(breathingScale);
+    breathingScale.value = withTiming(1, { duration: 100 });
+
     holdStartRef.current = Date.now();
+    lastLitDotCountRef.current = 0;
     isHolding.value = true;
     triggerHaptic('light');
 
@@ -224,6 +283,15 @@ export const SwipeToFocus = memo(function SwipeToFocus({
         const elapsed = Date.now() - holdStartRef.current;
         const newProgress = Math.min(1, elapsed / holdDuration);
         progress.value = newProgress;
+
+        // Calculate how many dots should be lit
+        const litDotCount = Math.floor(newProgress * DOT_COUNT);
+
+        // Haptic feedback when a new dot lights up
+        if (litDotCount > lastLitDotCountRef.current) {
+          triggerHaptic('light');
+          lastLitDotCountRef.current = litDotCount;
+        }
 
         if (newProgress >= 1) {
           hasTriggered.value = true;
@@ -234,7 +302,7 @@ export const SwipeToFocus = memo(function SwipeToFocus({
         }
       }
     }, 16); // ~60fps
-  }, [disabled, progress, isHolding, hasTriggered, holdDuration, triggerHaptic, handleComplete, isBreakMode]);
+  }, [disabled, progress, isHolding, hasTriggered, holdDuration, triggerHaptic, handleComplete, isBreakMode, breathingScale]);
 
   // End hold tracking
   const endHold = useCallback(() => {
@@ -242,6 +310,7 @@ export const SwipeToFocus = memo(function SwipeToFocus({
       clearInterval(holdIntervalRef.current);
     }
     holdStartRef.current = null;
+    lastLitDotCountRef.current = 0;
     isHolding.value = false;
 
     if (!hasTriggered.value) {
@@ -250,8 +319,20 @@ export const SwipeToFocus = memo(function SwipeToFocus({
         damping: 15,
         stiffness: 150,
       });
+
+      // Restart breathing animation if in idle mode
+      if (mode === 'idle') {
+        breathingScale.value = withRepeat(
+          withSequence(
+            withTiming(1.03, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+            withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) })
+          ),
+          -1,
+          true
+        );
+      }
     }
-  }, [progress, isHolding, hasTriggered]);
+  }, [progress, isHolding, hasTriggered, mode, breathingScale]);
 
   // Gesture handler
   const gesture = Gesture.LongPress()
@@ -269,20 +350,25 @@ export const SwipeToFocus = memo(function SwipeToFocus({
       runOnJS(endHold)();
     });
 
-  // Animated styles
+  // Animated styles - combines press scale and breathing
   const buttonStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const ringProps = useAnimatedProps(() => ({
-    strokeDashoffset: circumference * (1 - progress.value),
+    transform: [
+      { scale: scale.value * breathingScale.value },
+    ],
   }));
 
   // VoiceOver accessible button
   const handleVoiceOverPress = useCallback(() => {
     triggerHaptic(mode === 'idle' ? 'success' : 'warning');
+
+    // Mark hint as seen on VoiceOver press too
+    if (mode === 'idle' && showHint) {
+      markHoldHintSeen();
+      setShowHint(false);
+    }
+
     onComplete();
-  }, [mode, onComplete, triggerHaptic]);
+  }, [mode, onComplete, triggerHaptic, showHint]);
 
   // Colors based on mode (use accentColor if provided, fallback to systemOrange)
   const activeColor = accentColor || theme.colors.systemOrange;
@@ -292,12 +378,6 @@ export const SwipeToFocus = memo(function SwipeToFocus({
     : mode === 'break'
       ? theme.colors.onImage.ultraFaint // White translucent for break (on accent bg)
       : theme.colors.glass.regular;
-
-  const ringColor = mode === 'idle'
-    ? activeColor
-    : mode === 'break'
-      ? theme.colors.onImage.ghost // Subtle white ring for break
-      : theme.colors.systemRed;
 
   // Icon colors: accent for play (call-to-action), muted for focusing, white for break
   const iconColor = mode === 'idle'
@@ -310,45 +390,35 @@ export const SwipeToFocus = memo(function SwipeToFocus({
     <View style={styles.container}>
       <GestureDetector gesture={gesture}>
         <Animated.View style={[styles.wrapper, buttonStyle]}>
-          {/* Center button - render first (behind) */}
+          {/* Dot ring progress indicator */}
+          <View style={styles.ringContainer} pointerEvents="none">
+            <DotRing
+              progress={progress}
+              accentColor={activeColor}
+              mode={mode}
+              isHolding={isHolding}
+            />
+          </View>
+
+          {/* Center button */}
           <FocusButton
             mode={mode}
             iconColor={iconColor}
             buttonBgColor={buttonBgColor}
             accentColor={activeColor}
           />
-
-          {/* Progress ring - render second (on top of glass button) */}
-          <View style={styles.ringContainer} pointerEvents="none">
-            <Svg width={RING_SIZE} height={RING_SIZE} style={styles.svg}>
-              {/* Background ring */}
-              <Circle
-                cx={RING_SIZE / 2}
-                cy={RING_SIZE / 2}
-                r={radius}
-                stroke={theme.colors.glass.regular}
-                strokeWidth={STROKE_WIDTH}
-                fill="none"
-              />
-              {/* Progress ring */}
-              <AnimatedCircle
-                cx={RING_SIZE / 2}
-                cy={RING_SIZE / 2}
-                r={radius}
-                stroke={ringColor}
-                strokeWidth={STROKE_WIDTH}
-                fill="none"
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                animatedProps={ringProps}
-                rotation="-90"
-                origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
-              />
-            </Svg>
-          </View>
         </Animated.View>
       </GestureDetector>
 
+      {/* Tutorial hint (first launch only, idle mode) */}
+      {showHint && mode === 'idle' && (
+        <Animated.Text
+          style={[styles.hintText, { color: theme.colors.textTertiary }]}
+          entering={require('react-native-reanimated').FadeIn.duration(300).delay(500)}
+        >
+          Hold to start
+        </Animated.Text>
+      )}
 
       {/* VoiceOver-only button */}
       <Pressable
@@ -384,9 +454,8 @@ const styles = StyleSheet.create((theme) => ({
     position: 'absolute',
     width: RING_SIZE,
     height: RING_SIZE,
-  },
-  svg: {
-    transform: [{ rotate: '0deg' }],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   button: {
     width: BUTTON_SIZE,
@@ -402,6 +471,12 @@ const styles = StyleSheet.create((theme) => ({
   },
   playIcon: {
     marginLeft: 3, // Optical centering for play icon
+  },
+  hintText: {
+    position: 'absolute',
+    top: RING_SIZE + theme.spacing.sm,
+    fontSize: theme.typography.sizes.md,
+    fontWeight: theme.typography.weights.medium,
   },
   voiceOverButton: {
     position: 'absolute',
