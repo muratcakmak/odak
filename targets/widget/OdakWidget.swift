@@ -609,11 +609,5 @@ struct OdakSinceWidget: Widget {
 }
 
 // MARK: - Widget Bundle
-// Note: @main removed - widgets are registered in LiveActivityWidgetBundle
-
-struct OdakWidgetBundle: WidgetBundle {
-    var body: some Widget {
-        OdakAheadWidget()
-        OdakSinceWidget()
-    }
-}
+// Note: Widgets are registered in LiveActivityWidgetBundle (ios/LiveActivity/LiveActivityWidgetBundle.swift)
+// This file provides the widget definitions that are compiled into the LiveActivity target
