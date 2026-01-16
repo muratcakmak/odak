@@ -16,8 +16,16 @@ const CHECKPOINTS = [
 ];
 
 // ---- SYSTEM INFO HELPERS ----
-function getHardwareInfo() {
-    const info: any = {};
+interface HardwareInfo {
+    os: string;
+    cpu: string;
+    ram: string;
+    power: string;
+    thermal: string;
+}
+
+function getHardwareInfo(): HardwareInfo {
+    const info: Partial<HardwareInfo> = {};
 
     // 1. macOS Version
     const swVers = spawnSync(["sw_vers", "-productVersion"]);
@@ -48,7 +56,7 @@ function getHardwareInfo() {
     info.power = `${level} (${isCharging ? "🔌 Plugged In" : "🔋 On Battery"})`;
     info.thermal = thermalLevel > 0 ? `⚠️ Throttling (Level ${thermalLevel})` : "Normal";
 
-    return info;
+    return info as HardwareInfo;
 }
 
 // ---- MAIN ----

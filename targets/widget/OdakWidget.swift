@@ -2,6 +2,7 @@ import WidgetKit
 import SwiftUI
 import AppIntents
 import UIKit
+import ImageIO
 
 // MARK: - Data Models
 
@@ -70,7 +71,9 @@ struct OdakStorage {
         return (try? JSONDecoder().decode([OdakEventData].self, from: data)) ?? []
     }
 
-    /// Load and downsample image for widget display
+    /// Load and downsample image for widget display using ImageIO
+    /// This uses CGImageSourceCreateThumbnailAtIndex which creates a thumbnail
+    /// directly from encoded data without fully decoding the source image first.
     /// - Parameters:
     ///   - event: The event containing the image path
     ///   - maxSize: Maximum size for the thumbnail (to save memory)
@@ -91,30 +94,28 @@ struct OdakStorage {
 
         let imageURL = containerURL.appendingPathComponent("images").appendingPathComponent(filename)
 
-        guard FileManager.default.fileExists(atPath: imageURL.path),
-              let imageData = try? Data(contentsOf: imageURL),
-              let originalImage = UIImage(data: imageData) else {
+        guard FileManager.default.fileExists(atPath: imageURL.path) else {
             return nil
         }
 
-        // CRITICAL: Downsample to save memory - widgets have 30MB limit
-        // Using preparingThumbnail is more memory-efficient than loading full image
-        if let thumbnail = originalImage.preparingThumbnail(of: maxSize) {
-            return thumbnail
+        // Use ImageIO for memory-efficient downsampling without full decode
+        guard let imageSource = CGImageSourceCreateWithURL(imageURL as CFURL, nil) else {
+            return nil
         }
 
-        // Fallback: manual resize if preparingThumbnail fails
-        let scale = min(maxSize.width / originalImage.size.width, maxSize.height / originalImage.size.height)
-        if scale < 1.0 {
-            let newSize = CGSize(width: originalImage.size.width * scale, height: originalImage.size.height * scale)
-            UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
-            originalImage.draw(in: CGRect(origin: .zero, size: newSize))
-            let resized = UIGraphicsGetImageFromCurrentImageContext()
-            UIGraphicsEndImageContext()
-            return resized
+        let maxPixelSize = max(maxSize.width, maxSize.height) * UIScreen.main.scale
+        let downsampleOptions: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: Int(maxPixelSize),
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true
+        ]
+
+        guard let downsampledImage = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, downsampleOptions as CFDictionary) else {
+            return nil
         }
 
-        return originalImage
+        return UIImage(cgImage: downsampledImage)
     }
 
     /// Get appropriate image size based on widget family
@@ -284,11 +285,18 @@ struct AheadEventProvider: AppIntentTimelineProvider {
     func timeline(for configuration: SelectAheadEventIntent, in context: Context) async -> Timeline<OdakEventEntry> {
         let now = Date()
         let imageSize = OdakStorage.imageSizeForFamily(context.family)
-        let entries = (0..<24).compactMap { hour -> OdakEventEntry? in
-            guard let date = Calendar.current.date(byAdding: .hour, value: hour, to: now) else { return nil }
-            return getEntry(for: configuration, on: date, imageSize: imageSize)
-        }
-        return Timeline(entries: entries, policy: .atEnd)
+
+        // Generate single entry - day-based widget only needs to update once per day
+        let entry = getEntry(for: configuration, on: now, imageSize: imageSize)
+
+        // Refresh at next midnight + 1 minute (when day count changes)
+        let nextRefresh = Calendar.current.nextDate(
+            after: now,
+            matching: DateComponents(hour: 0, minute: 1),
+            matchingPolicy: .nextTime
+        ) ?? now.addingTimeInterval(6 * 60 * 60)
+
+        return Timeline(entries: [entry], policy: .after(nextRefresh))
     }
 
     private func getEntry(for config: SelectAheadEventIntent, on date: Date = Date(), imageSize: CGSize) -> OdakEventEntry {
@@ -342,11 +350,18 @@ struct SinceEventProvider: AppIntentTimelineProvider {
     func timeline(for configuration: SelectSinceEventIntent, in context: Context) async -> Timeline<OdakEventEntry> {
         let now = Date()
         let imageSize = OdakStorage.imageSizeForFamily(context.family)
-        let entries = (0..<24).compactMap { hour -> OdakEventEntry? in
-            guard let date = Calendar.current.date(byAdding: .hour, value: hour, to: now) else { return nil }
-            return getEntry(for: configuration, on: date, imageSize: imageSize)
-        }
-        return Timeline(entries: entries, policy: .atEnd)
+
+        // Generate single entry - day-based widget only needs to update once per day
+        let entry = getEntry(for: configuration, on: now, imageSize: imageSize)
+
+        // Refresh at next midnight + 1 minute (when day count changes)
+        let nextRefresh = Calendar.current.nextDate(
+            after: now,
+            matching: DateComponents(hour: 0, minute: 1),
+            matchingPolicy: .nextTime
+        ) ?? now.addingTimeInterval(6 * 60 * 60)
+
+        return Timeline(entries: [entry], policy: .after(nextRefresh))
     }
 
     private func getEntry(for config: SelectSinceEventIntent, on date: Date = Date(), imageSize: CGSize) -> OdakEventEntry {
