@@ -110,6 +110,7 @@ function resolveImageUri(path: string | undefined): string | undefined {
 // Save image locally and return local URI
 // NOTE: Returns ABSOLUTE URI for immediate UI usage.
 // You must rely on saveAheadEvents/saveSinceEvents to strip this to relative path for storage.
+// Widget-side downsampling (preparingThumbnail) handles memory limits.
 export async function saveImageLocally(uri: string): Promise<string> {
   await ensureImageDir();
   const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;

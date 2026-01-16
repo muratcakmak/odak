@@ -1,6 +1,7 @@
 import WidgetKit
 import SwiftUI
 import AppIntents
+import UIKit
 
 // MARK: - Data Models
 
@@ -69,7 +70,12 @@ struct OdakStorage {
         return (try? JSONDecoder().decode([OdakEventData].self, from: data)) ?? []
     }
 
-    static func loadImage(for event: OdakEventData) -> UIImage? {
+    /// Load and downsample image for widget display
+    /// - Parameters:
+    ///   - event: The event containing the image path
+    ///   - maxSize: Maximum size for the thumbnail (to save memory)
+    /// - Returns: Downsampled UIImage or nil
+    static func loadImage(for event: OdakEventData, maxSize: CGSize) -> UIImage? {
         guard let imagePath = event.image, !imagePath.isEmpty else { return nil }
 
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupId) else {
@@ -87,11 +93,42 @@ struct OdakStorage {
 
         guard FileManager.default.fileExists(atPath: imageURL.path),
               let imageData = try? Data(contentsOf: imageURL),
-              let image = UIImage(data: imageData) else {
+              let originalImage = UIImage(data: imageData) else {
             return nil
         }
 
-        return image
+        // CRITICAL: Downsample to save memory - widgets have 30MB limit
+        // Using preparingThumbnail is more memory-efficient than loading full image
+        if let thumbnail = originalImage.preparingThumbnail(of: maxSize) {
+            return thumbnail
+        }
+
+        // Fallback: manual resize if preparingThumbnail fails
+        let scale = min(maxSize.width / originalImage.size.width, maxSize.height / originalImage.size.height)
+        if scale < 1.0 {
+            let newSize = CGSize(width: originalImage.size.width * scale, height: originalImage.size.height * scale)
+            UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+            originalImage.draw(in: CGRect(origin: .zero, size: newSize))
+            let resized = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            return resized
+        }
+
+        return originalImage
+    }
+
+    /// Get appropriate image size based on widget family
+    static func imageSizeForFamily(_ family: WidgetFamily) -> CGSize {
+        switch family {
+        case .systemSmall:
+            return CGSize(width: 200, height: 200)
+        case .systemMedium:
+            return CGSize(width: 400, height: 200)
+        case .systemLarge:
+            return CGSize(width: 400, height: 400)
+        default:
+            return CGSize(width: 300, height: 300)
+        }
     }
 }
 
@@ -105,7 +142,7 @@ struct AheadEventEntity: AppEntity {
     static var defaultQuery = AheadEventQuery()
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(title)")
+        DisplayRepresentation(title: LocalizedStringResource(stringLiteral: title))
     }
 
     init(id: String, title: String) {
@@ -137,7 +174,7 @@ struct SinceEventEntity: AppEntity {
     static var defaultQuery = SinceEventQuery()
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(title)")
+        DisplayRepresentation(title: LocalizedStringResource(stringLiteral: title))
     }
 
     init(id: String, title: String) {
@@ -189,9 +226,16 @@ struct OdakEventEntry: TimelineEntry {
     let backgroundImage: UIImage?
 
     var daysText: String {
-        isCountdown ? "In \(daysCount) days" : "\(daysCount) days ago"
+        switch daysCount {
+        case 0:
+            return "Today"
+        case 1:
+            return isCountdown ? "In 1 day" : "1 day ago"
+        default:
+            return isCountdown ? "In \(daysCount) days" : "\(daysCount) days ago"
+        }
     }
-    
+
     var dateText: String {
         guard let event = event, let targetDate = event.targetDate else { return "" }
         let formatter = DateFormatter()
@@ -202,7 +246,7 @@ struct OdakEventEntry: TimelineEntry {
     static func placeholder(isCountdown: Bool) -> OdakEventEntry {
         OdakEventEntry(
             date: Date(),
-            event: OdakEventData(id: "placeholder", title: isCountdown ? "My Event" : "Milestone", date: "2026-03-01", startDate: "2025-01-01", image: nil),
+            event: OdakEventData(id: "placeholder", title: isCountdown ? "My Event" : "My Milestone", date: nil, startDate: nil, image: nil),
             daysCount: isCountdown ? 42 : 100,
             isCountdown: isCountdown,
             backgroundImage: nil
@@ -213,68 +257,118 @@ struct OdakEventEntry: TimelineEntry {
 // MARK: - Timeline Providers
 
 struct AheadEventProvider: AppIntentTimelineProvider {
-    func placeholder(in context: Context) -> OdakEventEntry { .placeholder(isCountdown: true) }
+    func placeholder(in context: Context) -> OdakEventEntry {
+        .placeholder(isCountdown: true)
+    }
 
     func snapshot(for configuration: SelectAheadEventIntent, in context: Context) async -> OdakEventEntry {
-        getEntry(for: configuration)
+        // For gallery preview and initial widget display, show real data if available
+        let events = OdakStorage.loadAheadEvents()
+        let imageSize = OdakStorage.imageSizeForFamily(context.family)
+
+        // If user selected an event, show that
+        if let selectedEvent = configuration.event,
+           let event = events.first(where: { $0.id == selectedEvent.id }) {
+            return makeEntry(for: event, on: Date(), isCountdown: true, imageSize: imageSize)
+        }
+
+        // Otherwise show first available event (for gallery preview)
+        if let firstEvent = events.first {
+            return makeEntry(for: firstEvent, on: Date(), isCountdown: true, imageSize: imageSize)
+        }
+
+        // No events - show placeholder
+        return .placeholder(isCountdown: true)
     }
 
     func timeline(for configuration: SelectAheadEventIntent, in context: Context) async -> Timeline<OdakEventEntry> {
         let now = Date()
+        let imageSize = OdakStorage.imageSizeForFamily(context.family)
         let entries = (0..<24).compactMap { hour -> OdakEventEntry? in
             guard let date = Calendar.current.date(byAdding: .hour, value: hour, to: now) else { return nil }
-            return getEntry(for: configuration, on: date)
+            return getEntry(for: configuration, on: date, imageSize: imageSize)
         }
         return Timeline(entries: entries, policy: .atEnd)
     }
 
-    private func getEntry(for config: SelectAheadEventIntent, on date: Date = Date()) -> OdakEventEntry {
+    private func getEntry(for config: SelectAheadEventIntent, on date: Date = Date(), imageSize: CGSize) -> OdakEventEntry {
         let events = OdakStorage.loadAheadEvents()
         let event = config.event.flatMap { selected in events.first { $0.id == selected.id } } ?? events.first
-        return makeEntry(for: event, on: date, isCountdown: true)
+        return makeEntry(for: event, on: date, isCountdown: true, imageSize: imageSize)
     }
 
-    private func makeEntry(for event: OdakEventData?, on date: Date, isCountdown: Bool) -> OdakEventEntry {
+    private func makeEntry(for event: OdakEventData?, on date: Date, isCountdown: Bool, imageSize: CGSize) -> OdakEventEntry {
         guard let event = event else {
             return OdakEventEntry(date: date, event: nil, daysCount: 0, isCountdown: isCountdown, backgroundImage: nil)
         }
         let days = event.targetDate.map {
             Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: date), to: Calendar.current.startOfDay(for: $0)).day ?? 0
         } ?? 0
-        return OdakEventEntry(date: date, event: event, daysCount: max(0, days), isCountdown: isCountdown, backgroundImage: OdakStorage.loadImage(for: event))
+        return OdakEventEntry(
+            date: date,
+            event: event,
+            daysCount: max(0, days),
+            isCountdown: isCountdown,
+            backgroundImage: OdakStorage.loadImage(for: event, maxSize: imageSize)
+        )
     }
 }
 
 struct SinceEventProvider: AppIntentTimelineProvider {
-    func placeholder(in context: Context) -> OdakEventEntry { .placeholder(isCountdown: false) }
+    func placeholder(in context: Context) -> OdakEventEntry {
+        .placeholder(isCountdown: false)
+    }
 
     func snapshot(for configuration: SelectSinceEventIntent, in context: Context) async -> OdakEventEntry {
-        getEntry(for: configuration)
+        // For gallery preview and initial widget display, show real data if available
+        let events = OdakStorage.loadSinceEvents()
+        let imageSize = OdakStorage.imageSizeForFamily(context.family)
+
+        // If user selected an event, show that
+        if let selectedEvent = configuration.event,
+           let event = events.first(where: { $0.id == selectedEvent.id }) {
+            return makeEntry(for: event, on: Date(), isCountdown: false, imageSize: imageSize)
+        }
+
+        // Otherwise show first available event (for gallery preview)
+        if let firstEvent = events.first {
+            return makeEntry(for: firstEvent, on: Date(), isCountdown: false, imageSize: imageSize)
+        }
+
+        // No events - show placeholder
+        return .placeholder(isCountdown: false)
     }
 
     func timeline(for configuration: SelectSinceEventIntent, in context: Context) async -> Timeline<OdakEventEntry> {
         let now = Date()
+        let imageSize = OdakStorage.imageSizeForFamily(context.family)
         let entries = (0..<24).compactMap { hour -> OdakEventEntry? in
             guard let date = Calendar.current.date(byAdding: .hour, value: hour, to: now) else { return nil }
-            return getEntry(for: configuration, on: date)
+            return getEntry(for: configuration, on: date, imageSize: imageSize)
         }
         return Timeline(entries: entries, policy: .atEnd)
     }
 
-    private func getEntry(for config: SelectSinceEventIntent, on date: Date = Date()) -> OdakEventEntry {
+    private func getEntry(for config: SelectSinceEventIntent, on date: Date = Date(), imageSize: CGSize) -> OdakEventEntry {
         let events = OdakStorage.loadSinceEvents()
         let event = config.event.flatMap { selected in events.first { $0.id == selected.id } } ?? events.first
-        return makeEntry(for: event, on: date, isCountdown: false)
+        return makeEntry(for: event, on: date, isCountdown: false, imageSize: imageSize)
     }
 
-    private func makeEntry(for event: OdakEventData?, on date: Date, isCountdown: Bool) -> OdakEventEntry {
+    private func makeEntry(for event: OdakEventData?, on date: Date, isCountdown: Bool, imageSize: CGSize) -> OdakEventEntry {
         guard let event = event else {
             return OdakEventEntry(date: date, event: nil, daysCount: 0, isCountdown: isCountdown, backgroundImage: nil)
         }
         let days = event.targetDate.map {
             Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: $0), to: Calendar.current.startOfDay(for: date)).day ?? 0
         } ?? 0
-        return OdakEventEntry(date: date, event: event, daysCount: max(0, days), isCountdown: isCountdown, backgroundImage: OdakStorage.loadImage(for: event))
+        return OdakEventEntry(
+            date: date,
+            event: event,
+            daysCount: max(0, days),
+            isCountdown: isCountdown,
+            backgroundImage: OdakStorage.loadImage(for: event, maxSize: imageSize)
+        )
     }
 }
 
@@ -286,95 +380,114 @@ struct OdakWidgetView: View {
     @Environment(\.colorScheme) var colorScheme
 
     private var hasImage: Bool { entry.backgroundImage != nil }
-    
-    private var sizes: (days: CGFloat, date: Font, title: Font, branding: CGFloat) {
+
+    private var sizes: (days: CGFloat, label: CGFloat, date: Font, title: Font, branding: CGFloat) {
         switch family {
-        case .systemSmall: return (32, .system(size: 11, weight: .medium), .system(size: 14, weight: .bold), 8)
-        case .systemLarge: return (56, .title3, .title, 10)
-        default: return (42, .subheadline, .title3, 9)
+        case .systemSmall:
+            return (28, 10, .system(size: 10, weight: .medium), .system(size: 13, weight: .bold), 7)
+        case .systemLarge:
+            return (48, 14, .system(size: 14, weight: .medium), .title2, 10)
+        default:
+            return (34, 12, .system(size: 12, weight: .medium), .system(size: 16, weight: .bold), 8)
         }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: family == .systemLarge ? 6 : family == .systemSmall ? 2 : 4) {
-            if let event = entry.event {
-                // Top: Days + Date
-                VStack(alignment: .leading, spacing: family == .systemSmall ? 0 : 2) {
-                    Text(entry.daysText)
-                        .font(.system(size: sizes.days, weight: .bold, design: .rounded))
-                        .foregroundStyle(hasImage ? .white : (colorScheme == .dark ? .white : .primary))
-                        .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-                    
-                    Text(entry.dateText)
-                        .font(sizes.date)
-                        .fontWeight(.medium)
-                        .foregroundStyle(hasImage ? .white.opacity(0.9) : .secondary)
-                        .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-                }
+        GeometryReader { geometry in
+            VStack(alignment: .leading, spacing: family == .systemLarge ? 4 : 2) {
+                if let event = entry.event {
+                    // Top: Days count + Date
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(entry.daysText)
+                            .font(.system(size: sizes.days, weight: .bold, design: .rounded))
+                            .minimumScaleFactor(0.7)
+                            .lineLimit(1)
+                            .foregroundStyle(hasImage ? .white : (colorScheme == .dark ? .white : .primary))
+                            .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
+                            .unredacted() // CRITICAL: Prevents automatic redaction with IntentConfiguration
 
-                Spacer()
+                        Text(entry.dateText)
+                            .font(sizes.date)
+                            .foregroundStyle(hasImage ? .white.opacity(0.85) : .secondary)
+                            .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
+                            .unredacted()
+                    }
 
-                // Bottom: Title + Branding
-                HStack(alignment: .bottom) {
-                    Text(event.title)
-                        .font(sizes.title)
-                        .fontWeight(.bold)
-                        .lineLimit(2)
-                        .foregroundStyle(hasImage ? .white : (colorScheme == .dark ? .white : .primary))
-                        .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-                    
                     Spacer()
-                    
-                    Text("odak.omc345.com")
-                        .font(.system(size: sizes.branding, weight: .medium))
-                        .foregroundStyle(hasImage ? .white.opacity(0.5) : .secondary.opacity(0.5))
-                        .shadow(color: hasImage ? .black.opacity(0.3) : .clear, radius: 1, x: 0, y: 1)
+
+                    // Bottom: Title + Branding
+                    HStack(alignment: .bottom, spacing: 4) {
+                        Text(event.title)
+                            .font(sizes.title)
+                            .lineLimit(family == .systemSmall ? 1 : 2)
+                            .foregroundStyle(hasImage ? .white : (colorScheme == .dark ? .white : .primary))
+                            .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
+                            .unredacted()
+
+                        Spacer(minLength: 0)
+
+                        if family != .systemSmall {
+                            Text("odak.omc345.com")
+                                .font(.system(size: sizes.branding, weight: .medium))
+                                .foregroundStyle(hasImage ? .white.opacity(0.5) : .secondary.opacity(0.5))
+                                .shadow(color: hasImage ? .black.opacity(0.3) : .clear, radius: 1, x: 0, y: 1)
+                                .unredacted()
+                        }
+                    }
+                } else {
+                    emptyState
                 }
-            } else {
-                emptyState
             }
+            .padding(family == .systemSmall ? 12 : 16)
         }
-        .padding(family == .systemSmall ? 12 : 16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .containerBackground(for: .widget) { background }
     }
-    
+
     @ViewBuilder
     private var emptyState: some View {
-        if family == .systemLarge {
-            Spacer()
-            VStack {
-                Image(systemName: "calendar.badge.plus")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.secondary)
-                Text("Add an event in Odak")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: "plus.circle.fill")
+                .font(.system(size: family == .systemSmall ? 24 : 32))
+                .foregroundStyle(Color.orange)
+                .unredacted()
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Add Your")
+                    .font(.system(size: family == .systemSmall ? 12 : 14, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .unredacted()
+                Text("First Event")
+                    .font(.system(size: family == .systemSmall ? 12 : 14, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .unredacted()
             }
-            .frame(maxWidth: .infinity)
+
             Spacer()
-        } else {
-            VStack(alignment: .leading) {
-                Image(systemName: "calendar.badge.plus")
-                    .font(.largeTitle)
-                    .foregroundStyle(.secondary)
-                Text("Add event")
-                    .font(family == .systemSmall ? .caption : .subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            if family != .systemSmall { Spacer() }
+
+            Text("Tap to open Odak")
+                .font(.system(size: family == .systemSmall ? 9 : 10, weight: .medium))
+                .foregroundStyle(.secondary)
+                .unredacted()
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
-    
+
     @ViewBuilder
     private var background: some View {
         if let bgImage = entry.backgroundImage {
-            ZStack {
-                Image(uiImage: bgImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                Color.black.opacity(0.4)
+            GeometryReader { geometry in
+                ZStack {
+                    Image(uiImage: bgImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                    Color.black.opacity(0.35)
+                }
             }
+        } else if entry.event == nil {
+            // Orange background for empty state
+            Color.orange
         } else {
             colorScheme == .dark ? Color.black : Color.white
         }
@@ -389,11 +502,12 @@ struct OdakAheadWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: SelectAheadEventIntent.self, provider: AheadEventProvider()) { entry in
             OdakWidgetView(entry: entry)
-                .widgetURL(entry.event != nil ? URL(string: "odak://dates/event/\(entry.event!.id)") : URL(string: "odak://dates"))
+                .widgetURL(URL(string: entry.event.map { "odak://dates/event/\($0.id)" } ?? "odak://dates"))
         }
         .configurationDisplayName("Countdown")
         .description("Track days until your event")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .contentMarginsDisabled()
     }
 }
 
@@ -403,10 +517,11 @@ struct OdakSinceWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: SelectSinceEventIntent.self, provider: SinceEventProvider()) { entry in
             OdakWidgetView(entry: entry)
-                .widgetURL(entry.event != nil ? URL(string: "odak://dates/event/\(entry.event!.id)") : URL(string: "odak://dates"))
+                .widgetURL(URL(string: entry.event.map { "odak://dates/event/\($0.id)" } ?? "odak://dates"))
         }
         .configurationDisplayName("Milestone")
         .description("Track days since your event")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .contentMarginsDisabled()
     }
 }
