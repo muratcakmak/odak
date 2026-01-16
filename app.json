@@ -9,7 +9,7 @@
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "orientation": "portrait",
       "bundleIdentifier": "com.omc345.odak",
       "icon": "./assets/icon-light.png",

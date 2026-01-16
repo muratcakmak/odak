@@ -486,7 +486,7 @@ export default function SettingsScreen() {
             icon="star-outline"
             iconBg={colors.systemYellow}
             label="What is new?"
-            subtitle="View welcome screen"
+            subtitle=""
             onPress={() => router.push("/welcome")}
             textColor={colors.textPrimary}
             secondaryTextColor={colors.textSecondary}
@@ -495,7 +495,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Version Footer */}
-        <Text style={[styles.versionText, { color: colors.textSecondary }]}>v2026.01.09 · © omc345</Text>
+        <Text style={[styles.versionText, { color: colors.textSecondary }]}>v2026.01.09</Text>
       </ScrollView>
     </View>
   );
@@ -578,7 +578,6 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.typography.sizes.sm,
     color: theme.colors.textSecondary,
     textAlign: "center",
-    fontStyle: "italic",
     marginTop: theme.spacing.sm,
   },
 }));

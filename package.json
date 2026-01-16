@@ -6,7 +6,9 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "prebuild": "expo prebuild && node scripts/fix-widget-bundle.js",
+    "prebuild:clean": "expo prebuild --clean && node scripts/fix-widget-bundle.js"
   },
   "dependencies": {
     "@bacons/apple-targets": "^3.0.6",

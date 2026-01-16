@@ -26,7 +26,7 @@ const FEATURE_CARDS = [
     {
         title: "Widgets",
         icon: "layers-outline",
-        description: "Personalize your Home and Lock screens with over 20 stunning, fully customizable widgets for instant access to your time views.",
+        description: "Personalize your Home and Lock screens with over 6 stunning, fully customizable widgets for instant access to your time views.",
     },
     {
         title: "Customization",
