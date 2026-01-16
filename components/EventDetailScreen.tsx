@@ -144,19 +144,24 @@ function formatTimeBetween(startDate: Date, endDate: Date): string {
 
 function getMainTimeUnit(countdown: CountdownValues, isAhead: boolean): string {
   if (countdown.weeks > 0) {
-    return `${countdown.weeks} week${countdown.weeks !== 1 ? "s" : ""} ${isAhead ? "left" : ""}`;
+    const val = countdown.weeks;
+    const text = `${val} week${val !== 1 ? "s" : ""}`;
+    return isAhead ? `In ${text}` : `${text} ago`;
   }
-  if (countdown.days > 0 || countdown.weeks === 0) {
-    const totalDays = countdown.weeks * 7 + countdown.days;
-    if (totalDays > 0) {
-      return `${totalDays} day${totalDays !== 1 ? "s" : ""} ${isAhead ? "left" : ""}`;
-    }
+  if (countdown.days > 0) {
+    const val = countdown.days;
+    const text = `${val} day${val !== 1 ? "s" : ""}`;
+    return isAhead ? `In ${text}` : `${text} ago`;
   }
   if (countdown.hours > 0) {
-    return `${countdown.hours} hour${countdown.hours !== 1 ? "s" : ""} ${isAhead ? "left" : ""}`;
+    const val = countdown.hours;
+    const text = `${val} hour${val !== 1 ? "s" : ""}`;
+    return isAhead ? `In ${text}` : `${text} ago`;
   }
   if (countdown.minutes > 0) {
-    return `${countdown.minutes} minute${countdown.minutes !== 1 ? "s" : ""} ${isAhead ? "left" : ""}`;
+    const val = countdown.minutes;
+    const text = `${val} minute${val !== 1 ? "s" : ""}`;
+    return isAhead ? `In ${text}` : `${text} ago`;
   }
   return isAhead ? "Due now" : "Just started";
 }

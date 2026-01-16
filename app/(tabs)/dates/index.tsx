@@ -479,9 +479,12 @@ export default function DatesScreen() {
         }
       >
         {sortedEvents.map((event) => {
+          const count = mode === "ahead" ? getDaysUntil(event.date) : getDaysSince(event.date);
+          const dayString = count === 1 ? "day" : "days";
+
           const daysValue = mode === "ahead"
-            ? "In " + getDaysUntil(event.date)
-            : getDaysSince(event.date) + " ago";
+            ? `In ${count} ${dayString}`
+            : `${count} ${dayString} ago`;
           const daysLabel = mode === "ahead" ? "days" : "days since";
           const subtitle = mode === "ahead"
             ? formatDateAhead(event.date)
