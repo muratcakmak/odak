@@ -44,7 +44,7 @@ function formatDateAhead(date: Date) {
     day: "numeric",
     year: "numeric",
   };
-  return `Starts ${date.toLocaleDateString("en-US", options)}`;
+  return date.toLocaleDateString("en-US", options);
 }
 
 function formatDateSince(date: Date) {
@@ -53,7 +53,7 @@ function formatDateSince(date: Date) {
     day: "numeric",
     year: "numeric",
   };
-  return date.toLocaleDateString("en-US", options);
+  return `Since ${date.toLocaleDateString("en-US", options)}`;
 }
 
 function getDaysUntil(date: Date) {
@@ -481,7 +481,7 @@ export default function DatesScreen() {
         {sortedEvents.map((event) => {
           const daysValue = mode === "ahead"
             ? "In " + getDaysUntil(event.date)
-            : getDaysSince(event.date) + "";
+            : getDaysSince(event.date) + " ago";
           const daysLabel = mode === "ahead" ? "days" : "days since";
           const subtitle = mode === "ahead"
             ? formatDateAhead(event.date)

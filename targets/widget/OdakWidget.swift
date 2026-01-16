@@ -7,17 +7,15 @@ import AppIntents
 struct OdakEventData: Codable, Identifiable, Hashable {
     let id: String
     let title: String
-    let date: String?      // Used by AheadEvent
-    let startDate: String? // Used by SinceEvent
+    let date: String?
+    let startDate: String?
     let image: String?
 
     var targetDate: Date? {
-        // Try startDate first (SinceEvent), then date (AheadEvent)
         guard let dateStr = startDate ?? date, !dateStr.isEmpty else {
             return nil
         }
 
-        // Try multiple ISO8601 format options for robust parsing
         let formatOptions: [ISO8601DateFormatter.Options] = [
             [.withInternetDateTime, .withFractionalSeconds],
             [.withInternetDateTime],
@@ -33,7 +31,6 @@ struct OdakEventData: Codable, Identifiable, Hashable {
             }
         }
 
-        // Fallback: try DateFormatter with common formats
         let fallbackFormatter = DateFormatter()
         fallbackFormatter.locale = Locale(identifier: "en_US_POSIX")
         let formats = [
@@ -72,21 +69,15 @@ struct OdakStorage {
         return (try? JSONDecoder().decode([OdakEventData].self, from: data)) ?? []
     }
 
-    /// Load image from the App Group shared container
     static func loadImage(for event: OdakEventData) -> UIImage? {
         guard let imagePath = event.image, !imagePath.isEmpty else { return nil }
 
-        // Get the App Group container URL
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupId) else {
             return nil
         }
 
-        // The image path could be:
-        // 1. Just a filename (relative) - look in /images/ folder
-        // 2. A full file:// URL - extract filename and look in /images/ folder
         let filename: String
         if imagePath.contains("/") {
-            // Extract just the filename from the path
             filename = (imagePath as NSString).lastPathComponent
         } else {
             filename = imagePath
@@ -104,7 +95,7 @@ struct OdakStorage {
     }
 }
 
-// MARK: - App Entity for Ahead Events
+// MARK: - App Entities
 
 struct AheadEventEntity: AppEntity {
     var id: String
@@ -125,12 +116,11 @@ struct AheadEventEntity: AppEntity {
 
 struct AheadEventQuery: EntityQuery {
     func entities(for identifiers: [String]) async throws -> [AheadEventEntity] {
-        let events = OdakStorage.loadAheadEvents()
-        return events.filter { identifiers.contains($0.id) }.map { AheadEventEntity(id: $0.id, title: $0.title) }
+        OdakStorage.loadAheadEvents().filter { identifiers.contains($0.id) }.map { AheadEventEntity(id: $0.id, title: $0.title) }
     }
 
     func suggestedEntities() async throws -> [AheadEventEntity] {
-        return OdakStorage.loadAheadEvents().map { AheadEventEntity(id: $0.id, title: $0.title) }
+        OdakStorage.loadAheadEvents().map { AheadEventEntity(id: $0.id, title: $0.title) }
     }
 
     func defaultResult() async -> AheadEventEntity? {
@@ -138,8 +128,6 @@ struct AheadEventQuery: EntityQuery {
         return AheadEventEntity(id: first.id, title: first.title)
     }
 }
-
-// MARK: - App Entity for Since Events
 
 struct SinceEventEntity: AppEntity {
     var id: String
@@ -160,12 +148,11 @@ struct SinceEventEntity: AppEntity {
 
 struct SinceEventQuery: EntityQuery {
     func entities(for identifiers: [String]) async throws -> [SinceEventEntity] {
-        let events = OdakStorage.loadSinceEvents()
-        return events.filter { identifiers.contains($0.id) }.map { SinceEventEntity(id: $0.id, title: $0.title) }
+        OdakStorage.loadSinceEvents().filter { identifiers.contains($0.id) }.map { SinceEventEntity(id: $0.id, title: $0.title) }
     }
 
     func suggestedEntities() async throws -> [SinceEventEntity] {
-        return OdakStorage.loadSinceEvents().map { SinceEventEntity(id: $0.id, title: $0.title) }
+        OdakStorage.loadSinceEvents().map { SinceEventEntity(id: $0.id, title: $0.title) }
     }
 
     func defaultResult() async -> SinceEventEntity? {
@@ -201,389 +188,207 @@ struct OdakEventEntry: TimelineEntry {
     let isCountdown: Bool
     let backgroundImage: UIImage?
 
+    var daysText: String {
+        isCountdown ? "In \(daysCount) days" : "\(daysCount) days ago"
+    }
+    
+    var dateText: String {
+        guard let event = event, let targetDate = event.targetDate else { return "" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter.string(from: targetDate)
+    }
+
     static func placeholder(isCountdown: Bool) -> OdakEventEntry {
-        let title = isCountdown ? "My Event" : "Milestone"
-        let daysValue = isCountdown ? 42 : 100
-        return OdakEventEntry(
+        OdakEventEntry(
             date: Date(),
-            event: OdakEventData(id: "placeholder", title: title, date: "2026-03-01", startDate: "2025-01-01", image: nil),
-            daysCount: daysValue,
+            event: OdakEventData(id: "placeholder", title: isCountdown ? "My Event" : "Milestone", date: "2026-03-01", startDate: "2025-01-01", image: nil),
+            daysCount: isCountdown ? 42 : 100,
             isCountdown: isCountdown,
             backgroundImage: nil
         )
     }
 }
 
-// MARK: - Ahead Timeline Provider
+// MARK: - Timeline Providers
 
 struct AheadEventProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> OdakEventEntry { .placeholder(isCountdown: true) }
 
     func snapshot(for configuration: SelectAheadEventIntent, in context: Context) async -> OdakEventEntry {
-        return getEntry(for: configuration)
+        getEntry(for: configuration)
     }
 
     func timeline(for configuration: SelectAheadEventIntent, in context: Context) async -> Timeline<OdakEventEntry> {
-        var entries: [OdakEventEntry] = []
         let now = Date()
-        for hour in 0..<24 {
-            if let date = Calendar.current.date(byAdding: .hour, value: hour, to: now) {
-                entries.append(getEntry(for: configuration, on: date))
-            }
+        let entries = (0..<24).compactMap { hour -> OdakEventEntry? in
+            guard let date = Calendar.current.date(byAdding: .hour, value: hour, to: now) else { return nil }
+            return getEntry(for: configuration, on: date)
         }
         return Timeline(entries: entries, policy: .atEnd)
     }
 
     private func getEntry(for config: SelectAheadEventIntent, on date: Date = Date()) -> OdakEventEntry {
         let events = OdakStorage.loadAheadEvents()
-
-        // First try to find the configured event
-        if let selectedEntity = config.event,
-           let matchedEvent = events.first(where: { $0.id == selectedEntity.id }) {
-            return makeEntry(for: matchedEvent, on: date)
-        }
-
-        // Fallback to first event if available
-        if let firstEvent = events.first {
-            return makeEntry(for: firstEvent, on: date)
-        }
-
-        return OdakEventEntry(date: date, event: nil, daysCount: 0, isCountdown: true, backgroundImage: nil)
+        let event = config.event.flatMap { selected in events.first { $0.id == selected.id } } ?? events.first
+        return makeEntry(for: event, on: date, isCountdown: true)
     }
 
-    private func makeEntry(for event: OdakEventData, on date: Date) -> OdakEventEntry {
-        var days = 0
-        if let targetDate = event.targetDate {
-            days = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: date), to: Calendar.current.startOfDay(for: targetDate)).day ?? 0
+    private func makeEntry(for event: OdakEventData?, on date: Date, isCountdown: Bool) -> OdakEventEntry {
+        guard let event = event else {
+            return OdakEventEntry(date: date, event: nil, daysCount: 0, isCountdown: isCountdown, backgroundImage: nil)
         }
-        let backgroundImage = OdakStorage.loadImage(for: event)
-        return OdakEventEntry(date: date, event: event, daysCount: max(0, days), isCountdown: true, backgroundImage: backgroundImage)
+        let days = event.targetDate.map {
+            Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: date), to: Calendar.current.startOfDay(for: $0)).day ?? 0
+        } ?? 0
+        return OdakEventEntry(date: date, event: event, daysCount: max(0, days), isCountdown: isCountdown, backgroundImage: OdakStorage.loadImage(for: event))
     }
 }
-
-// MARK: - Since Timeline Provider
 
 struct SinceEventProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> OdakEventEntry { .placeholder(isCountdown: false) }
 
     func snapshot(for configuration: SelectSinceEventIntent, in context: Context) async -> OdakEventEntry {
-        return getEntry(for: configuration)
+        getEntry(for: configuration)
     }
 
     func timeline(for configuration: SelectSinceEventIntent, in context: Context) async -> Timeline<OdakEventEntry> {
-        var entries: [OdakEventEntry] = []
         let now = Date()
-        for hour in 0..<24 {
-            if let date = Calendar.current.date(byAdding: .hour, value: hour, to: now) {
-                entries.append(getEntry(for: configuration, on: date))
-            }
+        let entries = (0..<24).compactMap { hour -> OdakEventEntry? in
+            guard let date = Calendar.current.date(byAdding: .hour, value: hour, to: now) else { return nil }
+            return getEntry(for: configuration, on: date)
         }
         return Timeline(entries: entries, policy: .atEnd)
     }
 
     private func getEntry(for config: SelectSinceEventIntent, on date: Date = Date()) -> OdakEventEntry {
         let events = OdakStorage.loadSinceEvents()
-
-        // First try to find the configured event
-        if let selectedEntity = config.event,
-           let matchedEvent = events.first(where: { $0.id == selectedEntity.id }) {
-            return makeEntry(for: matchedEvent, on: date)
-        }
-
-        // Fallback to first event if available
-        if let firstEvent = events.first {
-            return makeEntry(for: firstEvent, on: date)
-        }
-
-        return OdakEventEntry(date: date, event: nil, daysCount: 0, isCountdown: false, backgroundImage: nil)
+        let event = config.event.flatMap { selected in events.first { $0.id == selected.id } } ?? events.first
+        return makeEntry(for: event, on: date, isCountdown: false)
     }
 
-    private func makeEntry(for event: OdakEventData, on date: Date) -> OdakEventEntry {
-        var days = 0
-        if let targetDate = event.targetDate {
-            days = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: targetDate), to: Calendar.current.startOfDay(for: date)).day ?? 0
+    private func makeEntry(for event: OdakEventData?, on date: Date, isCountdown: Bool) -> OdakEventEntry {
+        guard let event = event else {
+            return OdakEventEntry(date: date, event: nil, daysCount: 0, isCountdown: isCountdown, backgroundImage: nil)
         }
-        let backgroundImage = OdakStorage.loadImage(for: event)
-        return OdakEventEntry(date: date, event: event, daysCount: max(0, days), isCountdown: false, backgroundImage: backgroundImage)
+        let days = event.targetDate.map {
+            Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: $0), to: Calendar.current.startOfDay(for: date)).day ?? 0
+        } ?? 0
+        return OdakEventEntry(date: date, event: event, daysCount: max(0, days), isCountdown: isCountdown, backgroundImage: OdakStorage.loadImage(for: event))
     }
 }
 
-// MARK: - Widget Views
+// MARK: - Widget View
 
-struct WidgetSmallView: View {
+struct OdakWidgetView: View {
     let entry: OdakEventEntry
+    @Environment(\.widgetFamily) var family
     @Environment(\.colorScheme) var colorScheme
 
-    var accentColor: Color {
-        entry.isCountdown ? .orange : .blue
-    }
-
-    var hasImage: Bool {
-        entry.backgroundImage != nil
+    private var hasImage: Bool { entry.backgroundImage != nil }
+    
+    private var sizes: (days: CGFloat, date: Font, title: Font, branding: CGFloat) {
+        switch family {
+        case .systemSmall: return (32, .system(size: 11, weight: .medium), .system(size: 14, weight: .bold), 8)
+        case .systemLarge: return (56, .title3, .title, 10)
+        default: return (42, .subheadline, .title3, 9)
+        }
     }
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(alignment: .leading, spacing: family == .systemLarge ? 6 : family == .systemSmall ? 2 : 4) {
             if let event = entry.event {
-                Text(event.title)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(hasImage ? .white : (colorScheme == .dark ? .white : .primary))
-                    .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
+                // Top: Days + Date
+                VStack(alignment: .leading, spacing: family == .systemSmall ? 0 : 2) {
+                    Text(entry.daysText)
+                        .font(.system(size: sizes.days, weight: .bold, design: .rounded))
+                        .foregroundStyle(hasImage ? .white : (colorScheme == .dark ? .white : .primary))
+                        .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
+                    
+                    Text(entry.dateText)
+                        .font(sizes.date)
+                        .fontWeight(.medium)
+                        .foregroundStyle(hasImage ? .white.opacity(0.9) : .secondary)
+                        .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
+                }
 
-                Text("\(entry.daysCount)")
-                    .font(.system(size: 44, weight: .bold, design: .rounded))
-                    .foregroundStyle(hasImage ? .white : accentColor)
-                    .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
+                Spacer()
 
-                Text(entry.isCountdown ? "days left" : "days ago")
-                    .font(.caption2)
-                    .foregroundStyle(hasImage ? .white.opacity(0.8) : .secondary)
-                    .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
+                // Bottom: Title + Branding
+                HStack(alignment: .bottom) {
+                    Text(event.title)
+                        .font(sizes.title)
+                        .fontWeight(.bold)
+                        .lineLimit(2)
+                        .foregroundStyle(hasImage ? .white : (colorScheme == .dark ? .white : .primary))
+                        .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
+                    
+                    Spacer()
+                    
+                    Text("odak.omc345.com")
+                        .font(.system(size: sizes.branding, weight: .medium))
+                        .foregroundStyle(hasImage ? .white.opacity(0.5) : .secondary.opacity(0.5))
+                        .shadow(color: hasImage ? .black.opacity(0.3) : .clear, radius: 1, x: 0, y: 1)
+                }
             } else {
+                emptyState
+            }
+        }
+        .padding(family == .systemSmall ? 12 : 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .containerBackground(for: .widget) { background }
+    }
+    
+    @ViewBuilder
+    private var emptyState: some View {
+        if family == .systemLarge {
+            Spacer()
+            VStack {
+                Image(systemName: "calendar.badge.plus")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.secondary)
+                Text("Add an event in Odak")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            Spacer()
+        } else {
+            VStack(alignment: .leading) {
                 Image(systemName: "calendar.badge.plus")
                     .font(.largeTitle)
                     .foregroundStyle(.secondary)
                 Text("Add event")
-                    .font(.caption)
+                    .font(family == .systemSmall ? .caption : .subheadline)
                     .foregroundStyle(.secondary)
             }
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .containerBackground(for: .widget) {
-            if let bgImage = entry.backgroundImage {
-                ZStack {
-                    Image(uiImage: bgImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                    Color.black.opacity(0.4)
-                }
-            } else {
-                colorScheme == .dark ? Color.black : Color.white
-            }
+            if family != .systemSmall { Spacer() }
         }
     }
-}
-
-struct WidgetMediumView: View {
-    let entry: OdakEventEntry
-    @Environment(\.colorScheme) var colorScheme
-
-    var accentColor: Color {
-        entry.isCountdown ? .orange : .blue
-    }
-
-    var hasImage: Bool {
-        entry.backgroundImage != nil
-    }
-
-    var body: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(entry.isCountdown ? "COUNTDOWN" : "SINCE")
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .foregroundStyle(hasImage ? .white.opacity(0.8) : accentColor)
-                    .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-
-                if let event = entry.event {
-                    Text(event.title)
-                        .font(.headline)
-                        .foregroundStyle(hasImage ? .white : (colorScheme == .dark ? .white : .primary))
-                        .lineLimit(2)
-                        .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-
-                    Spacer()
-
-                    if let targetDate = event.targetDate {
-                        Text(targetDate, style: .date)
-                            .font(.caption)
-                            .foregroundStyle(hasImage ? .white.opacity(0.8) : .secondary)
-                            .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-                    }
-                } else {
-                    Text("No event")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
+    
+    @ViewBuilder
+    private var background: some View {
+        if let bgImage = entry.backgroundImage {
+            ZStack {
+                Image(uiImage: bgImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                Color.black.opacity(0.4)
             }
-
-            Spacer()
-
-            VStack {
-                Text("\(entry.daysCount)")
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
-                    .foregroundStyle(hasImage ? .white : accentColor)
-                    .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-
-                Text("days")
-                    .font(.caption)
-                    .foregroundStyle(hasImage ? .white.opacity(0.8) : .secondary)
-                    .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-            }
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .containerBackground(for: .widget) {
-            if let bgImage = entry.backgroundImage {
-                ZStack {
-                    Image(uiImage: bgImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                    Color.black.opacity(0.4)
-                }
-            } else {
-                colorScheme == .dark ? Color.black : Color.white
-            }
+        } else {
+            colorScheme == .dark ? Color.black : Color.white
         }
     }
 }
 
-struct WidgetLargeView: View {
-    let entry: OdakEventEntry
-    @Environment(\.colorScheme) var colorScheme
-
-    var accentColor: Color {
-        entry.isCountdown ? .orange : .blue
-    }
-
-    var hasImage: Bool {
-        entry.backgroundImage != nil
-    }
-
-    var progressValue: CGFloat {
-        let maxDays: CGFloat = 365
-        let progress = CGFloat(entry.daysCount) / maxDays
-        return entry.isCountdown ? (1.0 - min(1.0, progress)) : min(1.0, progress)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(entry.isCountdown ? "COUNTDOWN" : "SINCE")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundStyle(hasImage ? .white.opacity(0.8) : accentColor)
-                    .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-
-                Spacer()
-
-                Image(systemName: entry.isCountdown ? "hourglass" : "clock.arrow.circlepath")
-                    .foregroundStyle(hasImage ? .white.opacity(0.8) : accentColor)
-                    .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-            }
-
-            if let event = entry.event {
-                Text(event.title)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundStyle(hasImage ? .white : (colorScheme == .dark ? .white : .primary))
-                    .lineLimit(2)
-                    .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-
-                Spacer()
-
-                HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("\(entry.daysCount)")
-                            .font(.system(size: 64, weight: .bold, design: .rounded))
-                            .foregroundStyle(hasImage ? .white : accentColor)
-                            .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-
-                        Text(entry.isCountdown ? "days remaining" : "days elapsed")
-                            .font(.subheadline)
-                            .foregroundStyle(hasImage ? .white.opacity(0.8) : .secondary)
-                            .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-                    }
-
-                    Spacer()
-
-                    if let targetDate = event.targetDate {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(entry.isCountdown ? "Target" : "Started")
-                                .font(.caption2)
-                                .foregroundStyle(hasImage ? .white.opacity(0.7) : .secondary)
-                                .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-                            Text(targetDate, style: .date)
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundStyle(hasImage ? .white : (colorScheme == .dark ? .white : .primary))
-                                .shadow(color: hasImage ? .black.opacity(0.5) : .clear, radius: 2, x: 0, y: 1)
-                        }
-                    }
-                }
-
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(hasImage ? Color.white.opacity(0.3) : (colorScheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.1)))
-                            .frame(height: 8)
-
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(hasImage ? Color.white : accentColor)
-                            .frame(width: max(8, geometry.size.width * progressValue), height: 8)
-                    }
-                }
-                .frame(height: 8)
-            } else {
-                Spacer()
-                VStack {
-                    Image(systemName: "calendar.badge.plus")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
-                    Text("Add an event in Odak")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                Spacer()
-            }
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .containerBackground(for: .widget) {
-            if let bgImage = entry.backgroundImage {
-                ZStack {
-                    Image(uiImage: bgImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                    Color.black.opacity(0.4)
-                }
-            } else {
-                colorScheme == .dark ? Color.black : Color.white
-            }
-        }
-    }
-}
-
-// MARK: - Entry View
-
-struct OdakWidgetEntryView: View {
-    var entry: OdakEventEntry
-    @Environment(\.widgetFamily) var family
-
-    var body: some View {
-        switch family {
-        case .systemSmall: WidgetSmallView(entry: entry)
-        case .systemMedium: WidgetMediumView(entry: entry)
-        case .systemLarge: WidgetLargeView(entry: entry)
-        default: WidgetSmallView(entry: entry)
-        }
-    }
-}
-
-// MARK: - Ahead Widget
+// MARK: - Widgets
 
 struct OdakAheadWidget: Widget {
     let kind = "OdakAheadWidget"
 
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: SelectAheadEventIntent.self, provider: AheadEventProvider()) { entry in
-            OdakWidgetEntryView(entry: entry)
+            OdakWidgetView(entry: entry)
                 .widgetURL(entry.event != nil ? URL(string: "odak://dates/event/\(entry.event!.id)") : URL(string: "odak://dates"))
         }
         .configurationDisplayName("Countdown")
@@ -592,14 +397,12 @@ struct OdakAheadWidget: Widget {
     }
 }
 
-// MARK: - Since Widget
-
 struct OdakSinceWidget: Widget {
     let kind = "OdakSinceWidget"
 
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: SelectSinceEventIntent.self, provider: SinceEventProvider()) { entry in
-            OdakWidgetEntryView(entry: entry)
+            OdakWidgetView(entry: entry)
                 .widgetURL(entry.event != nil ? URL(string: "odak://dates/event/\(entry.event!.id)") : URL(string: "odak://dates"))
         }
         .configurationDisplayName("Milestone")
@@ -607,7 +410,3 @@ struct OdakSinceWidget: Widget {
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
-
-// MARK: - Widget Bundle
-// Note: Widgets are registered in LiveActivityWidgetBundle (ios/LiveActivity/LiveActivityWidgetBundle.swift)
-// This file provides the widget definitions that are compiled into the LiveActivity target
